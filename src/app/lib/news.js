@@ -1,20 +1,25 @@
-import { kv } from "@vercel/kv";
+import { Redis } from "@upstash/redis";
 
+const redis = new Redis({
+  url: process.env.STORAGE_KV_REST_API_URL,
+  token: process.env.STORAGE_KV_REST_API_TOKEN,
+});
 const API_KEY = process.env.NEWSDATA_API_KEY;
 const BASE_URL = "https://newsdata.io/api/1";
 
+
 const TTL = {
-  latest: 5 * 60,
-  category: 5 * 60,
+  latest: 5 * 60, 
+  category: 5 * 60, 
   article: 24 * 60 * 60,
-  search: 2 * 60,
+  search: 2 * 60, 
 };
 
 // ── Cache helpers ────────────────────────────────────────────────────────────
 
 async function getCache(key) {
   try {
-    return await kv.get(key);
+    return await redis.get(key);
   } catch {
     return null;
   }
@@ -22,7 +27,7 @@ async function getCache(key) {
 
 async function setCache(key, data, ttlSeconds) {
   try {
-    await kv.set(key, data, { ex: ttlSeconds });
+    await redis.set(key, data, { ex: ttlSeconds });
   } catch (err) {
     console.error("[news cache] SET error:", err);
   }

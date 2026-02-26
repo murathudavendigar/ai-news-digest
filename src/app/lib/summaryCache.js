@@ -1,6 +1,12 @@
-import { kv } from "@vercel/kv";
 
-const TTL_SECONDS = 7 * 24 * 60 * 60; // 7 gün
+import { Redis } from "@upstash/redis";
+
+const redis = new Redis({
+  url: process.env.STORAGE_KV_REST_API_URL,
+  token: process.env.STORAGE_KV_REST_API_TOKEN,
+});
+
+const TTL_SECONDS = 7 * 24 * 60 * 60; 
 const KEY_PREFIX = "summary:";
 
 function buildKey(articleId) {
@@ -9,7 +15,7 @@ function buildKey(articleId) {
 
 export async function getCachedSummary(articleId) {
   try {
-    const data = await kv.get(buildKey(articleId));
+    const data = await redis.get(buildKey(articleId));
     return data ?? null;
   } catch (err) {
     console.error("[summaryCache] GET error:", err);
@@ -19,7 +25,7 @@ export async function getCachedSummary(articleId) {
 
 export async function setCachedSummary(articleId, summaryData) {
   try {
-    await kv.set(buildKey(articleId), summaryData, { ex: TTL_SECONDS });
+    await redis.set(buildKey(articleId), summaryData, { ex: TTL_SECONDS });
   } catch (err) {
     console.error("[summaryCache] SET error:", err);
   }
@@ -27,7 +33,7 @@ export async function setCachedSummary(articleId, summaryData) {
 
 export async function invalidateCachedSummary(articleId) {
   try {
-    await kv.del(buildKey(articleId));
+    await redis.del(buildKey(articleId));
   } catch (err) {
     console.error("[summaryCache] DEL error:", err);
   }
@@ -35,7 +41,7 @@ export async function invalidateCachedSummary(articleId) {
 
 export async function getCacheStats() {
   try {
-    const keys = await kv.keys(KEY_PREFIX + "*");
+    const keys = await redis.keys(KEY_PREFIX + "*");
     return { total: keys.length, prefix: KEY_PREFIX };
   } catch (err) {
     console.error("[summaryCache] STATS error:", err);
