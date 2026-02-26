@@ -1,19 +1,17 @@
-import AISummary from "@/app/components/AISummary";
 import { getNewsByArticleID } from "@/app/lib/news";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import AISummary from "@/app/components/AISummary";
 
 export default async function NewsDetailPage({ params }) {
   const { id } = await params;
   const data = await getNewsByArticleID(id);
-
   const article = data.results ? data.results[0] : null;
 
-  if (!article) {
-    notFound();
-  }
-  // Build the context object that will be passed to the AI summarizer
+  if (!article) notFound();
+
   const articleContext = {
+    articleId: article.article_id,
     title: article.title,
     description: article.description ?? undefined,
     sourceUrl: article.link,
@@ -21,8 +19,7 @@ export default async function NewsDetailPage({ params }) {
     publishedAt: article.pubDate ?? undefined,
     category: article.category ?? undefined,
     keywords: article.keywords ?? undefined,
-    // article.language is the ISO 639-1 code from NewsData API (e.g. "tr", "en")
-    language: article.language ?? undefined,
+    language: article.language ?? undefined, 
   };
 
   return (
@@ -39,10 +36,8 @@ export default async function NewsDetailPage({ params }) {
           <span className="text-gray-900 dark:text-white">Haber Detayı</span>
         </div>
 
-        {/* Content */}
         <article className="overflow-hidden bg-white shadow-xl dark:bg-gray-800 rounded-2xl">
           <div className="p-8">
-            {/* Article Image */}
             {article.image_url && (
               <div className="mb-6 overflow-hidden rounded-xl">
                 <img
@@ -53,12 +48,10 @@ export default async function NewsDetailPage({ params }) {
               </div>
             )}
 
-            {/* Article Title */}
             <h1 className="mb-4 text-4xl font-bold text-gray-900 dark:text-white">
               {article.title}
             </h1>
 
-            {/* Meta Information */}
             <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
               <div className="flex items-center gap-4">
                 {article.source_icon && (
@@ -77,7 +70,6 @@ export default async function NewsDetailPage({ params }) {
                   </p>
                 </div>
               </div>
-
               <div className="text-right">
                 <p className="text-sm text-slate-500">
                   {new Date(article.pubDate).toLocaleDateString("tr-TR", {
@@ -90,8 +82,6 @@ export default async function NewsDetailPage({ params }) {
                 </p>
               </div>
             </div>
-
-            {/* Category & Keywords */}
 
             <div className="flex flex-wrap gap-2 mb-8">
               {article.category?.map((cat) => (
@@ -108,18 +98,17 @@ export default async function NewsDetailPage({ params }) {
                 🌐 {article.language}
               </span>
             </div>
+
             <div className="flex flex-wrap gap-2 mb-6">
-              {article.keywords &&
-                article.keywords.map((keyword, index) => (
-                  <span
-                    key={index}
-                    className="px-3 py-1 text-sm text-gray-700 bg-gray-100 rounded-full dark:bg-gray-700 dark:text-gray-300">
-                    #{keyword}
-                  </span>
-                ))}
+              {article.keywords?.map((keyword, index) => (
+                <span
+                  key={index}
+                  className="px-3 py-1 text-sm text-gray-700 bg-gray-100 rounded-full dark:bg-gray-700 dark:text-gray-300">
+                  #{keyword}
+                </span>
+              ))}
             </div>
 
-            {/* Description */}
             {article.description && (
               <div className="mb-8 prose dark:prose-invert max-w-none">
                 <p className="text-lg leading-relaxed text-gray-700 dark:text-gray-300">
@@ -128,15 +117,14 @@ export default async function NewsDetailPage({ params }) {
               </div>
             )}
 
-            {/* ── AI SUMMARY SECTION ─────────────────────────────────── */}
+            {/* ── AI SUMMARY ── */}
             <div className="mb-8">
               <AISummary
                 article={articleContext}
-                forceLanguage="tr"
-                // fast={true}        ← uncomment to use the faster/cheaper model
+                // forceLanguage="tr"  ← her zaman Türkçe için yorumu kaldır
+                // fast={true}         ← hızlı/ucuz model için
               />
             </div>
-            {/* ──────────────────────────────────────────────────────── */}
 
             {/* External Link */}
             <div className="p-6 mt-12 text-center border rounded-2xl bg-amber-50 dark:bg-amber-900/10 border-amber-100 dark:border-amber-900/30">
@@ -145,9 +133,7 @@ export default async function NewsDetailPage({ params }) {
               </h3>
               <p className="mb-6 text-sm text-amber-700 dark:text-amber-500">
                 Ücretsiz plan kapsamında haberin sadece özeti sunulmaktadır.
-                Makalenin tamamına doğrudan kaynaktan erişebilirsiniz.
               </p>
-
               <a
                 href={article.link}
                 target="_blank"
@@ -155,7 +141,6 @@ export default async function NewsDetailPage({ params }) {
                 className="inline-block w-full sm:w-auto bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold py-4 px-10 rounded-xl hover:scale-[1.02] transition-transform active:scale-95">
                 Haberin Tamamını Oku
               </a>
-
               <p className="mt-4 text-[10px] text-slate-400 break-all">
                 Kaynak: {article.link}
               </p>
@@ -163,16 +148,12 @@ export default async function NewsDetailPage({ params }) {
           </div>
         </article>
 
-        {/* Note */}
-        {process.env.NODE_ENV === "development" && (
-          <div className="p-4 mt-8 border border-yellow-200 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-800">
-            <p className="text-sm text-yellow-800 dark:text-yellow-300">
-              💡 <strong>Not: </strong> NewsDATA ücretsiz planı tam haber
-              içeriği sunmaz. Gerçek uygulamalarda kendi API&apos;nizi veya
-              veritabanınızı kullanırsınız.
-            </p>
-          </div>
-        )}
+        <div className="p-4 mt-8 border border-yellow-200 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-800">
+          <p className="text-sm text-yellow-800 dark:text-yellow-300">
+            💡 <strong>Not: </strong> NewsDATA ücretsiz planı tam haber içeriği
+            sunmaz.
+          </p>
+        </div>
       </div>
     </div>
   );

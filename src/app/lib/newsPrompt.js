@@ -1,19 +1,29 @@
+
 const LANGUAGE_NAMES = {
   tr: "Turkish",
+  turkish: "Turkish",
   en: "English",
+  english: "English",
   de: "German",
+  german: "German",
   fr: "French",
+  french: "French",
   es: "Spanish",
+  spanish: "Spanish",
   ar: "Arabic",
+  arabic: "Arabic",
   ru: "Russian",
+  russian: "Russian",
   zh: "Chinese (Simplified)",
 };
 
 export function resolveResponseLanguage(articleLanguage, forceLanguage) {
-  const lang = forceLanguage || articleLanguage || "en";
-  const validLang = LANGUAGE_NAMES[lang] ? lang : "en";
-  return { code: validLang, name: LANGUAGE_NAMES[validLang] };
+  const raw = (forceLanguage || articleLanguage || "en").toLowerCase();
+  const name = LANGUAGE_NAMES[raw];
+
+  return name ? { code: raw, name } : { code: "en", name: "English" };
 }
+
 
 export function buildSystemPrompt(responseLang) {
   return `You are an expert news analyst. You receive metadata about a news article (title, lead paragraph, source, keywords, categories) and produce a structured analysis in ${responseLang.name}.
@@ -42,6 +52,7 @@ Field rules:
 - "readingTimeMinutes": estimated full-article reading time.
 - "confidence": how confident you are based on available metadata.`;
 }
+
 
 export function buildUserPrompt(ctx) {
   const lines = [
@@ -72,6 +83,7 @@ export function buildUserPrompt(ctx) {
 
   return lines.join("\n");
 }
+
 
 export function buildNewsSummaryPrompt(ctx, options = {}) {
   const responseLang = resolveResponseLanguage(
