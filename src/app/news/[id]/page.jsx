@@ -1,7 +1,10 @@
+import AISummary from "@/app/components/AISummary";
+import ArticleAnalysis from "@/app/components/ArticleAnalysis";
+import NewsComparison from "@/app/components/NewsComparison";
+import ReadingProgress from "@/app/components/ReadingProgress";
 import { getNewsByArticleID } from "@/app/lib/news";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import AISummary from "@/app/components/AISummary";
 
 export default async function NewsDetailPage({ params }) {
   const { id } = await params;
@@ -19,7 +22,7 @@ export default async function NewsDetailPage({ params }) {
     publishedAt: article.pubDate ?? undefined,
     category: article.category ?? undefined,
     keywords: article.keywords ?? undefined,
-    language: article.language ?? undefined, 
+    language: article.language ?? undefined,
   };
 
   return (
@@ -35,6 +38,8 @@ export default async function NewsDetailPage({ params }) {
           <span>/</span>
           <span className="text-gray-900 dark:text-white">Haber Detayı</span>
         </div>
+
+        <ReadingProgress title={article.title} />
 
         <article className="overflow-hidden bg-white shadow-xl dark:bg-gray-800 rounded-2xl">
           <div className="p-8">
@@ -121,39 +126,55 @@ export default async function NewsDetailPage({ params }) {
             <div className="mb-8">
               <AISummary
                 article={articleContext}
-                // forceLanguage="tr"  ← her zaman Türkçe için yorumu kaldır
-                // fast={true}         ← hızlı/ucuz model için
+                // forceLanguage="tr"
+                // fast={true}
               />
             </div>
 
-            {/* External Link */}
-            <div className="p-6 mt-12 text-center border rounded-2xl bg-amber-50 dark:bg-amber-900/10 border-amber-100 dark:border-amber-900/30">
-              <h3 className="mb-2 font-bold text-amber-800 dark:text-amber-400">
-                Haberin Devamı Mevcut Değil
-              </h3>
-              <p className="mb-6 text-sm text-amber-700 dark:text-amber-500">
-                Ücretsiz plan kapsamında haberin sadece özeti sunulmaktadır.
-              </p>
+            {/* ── DEEP ANALYSIS ── */}
+            <div className="mb-4">
+              <ArticleAnalysis article={article} />
+            </div>
+
+            {/* ── SOURCE COMPARISON ── */}
+            <div className="mb-8">
+              <NewsComparison article={article} />
+            </div>
+
+            {/* External Link — minimal */}
+            <div className="flex items-center justify-between py-4 mt-8 border-t border-gray-100 dark:border-gray-700">
+              <div className="flex items-center gap-2 text-sm text-gray-400 dark:text-gray-500">
+                {article.source_icon && (
+                  <img
+                    src={article.source_icon}
+                    className="w-4 h-4 rounded-full"
+                    alt=""
+                  />
+                )}
+                <span>{article.source_name}</span>
+              </div>
               <a
                 href={article.link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-block w-full sm:w-auto bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold py-4 px-10 rounded-xl hover:scale-[1.02] transition-transform active:scale-95">
-                Haberin Tamamını Oku
+                className="flex items-center gap-2 text-sm font-semibold text-gray-700 transition-colors dark:text-gray-300 hover:text-gray-900 dark:hover:text-white group">
+                Kaynağa git
+                <svg
+                  className="w-4 h-4 group-hover:translate-x-0.5 transition-transform"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                  />
+                </svg>
               </a>
-              <p className="mt-4 text-[10px] text-slate-400 break-all">
-                Kaynak: {article.link}
-              </p>
             </div>
           </div>
         </article>
-
-        <div className="p-4 mt-8 border border-yellow-200 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-800">
-          <p className="text-sm text-yellow-800 dark:text-yellow-300">
-            💡 <strong>Not: </strong> NewsDATA ücretsiz planı tam haber içeriği
-            sunmaz.
-          </p>
-        </div>
       </div>
     </div>
   );

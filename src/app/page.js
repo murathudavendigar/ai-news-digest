@@ -1,10 +1,10 @@
-import NewsCard from "@/app/components/NewsCard";
+import NewsFeed from "@/app/components/NewsFeed";
+import DailySummary from "@/app/components/DailySummary";
 import { getLatest } from "@/app/lib/news";
 
 export default async function HomePage() {
   const newsData = await getLatest("tr");
 
-  console.log(newsData);
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="container px-4 py-8 mx-auto">
@@ -26,19 +26,7 @@ export default async function HomePage() {
           </p>
         </div>
 
-        {/* Haber Grid */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {newsData.results.map((article, index) => (
-            <NewsCard
-              key={index}
-              article={article}
-              priority={index < 3} // İlk 3 haber için priority loading
-            />
-          ))}
-        </div>
-
-        {/* No Results */}
-        {newsData.results.length === 0 && (
+        {newsData.results?.length === 0 ? (
           <div className="py-20 text-center">
             <div className="mb-4 text-6xl">📭</div>
             <h3 className="mb-2 text-xl font-semibold text-gray-700 dark:text-gray-300">
@@ -48,6 +36,14 @@ export default async function HomePage() {
               Lütfen daha sonra tekrar kontrol edin.
             </p>
           </div>
+        ) : (
+          <>
+            <DailySummary />
+            <NewsFeed
+              initialArticles={newsData.results}
+              initialNextPage={newsData.nextPage || null}
+            />
+          </>
         )}
       </div>
     </div>

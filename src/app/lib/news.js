@@ -7,12 +7,12 @@ const redis = new Redis({
 const API_KEY = process.env.NEWSDATA_API_KEY;
 const BASE_URL = "https://newsdata.io/api/1";
 
-
+// TTL'ler — haberlerin ne kadar süre cache'de kalacağı
 const TTL = {
-  latest: 5 * 60, 
-  category: 5 * 60, 
-  article: 24 * 60 * 60,
-  search: 2 * 60, 
+  latest: 5 * 60, // 5 dakika (ana sayfa haberleri sık değişir)
+  category: 5 * 60, // 5 dakika
+  article: 24 * 60 * 60, // 24 saat (tek haber değişmez)
+  search: 2 * 60, // 2 dakika (arama sonuçları)
 };
 
 // ── Cache helpers ────────────────────────────────────────────────────────────
@@ -43,12 +43,12 @@ async function fetchFromAPI(url) {
 
 // ── Public functions ─────────────────────────────────────────────────────────
 
-export async function getLatest(language = "tr") {
-  const cacheKey = `news:latest:${language}`;
+export async function getLatest(language = "tr", nextPage = null) {
+  const cacheKey = `news:latest:${language}:${nextPage || "first"}`;
   const cached = await getCache(cacheKey);
   if (cached) return cached;
 
-  const url = `${BASE_URL}/latest?language=${language}&apiKey=${API_KEY}`;
+  const url = `${BASE_URL}/latest?language=${language}&apiKey=${API_KEY}${nextPage ? `&page=${nextPage}` : ""}`;
   const data = await fetchFromAPI(url);
   await setCache(cacheKey, data, TTL.latest);
   return data;

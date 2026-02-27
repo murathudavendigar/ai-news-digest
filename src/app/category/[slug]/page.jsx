@@ -1,4 +1,5 @@
-import NewsCard from "@/app/components/NewsCard";
+import DailySummary from "@/app/components/DailySummary";
+import NewsFeed from "@/app/components/NewsFeed";
 import { getNewsByCategory } from "@/app/lib/news";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -25,7 +26,7 @@ export default async function CategoryPage({ params }) {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container px-4 py-8 mx-auto">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-3">
@@ -40,41 +41,44 @@ export default async function CategoryPage({ params }) {
         </div>
 
         {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mb-6">
+        <div className="flex items-center gap-2 mb-6 text-sm text-gray-600 dark:text-gray-400">
           <Link
             href="/"
             className="hover:text-primary-600 dark:hover:text-primary-400">
             Anasayfa
           </Link>
           <span>/</span>
-          <span className="text-gray-900 dark:text-white font-semibold">
+          <span className="font-semibold text-gray-900 dark:text-white">
             {categoryData.title}
           </span>
         </div>
 
         {/* Stats */}
-        <div className="bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-lg p-4 mb-8">
+        <div className="p-4 mb-8 border rounded-lg bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-800">
           <p className="text-sm text-primary-700 dark:text-primary-300">
             📊 <strong>{newsData.totalResults}</strong>{" "}
             {categoryData.title.toLowerCase()} haberi bulundu
           </p>
         </div>
 
-        {/* Haber Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {newsData.results.map((article) => (
-            <NewsCard key={article.article_id} article={article} />
-          ))}
-        </div>
-
-        {/* No Results */}
-        {newsData.results.length === 0 && (
-          <div className="text-center py-20">
-            <div className="text-6xl mb-4">📭</div>
-            <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              Bu kategoride haber bulunamadı
+        {newsData.results?.length === 0 ? (
+          <div className="py-20 text-center">
+            <div className="mb-4 text-6xl">📭</div>
+            <h3 className="mb-2 text-xl font-semibold text-gray-700 dark:text-gray-300">
+              Henüz haber bulunmuyor
             </h3>
+            <p className="text-gray-500 dark:text-gray-400">
+              Lütfen daha sonra tekrar kontrol edin.
+            </p>
           </div>
+        ) : (
+          <>
+            <DailySummary />
+            <NewsFeed
+              initialArticles={newsData.results}
+              initialNextPage={newsData.nextPage || null}
+            />
+          </>
         )}
       </div>
     </div>
