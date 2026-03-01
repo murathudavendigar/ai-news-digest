@@ -38,6 +38,12 @@ export async function GET(request) {
     summarizeMiss,
     analyzMiss,
     compareMiss,
+    subscriberCount,
+    subscriberTotal,
+    subscriberToday,
+    streamHits,
+    streamMiss,
+    relatedCalls,
   ] = await Promise.all([
     redis.lrange("cron:log", 0, 29).catch(() => []),
     redis.get("cron:lastSuccess").catch(() => null),
@@ -57,6 +63,15 @@ export async function GET(request) {
     redis.get("stats:miss:summarize").catch(() => 0),
     redis.get("stats:miss:analyze").catch(() => 0),
     redis.get("stats:miss:compare").catch(() => 0),
+    // Aboneler
+    redis.scard("digest:subscribers").catch(() => 0),
+    redis.get("stats:subscribers:total").catch(() => 0),
+    redis.get(`stats:subscribers:today:${today}`).catch(() => 0),
+    // Stream summary istatistikleri
+    redis.get("stats:hits:stream-summary").catch(() => 0),
+    redis.get("stats:miss:stream-summary").catch(() => 0),
+    // Related news çağrı sayısı
+    redis.get("stats:api:related-news:calls").catch(() => 0),
   ]);
 
   // Per-provider AI stats
@@ -148,6 +163,10 @@ export async function GET(request) {
             hits: Number(compareHits) || 0,
             misses: Number(compareMiss) || 0,
           },
+          "stream-summary": {
+            hits: Number(streamHits) || 0,
+            misses: Number(streamMiss) || 0,
+          },
         },
       },
       errors: {
@@ -179,6 +198,14 @@ export async function GET(request) {
       },
       redis: { dbSize: Number(dbSize) || 0 },
       aiProviders,
+      subscribers: {
+        total: Number(subscriberCount) || 0, // Redis SCARD (gerçek sayı)
+        signupsAllTime: Number(subscriberTotal) || 0, // stats sayacı
+        signupsToday: Number(subscriberToday) || 0,
+      },
+      newFeatures: {
+        relatedNewsCalls: Number(relatedCalls) || 0,
+      },
     },
   });
 }
@@ -187,7 +214,21 @@ export async function GET(request) {
 export async function POST(request) {
   if (!verifyAdminToken(request)) return unauth();
 
-  const { action } = await request.json().catch(() => ({}));
+  const { action, email: bodyEmail } = await request.json().catch(() => ({}));
+
+  if (action === "list-subscribers") {
+    const emails = await redis.smembers("digest:subscribers").catch(() => []);
+    return NextResponse.json({ emails: emails.sort() });
+  }
+
+  if (action === "remove-subscriber") {
+    if (!bodyEmail)
+      return NextResponse.json({ error: "email gerekli" }, { status: 400 });
+    await redis
+      .srem("digest:subscribers", bodyEmail.toLowerCase().trim())
+      .catch(() => {});
+    return NextResponse.json({ removed: true });
+  }
 
   if (action === "trigger-cron") {
     const result = await runDailySummaryCron("admin-manual");
@@ -231,6 +272,10 @@ export async function POST(request) {
       "stats:miss:summarize",
       "stats:miss:analyze",
       "stats:miss:compare",
+      "stats:hits:stream-summary",
+      "stats:miss:stream-summary",
+      "stats:api:related-news:calls",
+      `stats:subscribers:today:${new Date().toISOString().slice(0, 10)}`,
       ...providerKeys.flatMap((k) => [
         `stats:ai:${k}:calls`,
         `stats:ai:${k}:calls:today`,

@@ -1,6 +1,5 @@
 "use client";
 
-
 import { useCallback, useEffect, useState } from "react";
 import NewsContext from "./NewsContext";
 import NewsScore from "./NewsScore";
@@ -140,6 +139,41 @@ export default function ArticleAnalysis({ article }) {
         <NewsScore score={result.score} />
         <NewsContext context={result.context} />
       </div>
+
+      {/* Fact-check chip'leri — score prompt'tan üretiliyor, mevcut cache'den geliyor */}
+      {result.score?.factCheckSuggestions?.length > 0 && (
+        <div className="p-4 border rounded-xl border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900/50">
+          <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest mb-2.5">
+            🔍 Doğrulama Önerileri
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {result.score.factCheckSuggestions.map((suggestion, i) => {
+              // İddia metnini kısalt— ilk 60 kar
+              const label =
+                suggestion.length > 60
+                  ? suggestion.slice(0, 57) + "…"
+                  : suggestion;
+              const query = encodeURIComponent(suggestion.slice(0, 120));
+              return (
+                <a
+                  key={i}
+                  href={`https://www.google.com/search?q=${query}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={suggestion}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full
+                             bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700
+                             text-stone-600 dark:text-stone-300
+                             hover:border-amber-400 dark:hover:border-amber-500 hover:text-amber-700 dark:hover:text-amber-400
+                             transition-all">
+                  <span className="text-[10px]">&#9654;</span>
+                  {label}
+                </a>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

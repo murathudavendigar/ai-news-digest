@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { sortByHistory } from "@/app/hooks/useReadingHistory";
+import { useCallback, useEffect, useState } from "react";
 import NewsCard from "./NewsCard";
 
 export default function NewsFeed({ initialArticles, initialNextPage }) {
@@ -8,6 +9,11 @@ export default function NewsFeed({ initialArticles, initialNextPage }) {
   const [nextPage, setNextPage] = useState(initialNextPage);
   const [loading, setLoading] = useState(false);
   const [exhausted, setExhausted] = useState(!initialNextPage);
+
+  // Client mount'ta localStorage geçmişine göre sırala
+  useEffect(() => {
+    setArticles((prev) => sortByHistory(prev));
+  }, []);
 
   const loadMore = useCallback(async () => {
     if (!nextPage || loading) return;
@@ -23,7 +29,7 @@ export default function NewsFeed({ initialArticles, initialNextPage }) {
         const fresh = (data.results || []).filter(
           (a) => !existingIds.has(a.article_id),
         );
-        return [...prev, ...fresh];
+        return sortByHistory([...prev, ...fresh]);
       });
 
       setNextPage(data.nextPage || null);

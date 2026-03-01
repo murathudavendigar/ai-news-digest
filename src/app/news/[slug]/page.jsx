@@ -2,9 +2,13 @@ import AISummary from "@/app/components/AISummary";
 import ArticleAnalysis from "@/app/components/ArticleAnalysis";
 import NewsComparison from "@/app/components/NewsComparison";
 import ReadingToolbar from "@/app/components/ReadingToolbar";
+import RelatedArticles from "@/app/components/RelatedArticles";
 import { getNewsByArticleID } from "@/app/lib/news";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+
+// Okuma geçmişi tracker — client component (localStorage'a yazar)
+import ReadHistoryTracker from "@/app/components/ReadHistoryTracker";
 
 // Slug formatı: "haber-basligi--articleId"
 // ID her zaman son "--" sonrasında gelir
@@ -16,7 +20,6 @@ function extractId(slug) {
 export default async function NewsDetailPage({ params }) {
   const { slug } = await params;
   const id = extractId(slug);
-  console.log(id);
   const data = await getNewsByArticleID(id);
   const article = data.results ? data.results[0] : null;
   if (!article) notFound();
@@ -145,10 +148,18 @@ export default async function NewsDetailPage({ params }) {
 
             {/* AI Bölümleri */}
             <div className="space-y-6">
+              <ReadHistoryTracker categories={article.category} />
               <AISummary article={articleContext} />
               <ArticleAnalysis article={article} />
               <NewsComparison article={article} />
             </div>
+
+            {/* Bu konudaki haberler */}
+            <RelatedArticles
+              keywords={article.keywords || []}
+              currentId={article.article_id}
+              title={article.title}
+            />
 
             {/* Kaynak footer */}
             <div className="flex items-center justify-between pt-6 mt-8 border-t border-stone-100 dark:border-stone-800">

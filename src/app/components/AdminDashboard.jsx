@@ -129,6 +129,10 @@ export default function AdminDashboard() {
   const [working, setWorking] = useState(null);
   const [toast, setToast] = useState(null);
   const [autoRefresh, setAutoRefresh] = useState(false);
+  const [subscriberList, setSubscriberList] = useState(null);
+  const [subListLoading, setSubListLoading] = useState(false);
+  const [subFilter, setSubFilter] = useState("");
+  const [removingEmail, setRemovingEmail] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -151,6 +155,48 @@ export default function AdminDashboard() {
     const id = setInterval(load, 30000);
     return () => clearInterval(id);
   }, [autoRefresh, load]);
+
+  const toggleSubscriberList = async () => {
+    if (subscriberList !== null) {
+      setSubscriberList(null);
+      setSubFilter("");
+      return;
+    }
+    setSubListLoading(true);
+    try {
+      const r = await fetch("/api/admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "list-subscribers" }),
+      });
+      const res = await r.json();
+      setSubscriberList(res.emails || []);
+    } catch {
+      setSubscriberList([]);
+    } finally {
+      setSubListLoading(false);
+    }
+  };
+
+  const removeSubscriber = async (email) => {
+    if (!confirm(`"${email}" abonelikten çıkarılsın mı?`)) return;
+    setRemovingEmail(email);
+    try {
+      const r = await fetch("/api/admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "remove-subscriber", email }),
+      });
+      if (r.ok) {
+        setSubscriberList((prev) => prev.filter((e) => e !== email));
+        // stats'leri yenile
+        load();
+      }
+    } catch {
+    } finally {
+      setRemovingEmail(null);
+    }
+  };
 
   const act = async (action, label) => {
     setWorking(action);
@@ -198,6 +244,8 @@ export default function AdminDashboard() {
     now,
   } = data || {};
   const s = stats || {};
+  const sub = s.subscribers || {};
+  const nf = s.newFeatures || {};
 
   return (
     <div className="space-y-6">
@@ -265,6 +313,122 @@ export default function AdminDashboard() {
           }
           sub={`${s.cache?.hitsToday ?? 0} hit / ${s.cache?.missesToday ?? 0} miss`}
         />
+      </div>
+
+      {/* Aboneler & Yeni Özellik Sayıçları */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {/* Aboneler */}
+        <Section
+          title="📧 E-posta Aboneleri"
+          right={
+            <button
+              onClick={toggleSubscriberList}
+              disabled={subListLoading}
+              className="flex items-center gap-1.5 text-[10px] font-bold text-stone-500 hover:text-amber-400 transition-colors disabled:opacity-40">
+              {subListLoading ? <Spinner sm /> : null}
+              {subscriberList !== null ? "🙈 Gizle" : "👁 Listeyi Gör"}
+            </button>
+          }>
+          <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-3">
+              <Stat
+                large
+                label="Toplam Abone"
+                value={sub.total ?? 0}
+                color="amber"
+                sub="Redis SET (aktif)"
+              />
+              <Stat
+                label="Bugün Yeni"
+                value={sub.signupsToday ?? 0}
+                color={sub.signupsToday > 0 ? "emerald" : "white"}
+                sub="Kaydoldu"
+              />
+              <Stat
+                label="Tüm Zamanlar"
+                value={sub.signupsAllTime ?? 0}
+                color="white"
+                sub="Kümülatif sayış"
+              />
+            </div>
+
+            {/* Abone listesi paneli */}
+            {subscriberList !== null && (
+              <div className="border border-stone-800 rounded-xl overflow-hidden">
+                <div className="px-3 py-2 bg-stone-950 border-b border-stone-800 flex items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder="Filtrele…"
+                    value={subFilter}
+                    onChange={(e) => setSubFilter(e.target.value)}
+                    className="flex-1 bg-transparent text-[11px] text-stone-300 placeholder-stone-700 outline-none"
+                  />
+                  <span className="text-[9px] text-stone-600 shrink-0">
+                    {
+                      subscriberList.filter((e) =>
+                        e.includes(subFilter.toLowerCase()),
+                      ).length
+                    }{" "}
+                    / {subscriberList.length}
+                  </span>
+                </div>
+                {subscriberList.length === 0 ? (
+                  <p className="px-4 py-6 text-center text-xs text-stone-600">
+                    Henüz abone yok.
+                  </p>
+                ) : (
+                  <div className="max-h-60 overflow-y-auto divide-y divide-stone-800/60">
+                    {subscriberList
+                      .filter((e) => e.includes(subFilter.toLowerCase()))
+                      .map((email, i) => (
+                        <div
+                          key={email}
+                          className="flex items-center gap-3 px-3 py-2 hover:bg-stone-800/40 transition-colors group">
+                          <span className="text-[9px] text-stone-700 tabular-nums w-5 shrink-0">
+                            {i + 1}
+                          </span>
+                          <span className="text-[11px] text-stone-300 font-mono truncate flex-1">
+                            {email}
+                          </span>
+                          <button
+                            onClick={() => removeSubscriber(email)}
+                            disabled={removingEmail === email}
+                            title="Abonelikten çıkar"
+                            className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity
+                                       text-[9px] font-bold text-red-500 hover:text-red-400
+                                       disabled:opacity-40 px-1.5 py-0.5 rounded border border-red-800/50
+                                       hover:bg-red-950/30">
+                            {removingEmail === email ? "⋯" : "✕ Çıkar"}
+                          </button>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </Section>
+
+        {/* Yeni özellik kullanım sayaçları */}
+        <Section title="📡 Yeni Özellik Sayaçları">
+          <div className="grid grid-cols-2 gap-3">
+            <Stat
+              label="İlgili Haberler"
+              value={nf.relatedNewsCalls ?? 0}
+              color="white"
+              sub="/api/related-news çağrısı"
+            />
+            <Stat
+              label="Stream Özet"
+              value={
+                (s.cache?.byEndpoint?.["stream-summary"]?.hits ?? 0) +
+                (s.cache?.byEndpoint?.["stream-summary"]?.misses ?? 0)
+              }
+              color="white"
+              sub={`${s.cache?.byEndpoint?.["stream-summary"]?.hits ?? 0} cache hit`}
+            />
+          </div>
+        </Section>
       </div>
 
       {/* İşlemler */}

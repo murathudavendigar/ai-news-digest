@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useCallback, useRef, useState } from "react";
 
 const STANCE = {
   neutral: {
@@ -347,6 +347,53 @@ export default function NewsComparison({ article }) {
             </p>
           </div>
         )}
+
+        {/* Kaynak çeşitlilik skoru */}
+        {(() => {
+          const stances = (result.sourcePerspectives || [])
+            .map((s) => s.stance?.toLowerCase())
+            .filter(Boolean);
+          const uniqueStances = new Set(stances).size;
+          const srcCount = result.sources?.length || 1;
+          // 0-100: stance çeşitliliği %60 + kaynak sayısı %40
+          const diversityScore = Math.round(
+            (Math.min(uniqueStances, 5) / 5) * 60 +
+              (Math.min(srcCount, 5) / 5) * 40,
+          );
+          const color =
+            diversityScore >= 70
+              ? "bg-emerald-500"
+              : diversityScore >= 40
+                ? "bg-amber-500"
+                : "bg-red-500";
+          const label =
+            diversityScore >= 70
+              ? "Yüksek Çeşitlilik"
+              : diversityScore >= 40
+                ? "Orta Çeşitlilik"
+                : "Düşük Çeşitlilik";
+          return (
+            <div className="p-4 border rounded-xl border-stone-100 dark:border-stone-700 bg-stone-50 dark:bg-stone-900/50">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest">
+                  🎭 Kaynak Çeşitlilik Skoru
+                </p>
+                <span className="text-[10px] font-bold text-stone-500">
+                  {label} · {diversityScore}/100
+                </span>
+              </div>
+              <div className="h-1.5 rounded-full bg-stone-200 dark:bg-stone-700 overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-700 ${color}`}
+                  style={{ width: `${diversityScore}%` }}
+                />
+              </div>
+              <p className="text-[9px] text-stone-400 mt-1.5">
+                {srcCount} kaynak · {uniqueStances || 1} farklı perspektif
+              </p>
+            </div>
+          );
+        })()}
       </div>
 
       <div className="px-5 py-2.5 bg-stone-50 dark:bg-stone-900/40 border-t border-stone-100 dark:border-stone-800">

@@ -1,8 +1,9 @@
-
 import NewsFeed from "@/app/components/NewsFeed";
 import { getNewsByCategory } from "@/app/lib/news";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+
+export const revalidate = 300; // 5 dakikada bir ISR revalidate — ana sayfa ile aynı
 
 const CATEGORIES = {
   technology: {

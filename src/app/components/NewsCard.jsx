@@ -30,6 +30,26 @@ export default function NewsCard({ article, priority = false }) {
 
   const handleMouseEnter = useCallback(async () => {
     setHovered(true);
+    // Her iki cache'i ısıt — article-insight summary + analyze — kullanıcı tıklarsa anında hazır olsun
+    // article-insight ısınması (fire-and-forget, sonucu kullanmıyoruz burada)
+    const articleId = article.article_id;
+    const articleContext = {
+      articleId,
+      title: article.title,
+      description: article.description ?? undefined,
+      sourceUrl: article.link,
+      sourceName: article.source_name ?? undefined,
+      language: article.language ?? undefined,
+      category: article.category ?? undefined,
+      keywords: article.keywords ?? undefined,
+    };
+    fetch("/api/article-insight", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ article: articleContext }),
+    }).catch(() => {});
+
+    // Analyze cache'den sadece score'u çek — kart üzerinde göster
     if (scorePreview !== null) return;
     try {
       const res = await fetch("/api/analyze", {

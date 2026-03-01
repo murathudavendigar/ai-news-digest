@@ -54,25 +54,127 @@ function Spinner({ className = "w-4 h-4" }) {
 
 export default function AISummary({ article, forceLanguage, fast = false }) {
   // "loading" ile başla — idle→loading geçişi olmaz, titreme yok
-  const [state, setState] = useState("loading");
+  const [state, setState] = useState("loading"); // loading | streaming | success | error
   const [result, setResult] = useState(null);
   const [errorMsg, setErrorMsg] = useState("");
+  const [streamProgress, setStreamProgress] = useState(0); // 0-100
   const ranRef = useRef(false);
+  const streamTimerRef = useRef(null);
 
   const fetchSummary = useCallback(
     async (forceRefresh = false) => {
       setState("loading");
       setErrorMsg("");
+      setStreamProgress(0);
+
+      // Analyze cache'ini de ısıt (arka planda, fire-and-forget)
+      if (article.articleId) {
+        const articleForAnalyze = { ...article, article_id: article.articleId };
+        fetch("/api/analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ article: articleForAnalyze }),
+        }).catch(() => {});
+      }
+
       try {
-        const res = await fetch("/api/article-insight", {
+        const res = await fetch("/api/stream-summary", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ article, forceLanguage, fast, forceRefresh }),
         });
+
         if (!res.ok) throw new Error((await res.json()).error || "API hatası");
-        setResult(await res.json());
-        setState("success");
+
+        const contentType = res.headers.get("content-type") || "";
+
+        if (contentType.includes("application/json")) {
+          // Cache hit — anlık
+          setResult(await res.json());
+          setState("success");
+        } else {
+          // Streaming — gerçek zamanlı ilerleme
+          setState("streaming");
+
+          // Simüle progress: stream süresi ~3-6s, her 200ms artır
+          let prog = 5;
+          streamTimerRef.current = setInterval(() => {
+            prog = Math.min(prog + Math.random() * 8, 90);
+            setStreamProgress(Math.round(prog));
+          }, 220);
+
+          const reader = res.body.getReader();
+          const decoder = new TextDecoder();
+          let accumulated = "";
+
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              accumulated += decoder.decode(value, { stream: true });
+            }
+          } finally {
+            reader.releaseLock();
+            clearInterval(streamTimerRef.current);
+            setStreamProgress(100);
+          }
+
+          // JSON parse + truncation repair
+          const raw = accumulated
+            .replace(/^```(?:json)?\s*/m, "")
+            .replace(/\s*```$/m, "")
+            .trim();
+
+          let parsed;
+          try {
+            parsed = JSON.parse(raw);
+          } catch {
+            let s = raw.trimEnd();
+            if (s.endsWith(",")) s = s.slice(0, -1);
+            let curly = 0,
+              square = 0,
+              inStr = false,
+              esc = false;
+            for (const ch of s) {
+              if (esc) {
+                esc = false;
+                continue;
+              }
+              if (ch === "\\" && inStr) {
+                esc = true;
+                continue;
+              }
+              if (ch === '"') {
+                inStr = !inStr;
+                continue;
+              }
+              if (inStr) continue;
+              if (ch === "{") curly++;
+              else if (ch === "}") curly--;
+              else if (ch === "[") square++;
+              else if (ch === "]") square--;
+            }
+            if (inStr) s += '"';
+            while (square > 0) {
+              s += "]";
+              square--;
+            }
+            while (curly > 0) {
+              s += "}";
+              curly--;
+            }
+            parsed = JSON.parse(s);
+          }
+
+          setResult({
+            ...parsed,
+            fromCache: false,
+            generatedAt: new Date().toISOString(),
+          });
+          setState("success");
+        }
       } catch (err) {
+        clearInterval(streamTimerRef.current);
         setErrorMsg(err.message);
         setState("error");
       }
@@ -87,19 +189,45 @@ export default function AISummary({ article, forceLanguage, fast = false }) {
     fetchSummary();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  /* ── Loading ── */
-  if (state === "loading")
+  /* ── Loading / Streaming ── */
+  if (state === "loading" || state === "streaming")
     return (
       <div className="overflow-hidden border rounded-2xl border-stone-200 dark:border-stone-700">
-        <div className="flex items-center gap-3 px-5 py-3.5 border-b border-stone-100 dark:border-stone-800 bg-stone-50 dark:bg-stone-900/60">
-          <Spinner className="w-4 h-4 text-stone-400" />
-          <p className="text-sm font-bold text-stone-600 dark:text-stone-300">
-            AI Özet Oluşturuluyor
-          </p>
-          <span className="text-[10px] text-stone-400 ml-auto uppercase tracking-wider">
-            AI ile özetleniyor…
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-stone-100 dark:border-stone-800 bg-stone-50 dark:bg-stone-900/60">
+          <div className="flex items-center gap-2">
+            {state === "streaming" ? (
+              <>
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                <p className="text-sm font-bold text-stone-600 dark:text-stone-300">
+                  AI Yazıyor
+                </p>
+                <span className="text-[10px] text-amber-500 font-bold uppercase tracking-wider ml-1">
+                  CANLI
+                </span>
+              </>
+            ) : (
+              <>
+                <Spinner className="w-4 h-4 text-stone-400" />
+                <p className="text-sm font-bold text-stone-600 dark:text-stone-300">
+                  AI Özet Oluşturuluyor
+                </p>
+              </>
+            )}
+          </div>
+          <span className="text-[10px] text-stone-400 uppercase tracking-wider">
+            {state === "streaming"
+              ? `${streamProgress}%`
+              : "AI ile özetleniyor…"}
           </span>
         </div>
+        {state === "streaming" && (
+          <div className="h-0.5 bg-stone-100 dark:bg-stone-800">
+            <div
+              className="h-full bg-amber-400 transition-all duration-300"
+              style={{ width: `${streamProgress}%` }}
+            />
+          </div>
+        )}
         <div className="p-5 space-y-2.5">
           {[100, 82, 95, 68, 88].map((w, i) => (
             <div

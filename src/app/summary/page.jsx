@@ -1,3 +1,5 @@
+import SpeechButton from "@/app/components/SpeechButton";
+import SubscribeForm from "@/app/components/SubscribeForm";
 import { generateDailySummary, getDailySummary } from "@/app/lib/dailySummary";
 import Link from "next/link";
 
@@ -177,12 +179,27 @@ export default async function SummaryPage() {
             <span>Yapay Zeka Destekli</span>
           </div>
 
-          {/* Sub-headline */}
-          {data.subheadline && (
-            <p className="max-w-2xl mx-auto mt-3 text-sm italic text-stone-400">
-              {data.subheadline}
-            </p>
-          )}
+          {/* Sub-headline + Sesli okuma */}
+          <div className="flex flex-col items-center gap-3 mt-3">
+            {data.subheadline && (
+              <p className="max-w-2xl mx-auto text-sm italic text-stone-400">
+                {data.subheadline}
+              </p>
+            )}
+            <SpeechButton
+              text={[
+                data.date
+                  ? `${data.date} — HaberAI Günlük Özet.`
+                  : "HaberAI Günlük Özet.",
+                data.intro,
+                data.bigPicture,
+                ...(mustRead || [])
+                  .slice(0, 3)
+                  .map((s, i) => `${i + 1}. ${s.title}. ${s.why || ""}`.trim()),
+              ].filter(Boolean)}
+              label="Sesli Dinle"
+            />
+          </div>
         </div>
 
         {/* İçindekiler navigasyonu */}
@@ -619,7 +636,7 @@ export default async function SummaryPage() {
             GAZETE FOOTER
         ════════════════════════════════════════════════ */}
         <footer className="py-6 mt-6 border-t-2 border-stone-700">
-          <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
+          <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
             <div>
               <p className="text-xl font-black text-white">
                 Haber<span style={{ color: mood.accent }}>AI</span>
@@ -628,10 +645,15 @@ export default async function SummaryPage() {
                 Sayı {data.issueNumber || "—"} · {data.date}
               </p>
             </div>
-            <p className="text-[9px] text-stone-700 text-center uppercase tracking-widest">
-              {data.articleCount} haber analiz edildi · Yapay zeka destekli ·
-              Veriler yaklaşık değerler içerebilir
-            </p>
+
+            {/* Günlük e-posta aboneliği */}
+            <div className="flex flex-col items-center gap-2">
+              <p className="text-[9px] text-stone-500 uppercase tracking-widest">
+                Her sabah posta kutuna gelsin
+              </p>
+              <SubscribeForm accent={mood.accent} />
+            </div>
+
             <div className="flex items-center gap-4">
               <a
                 href="#top"
@@ -645,6 +667,10 @@ export default async function SummaryPage() {
               </Link>
             </div>
           </div>
+          <p className="text-[9px] text-stone-800 text-center mt-6 uppercase tracking-widest">
+            {data.articleCount} haber analiz edildi · Yapay zeka destekli ·
+            Veriler yaklaşık değerler içerebilir
+          </p>
         </footer>
       </div>
     </div>

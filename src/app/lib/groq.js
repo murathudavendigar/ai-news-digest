@@ -17,16 +17,20 @@ const redis = new Redis({
   token: process.env.STORAGE_KV_REST_API_TOKEN,
 });
 
-// Provider kullanım sayacını arka planda artır (fire-and-forget)
+// Provider sayaçlarını pipeline ile tek roundtrip'te güncelle (fire-and-forget)
 function trackProviderUsage(providerKey) {
-  redis.incr(`stats:ai:${providerKey}:calls`).catch(() => {});
-  redis.incr(`stats:ai:${providerKey}:calls:today`).catch(() => {});
+  redis
+    .pipeline()
+    .incr(`stats:ai:${providerKey}:calls`)
+    .incr(`stats:ai:${providerKey}:calls:today`)
+    .exec()
+    .catch(() => {});
 }
 
 function trackProviderError(providerKey, statusCode) {
-  redis.incr(`stats:ai:${providerKey}:errors`).catch(() => {});
-  if (statusCode === 429)
-    redis.incr(`stats:ai:${providerKey}:rateLimits`).catch(() => {});
+  const pl = redis.pipeline().incr(`stats:ai:${providerKey}:errors`);
+  if (statusCode === 429) pl.incr(`stats:ai:${providerKey}:rateLimits`);
+  pl.exec().catch(() => {});
 }
 
 const PROVIDERS = {
@@ -211,4 +215,84 @@ export function getProviderKeys() {
 
 export function getProviderName(key) {
   return PROVIDERS[key]?.name || key;
+}
+
+// ── Streaming — Groq SSE forward ─────────────────────────────────────────
+// Sadece Groq destekliyor. Key yoksa ya da 429 ise generateCompletion'a fallback.
+export async function* streamCompletion(userPrompt, options = {}) {
+  const {
+    model: modelTier = "FAST",
+    temperature = 0.35,
+    maxTokens = 2000,
+    systemPrompt,
+  } = options;
+
+  const provider = PROVIDERS.groq;
+  const apiKey = process.env[provider.apiKeyEnv];
+
+  if (!apiKey) {
+    // Key yok — non-streaming fallback
+    const result = await generateCompletion(userPrompt, options);
+    yield result.text;
+    return;
+  }
+
+  const messages = [];
+  if (systemPrompt) messages.push({ role: "system", content: systemPrompt });
+  messages.push({ role: "user", content: userPrompt });
+
+  const model = provider.models[modelTier] || provider.models.FAST;
+
+  let res;
+  try {
+    res = await fetch(`${provider.baseURL}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages,
+        temperature,
+        max_tokens: maxTokens,
+        stream: true,
+      }),
+      cache: "no-store",
+    });
+  } catch {
+    const result = await generateCompletion(userPrompt, options);
+    yield result.text;
+    return;
+  }
+
+  if (!res.ok || !res.body) {
+    // 429 veya hata — non-streaming fallback
+    trackProviderError("groq", res.status);
+    const result = await generateCompletion(userPrompt, options);
+    yield result.text;
+    return;
+  }
+
+  trackProviderUsage("groq");
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const lines = decoder.decode(value, { stream: true }).split("\n");
+      for (const line of lines) {
+        if (!line.startsWith("data: ") || line.includes("[DONE]")) continue;
+        try {
+          const data = JSON.parse(line.slice(6));
+          const content = data.choices?.[0]?.delta?.content;
+          if (content) yield content;
+        } catch {}
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
 }
