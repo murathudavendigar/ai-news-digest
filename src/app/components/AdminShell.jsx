@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useEffect, useState } from "react";
 import AdminDashboard from "./AdminDashboard";
 
 export default function AdminShell() {
@@ -121,10 +121,6 @@ export default function AdminShell() {
               )}
             </button>
           </form>
-
-          <p className="mt-4 text-xs text-center text-stone-700">
-            ADMIN_EMAIL ve ADMIN_PASSWORD env değişkenleri gerekli
-          </p>
         </div>
       </div>
     );
