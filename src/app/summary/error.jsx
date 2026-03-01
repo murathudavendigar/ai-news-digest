@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
 import Link from "next/link";
+import { useEffect } from "react";
 
 export default function SummaryError({ error, reset }) {
   useEffect(() => {
@@ -26,7 +26,7 @@ export default function SummaryError({ error, reset }) {
           Günün özeti oluşturulurken bir hata oluştu.
         </p>
 
-        {error?.message && (
+        {process.env.NODE_ENV !== "production" && error?.message && (
           <div className="px-4 py-3 mb-6 text-left border border-red-800 rounded-lg bg-red-950/30">
             <p className="text-[9px] font-black text-red-500 uppercase tracking-widest mb-1">
               Hata
@@ -38,8 +38,8 @@ export default function SummaryError({ error, reset }) {
         )}
 
         <p className="mb-6 text-xs text-stone-600">
-          Her sabah 07:00&apos;de otomatik olarak üretilir. Manuel tetiklemek için
-          aşağıyı deneyin.
+          Her sabah 07:00&apos;de otomatik olarak üretilir. Manuel tetiklemek
+          için aşağıyı deneyin.
         </p>
 
         <div className="flex items-center justify-center gap-3">

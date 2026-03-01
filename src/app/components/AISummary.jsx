@@ -251,7 +251,9 @@ export default function AISummary({ article, forceLanguage, fast = false }) {
               Özet Oluşturulamadı
             </p>
             <p className="mb-3 text-xs text-red-600 dark:text-red-400">
-              {errorMsg}
+              {process.env.NODE_ENV === "production"
+                ? "Bir sorun oluştu. Lütfen tekrar deneyin."
+                : errorMsg}
             </p>
             <button
               onClick={() => fetchSummary(false)}

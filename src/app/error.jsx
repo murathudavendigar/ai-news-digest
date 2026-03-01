@@ -1,8 +1,7 @@
 "use client";
 
-
-import { useEffect } from "react";
 import Link from "next/link";
+import { useEffect } from "react";
 
 export default function Error({ error, reset }) {
   useEffect(() => {
@@ -30,7 +29,7 @@ export default function Error({ error, reset }) {
           </p>
 
           {/* Hata mesajı */}
-          {error?.message && (
+          {process.env.NODE_ENV !== "production" && error?.message && (
             <div className="px-4 py-3 mb-6 text-left border border-red-200 rounded-lg bg-red-50 dark:bg-red-950/30 dark:border-red-800">
               <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mb-1">
                 Hata Detayı

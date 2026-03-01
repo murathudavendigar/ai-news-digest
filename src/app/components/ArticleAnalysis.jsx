@@ -100,7 +100,9 @@ export default function ArticleAnalysis({ article }) {
               Analiz Yapılamadı
             </p>
             <p className="mb-3 text-xs text-red-600 dark:text-red-400">
-              {error}
+              {process.env.NODE_ENV === "production"
+                ? "Bir sorun oluştu. Lütfen tekrar deneyin."
+                : error}
             </p>
             <button
               onClick={() => run(false)}
