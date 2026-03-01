@@ -1,40 +1,61 @@
 "use client";
 
-import Link from "next/link";
+
 import { useEffect } from "react";
+import Link from "next/link";
 
 export default function Error({ error, reset }) {
   useEffect(() => {
-    console.error("❌ Hata:", error);
+    console.error("[app] Hata:", error);
   }, [error]);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
-        <div className="text-6xl mb-4">😞</div>
+    <div className="min-h-[70vh] flex items-center justify-center px-4">
+      <div className="max-w-md text-center">
+        <p
+          className="text-[7rem] font-black leading-none text-stone-100 dark:text-stone-800 select-none"
+          style={{ fontFamily: "Georgia, serif" }}>
+          Hata
+        </p>
 
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-          Bir Hata Oluştu!
-        </h2>
-
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
-          <p className="text-sm text-red-800 dark:text-red-300">
-            {error.message || "Beklenmeyen bir hata meydana geldi."}
+        <div className="-mt-2">
+          <div className="h-0.5 w-16 bg-red-500 mx-auto mb-5" />
+          <h1
+            className="mb-2 text-2xl font-black text-stone-900 dark:text-stone-100"
+            style={{ fontFamily: "Georgia, serif" }}>
+            Bir Şeyler Ters Gitti
+          </h1>
+          <p className="mb-3 text-sm leading-relaxed text-stone-500 dark:text-stone-400">
+            Beklenmedik bir hata oluştu. Lütfen sayfayı yenilemeyi deneyin.
           </p>
-        </div>
 
-        <div className="space-y-3">
-          <button
-            onClick={() => reset()}
-            className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 px-6 rounded-lg transition-colors">
-            🔄 Tekrar Dene
-          </button>
+          {/* Hata mesajı */}
+          {error?.message && (
+            <div className="px-4 py-3 mb-6 text-left border border-red-200 rounded-lg bg-red-50 dark:bg-red-950/30 dark:border-red-800">
+              <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mb-1">
+                Hata Detayı
+              </p>
+              <p className="font-mono text-xs text-red-700 break-all dark:text-red-300">
+                {error.message.slice(0, 200)}
+              </p>
+            </div>
+          )}
 
-          <Link
-            href="/"
-            className="block w-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white font-semibold py-3 px-6 rounded-lg transition-colors">
-            🏠 Anasayfaya Dön
-          </Link>
+          <div className="flex items-center justify-center gap-3">
+            <button
+              onClick={reset}
+              className="px-5 py-2.5 bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900
+                         text-sm font-bold rounded-lg hover:opacity-90 transition-opacity">
+              Tekrar Dene
+            </button>
+            <Link
+              href="/"
+              className="px-5 py-2.5 border border-stone-300 dark:border-stone-600
+                         text-sm font-bold text-stone-700 dark:text-stone-300 rounded-lg
+                         hover:border-stone-500 transition-colors">
+              Ana Sayfa
+            </Link>
+          </div>
         </div>
       </div>
     </div>

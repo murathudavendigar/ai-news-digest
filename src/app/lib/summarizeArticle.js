@@ -1,18 +1,27 @@
-import { generateCompletion, GROQ_MODELS } from "./groq";
-import { buildNewsSummaryPrompt } from "./newsPrompt";
 
-export async function summarizeArticle(ctx, options = {}) {
-  const { systemPrompt, userPrompt, resolvedLanguage } = buildNewsSummaryPrompt(
-    ctx,
-    {
-      forceLanguage: options.forceLanguage,
-    },
-  );
+import { generateCompletion, GROQ_MODELS } from "./groq";
+import { buildNewsPrompt } from "./newsPrompt";
+import { getTierConfig } from "./categoryConfig";
+
+export async function summarizeArticle(article, options = {}) {
+  const tierConfig = getTierConfig(article);
+  const lang = article.language || "turkish";
+
+  // Dil adını çöz
+  const LANGUAGE_NAMES = {
+    tr: "Turkish",
+    turkish: "Turkish",
+    en: "English",
+    english: "English",
+  };
+  const langName = LANGUAGE_NAMES[(lang || "").toLowerCase()] || "Turkish";
+
+  const { systemPrompt, userPrompt } = buildNewsPrompt(article, langName);
 
   const rawResponse = await generateCompletion(userPrompt, {
     model: options.fast ? GROQ_MODELS.FAST : GROQ_MODELS.BALANCED,
     temperature: 0.35,
-    maxTokens: 2048,
+    maxTokens: tierConfig.maxTokensSummary,
     systemPrompt,
   });
 
@@ -25,21 +34,23 @@ export async function summarizeArticle(ctx, options = {}) {
   try {
     parsed = JSON.parse(cleaned);
   } catch {
-    console.error("[summarizeArticle] Failed to parse Groq response:", cleaned);
+    console.error(
+      "[summarizeArticle] JSON parse error:",
+      cleaned.slice(0, 200),
+    );
     return {
-      summary: cleaned,
+      analysis: cleaned,
       keyPoints: [],
       sentiment: "neutral",
-      readingTimeMinutes: 3,
-      confidence: "low",
-      resolvedLanguage,
+      readingTimeMinutes: 2,
+      confidence: 60,
       generatedAt: new Date().toISOString(),
     };
   }
 
   return {
     ...parsed,
-    resolvedLanguage,
+    tier: tierConfig.tier,
     generatedAt: new Date().toISOString(),
   };
 }

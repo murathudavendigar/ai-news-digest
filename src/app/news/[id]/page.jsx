@@ -1,16 +1,16 @@
-import AISummary from "@/app/components/AISummary";
-import ArticleAnalysis from "@/app/components/ArticleAnalysis";
-import NewsComparison from "@/app/components/NewsComparison";
-import ReadingProgress from "@/app/components/ReadingProgress";
+
 import { getNewsByArticleID } from "@/app/lib/news";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import AISummary from "@/app/components/AISummary";
+import NewsComparison from "@/app/components/NewsComparison";
+import ArticleAnalysis from "@/app/components/ArticleAnalysis";
+import ReadingToolbar from "@/app/components/ReadingToolbar";
 
 export default async function NewsDetailPage({ params }) {
   const { id } = await params;
   const data = await getNewsByArticleID(id);
   const article = data.results ? data.results[0] : null;
-
   if (!article) notFound();
 
   const articleContext = {
@@ -26,124 +26,125 @@ export default async function NewsDetailPage({ params }) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="container max-w-4xl px-4 py-8 mx-auto">
+    <div className="min-h-screen">
+      <ReadingToolbar title={article.title} articleUrl={article.link} />
+
+      <div className="max-w-4xl px-4 py-8 mx-auto sm:px-6">
         {/* Breadcrumb */}
-        <div className="flex items-center gap-2 mb-8 text-sm text-gray-600 dark:text-gray-400">
+        <div className="flex items-center gap-2 mb-6 text-sm text-stone-500 dark:text-stone-400">
           <Link
             href="/"
-            className="hover:text-primary-600 dark:hover:text-primary-400">
+            className="transition-colors hover:text-stone-900 dark:hover:text-stone-100">
             Anasayfa
           </Link>
-          <span>/</span>
-          <span className="text-gray-900 dark:text-white">Haber Detayı</span>
+          <span>›</span>
+          <span className="max-w-xs truncate text-stone-700 dark:text-stone-300">
+            {article.title?.slice(0, 60)}…
+          </span>
         </div>
 
-        <ReadingProgress title={article.title} />
-
-        <article className="overflow-hidden bg-white shadow-xl dark:bg-gray-800 rounded-2xl">
-          <div className="p-8">
+        <article
+          id="article-content"
+          className="overflow-hidden bg-white shadow-xl dark:bg-stone-900 rounded-2xl">
+          <div className="p-6 md:p-8">
+            {/* Görsel */}
             {article.image_url && (
-              <div className="mb-6 overflow-hidden rounded-xl">
+              <div className="mb-6 -mx-6 -mt-6 overflow-hidden rounded-xl md:-mx-8 md:-mt-8">
                 <img
                   src={article.image_url}
                   alt={article.title}
-                  className="object-cover w-full h-auto"
+                  className="object-cover w-full h-64 md:h-80"
                 />
               </div>
             )}
 
-            <h1 className="mb-4 text-4xl font-bold text-gray-900 dark:text-white">
+            {/* Başlık */}
+            <h1
+              className="mb-4 text-3xl font-black leading-tight md:text-4xl text-stone-900 dark:text-white"
+              style={{ fontFamily: "var(--font-display), Georgia, serif" }}>
               {article.title}
             </h1>
 
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-              <div className="flex items-center gap-4">
+            {/* Meta: kaynak + tarih */}
+            <div className="flex flex-wrap items-center justify-between gap-4 pb-5 mb-5 border-b border-stone-100 dark:border-stone-800">
+              <div className="flex items-center gap-3">
                 {article.source_icon && (
                   <img
                     src={article.source_icon}
                     alt={article.source_name}
-                    className="w-8 h-8 border rounded-full border-slate-100"
+                    className="w-8 h-8 border rounded-full border-stone-200 dark:border-stone-700"
                   />
                 )}
                 <div>
-                  <p className="text-sm font-bold leading-none text-slate-900 dark:text-white">
+                  <p className="text-sm font-bold leading-none text-stone-900 dark:text-white">
                     {article.source_name}
                   </p>
-                  <p className="mt-1 text-xs tracking-wider uppercase text-slate-500">
+                  <p className="text-xs text-stone-400 mt-0.5 uppercase tracking-wider">
                     {article.source_id}
                   </p>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="text-sm text-slate-500">
-                  {new Date(article.pubDate).toLocaleDateString("tr-TR", {
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </p>
-              </div>
+              <p className="text-sm text-stone-400">
+                {new Date(article.pubDate).toLocaleDateString("tr-TR", {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </p>
             </div>
 
-            <div className="flex flex-wrap gap-2 mb-8">
+            {/* Kategori + ülke badges */}
+            <div className="flex flex-wrap gap-2 mb-4">
               {article.category?.map((cat) => (
                 <span
                   key={cat}
-                  className="px-3 py-1 text-xs font-bold text-blue-600 uppercase rounded-md bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400">
+                  className="px-3 py-1 text-xs font-bold tracking-wider uppercase rounded-md bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300">
                   {cat}
                 </span>
               ))}
-              <span className="px-3 py-1 text-xs font-bold uppercase rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-                📍 {article.country?.[0]}
-              </span>
-              <span className="px-3 py-1 text-xs font-bold uppercase rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-                🌐 {article.language}
-              </span>
-            </div>
-
-            <div className="flex flex-wrap gap-2 mb-6">
-              {article.keywords?.map((keyword, index) => (
-                <span
-                  key={index}
-                  className="px-3 py-1 text-sm text-gray-700 bg-gray-100 rounded-full dark:bg-gray-700 dark:text-gray-300">
-                  #{keyword}
+              {article.country?.[0] && (
+                <span className="px-3 py-1 text-xs font-bold uppercase rounded-md bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400">
+                  📍 {article.country[0]}
                 </span>
-              ))}
+              )}
             </div>
 
+            {/* Keywords */}
+            {article.keywords?.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-6">
+                {article.keywords.map((kw, i) => (
+                  <span
+                    key={i}
+                    className="px-2.5 py-0.5 bg-stone-50 dark:bg-stone-800/50 text-stone-500 dark:text-stone-400 rounded-full text-xs border border-stone-200 dark:border-stone-700">
+                    #{kw}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Açıklama */}
             {article.description && (
-              <div className="mb-8 prose dark:prose-invert max-w-none">
-                <p className="text-lg leading-relaxed text-gray-700 dark:text-gray-300">
+              <div className="pb-8 mb-8 border-b border-stone-100 dark:border-stone-800">
+                <p
+                  className="text-lg leading-relaxed text-stone-700 dark:text-stone-300"
+                  style={{ fontFamily: "var(--font-body), Georgia, serif" }}>
                   {article.description}
                 </p>
               </div>
             )}
 
-            {/* ── AI SUMMARY ── */}
-            <div className="mb-8">
-              <AISummary
-                article={articleContext}
-                // forceLanguage="tr"
-                // fast={true}
-              />
-            </div>
-
-            {/* ── DEEP ANALYSIS ── */}
-            <div className="mb-4">
+            {/* AI Bölümleri */}
+            <div className="space-y-6">
+              <AISummary article={articleContext} />
               <ArticleAnalysis article={article} />
-            </div>
-
-            {/* ── SOURCE COMPARISON ── */}
-            <div className="mb-8">
               <NewsComparison article={article} />
             </div>
 
-            {/* External Link — minimal */}
-            <div className="flex items-center justify-between py-4 mt-8 border-t border-gray-100 dark:border-gray-700">
-              <div className="flex items-center gap-2 text-sm text-gray-400 dark:text-gray-500">
+            {/* Kaynak footer */}
+            <div className="flex items-center justify-between pt-6 mt-8 border-t border-stone-100 dark:border-stone-800">
+              <div className="flex items-center gap-2 text-sm text-stone-400">
                 {article.source_icon && (
                   <img
                     src={article.source_icon}
@@ -157,7 +158,7 @@ export default async function NewsDetailPage({ params }) {
                 href={article.link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 text-sm font-semibold text-gray-700 transition-colors dark:text-gray-300 hover:text-gray-900 dark:hover:text-white group">
+                className="flex items-center gap-2 text-sm font-semibold transition-colors text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white group">
                 Kaynağa git
                 <svg
                   className="w-4 h-4 group-hover:translate-x-0.5 transition-transform"

@@ -13,11 +13,9 @@ export default function ReadingProgress({ title }) {
       const docHeight =
         document.documentElement.scrollHeight - window.innerHeight;
       const pct = docHeight > 0 ? Math.round((scrollTop / docHeight) * 100) : 0;
-
       setProgress(pct);
-      setVisible(scrollTop > 50);
+      setVisible(scrollTop > 80);
     }
-
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
@@ -25,11 +23,10 @@ export default function ReadingProgress({ title }) {
   useEffect(() => {
     const el = document.getElementById("article-content");
     if (!el) return;
-
     if (readingMode) {
       el.style.fontSize = "1.125rem";
       el.style.lineHeight = "1.9";
-      el.style.maxWidth = "720px";
+      el.style.maxWidth = "680px";
       el.style.marginLeft = "auto";
       el.style.marginRight = "auto";
       el.style.transition = "all 0.3s ease";
@@ -44,40 +41,48 @@ export default function ReadingProgress({ title }) {
 
   return (
     <>
-      {/* Progress bar - en üstte sabit */}
-      <div className="fixed top-0 left-0 right-0 z-[100] h-1 bg-gray-200 dark:bg-gray-800">
+      {/* Amber progress bar — tema rengiyle */}
+      <div className="fixed top-0 left-0 right-0 z-[200] h-0.5 bg-stone-800">
         <div
-          className="h-full bg-gradient-to-r from-violet-500 via-purple-500 to-indigo-500"
-          style={{ width: `${progress}%`, transition: "width 0.15s ease" }}
+          className="h-full bg-amber-400"
+          style={{ width: `${progress}%`, transition: "width 0.1s linear" }}
         />
       </div>
 
-      {/* Toolbar */}
-      {visible && (
+      {/* Floating toolbar — scroll başlayınca */}
+      <div
+        className={`fixed z-[199] transition-all duration-300 ${
+          visible
+            ? "opacity-100 translate-y-0"
+            : "opacity-0 -translate-y-2 pointer-events-none"
+        }`}
+        style={{
+          top: "calc(var(--header-height, 60px) + 8px)",
+          right: "1.5rem",
+        }}>
         <div
-          className="fixed top-1 left-0 right-0 z-[99]
-                        bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm
-                        border-b border-gray-200 dark:border-gray-800
-                        px-4 py-2 flex items-center justify-between">
-          <p className="text-xs font-medium text-gray-600 dark:text-gray-400 truncate max-w-[60%]">
-            {title}
-          </p>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-gray-400 tabular-nums dark:text-gray-500">
-              %{progress}
-            </span>
-            <button
-              onClick={() => setReadingMode((v) => !v)}
-              className={`text-xs font-medium px-3 py-1 rounded-full transition-colors ${
-                readingMode
-                  ? "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300"
-                  : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
-              }`}>
-              {readingMode ? "📖 Okuma Modu" : "📄 Okuma Modu"}
-            </button>
-          </div>
+          className="flex items-center gap-2
+                        bg-stone-950/95 backdrop-blur-sm
+                        border border-stone-700 rounded-full
+                        px-3 py-1.5 shadow-xl">
+          {/* Yüzde */}
+          <span className="text-[10px] font-black tabular-nums text-amber-400 min-w-[28px] text-center">
+            %{progress}
+          </span>
+          <div className="w-px h-3 bg-stone-700" />
+          {/* Okuma modu toggle */}
+          <button
+            onClick={() => setReadingMode((v) => !v)}
+            title={readingMode ? "Normal moda dön" : "Okuma modunu aç"}
+            className={`text-[10px] font-bold transition-colors ${
+              readingMode
+                ? "text-amber-400"
+                : "text-stone-400 hover:text-stone-200"
+            }`}>
+            {readingMode ? "📖 Okuma" : "📄 Okuma"}
+          </button>
         </div>
-      )}
+      </div>
     </>
   );
 }

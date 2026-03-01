@@ -1,112 +1,272 @@
 "use client";
-// components/DailySummary.jsx
-// Ana sayfada günlük özet kartı — sabah kahvesiyle okunabilir format
 
-import { useState, useEffect } from "react";
+import Link from "next/link";
 
-export default function DailySummary() {
-  const [state, setState] = useState("loading");
-  const [data, setData] = useState(null);
-  const [expanded, setExpanded] = useState(false);
+const MOOD_CONFIG = {
+  tense: {
+    label: "Gergin",
+    color: "text-red-600 dark:text-red-400",
+    bg: "bg-red-50 dark:bg-red-900/20",
+    dot: "bg-red-500",
+  },
+  hopeful: {
+    label: "Umut Var",
+    color: "text-emerald-600 dark:text-emerald-400",
+    bg: "bg-emerald-50 dark:bg-emerald-900/20",
+    dot: "bg-emerald-500",
+  },
+  turbulent: {
+    label: "Çalkantılı",
+    color: "text-orange-600 dark:text-orange-400",
+    bg: "bg-orange-50 dark:bg-orange-900/20",
+    dot: "bg-orange-500",
+  },
+  calm: {
+    label: "Sakin",
+    color: "text-sky-600 dark:text-sky-400",
+    bg: "bg-sky-50 dark:bg-sky-900/20",
+    dot: "bg-sky-500",
+  },
+  critical: {
+    label: "Kritik",
+    color: "text-red-700 dark:text-red-300",
+    bg: "bg-red-50 dark:bg-red-900/20",
+    dot: "bg-red-600",
+  },
+  uncertain: {
+    label: "Belirsiz",
+    color: "text-amber-600 dark:text-amber-400",
+    bg: "bg-amber-50 dark:bg-amber-900/20",
+    dot: "bg-amber-500",
+  },
+  positive: {
+    label: "Olumlu",
+    color: "text-emerald-600 dark:text-emerald-400",
+    bg: "bg-emerald-50 dark:bg-emerald-900/20",
+    dot: "bg-emerald-500",
+  },
+};
 
-  useEffect(() => {
-    fetch("/api/daily-summary")
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.error) setState("error");
-        else {
-          setData(d);
-          setState("success");
-        }
-      })
-      .catch(() => setState("error"));
-  }, []);
+const IMPACT_COLORS = {
+  critical: "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300",
+  high: "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300",
+};
 
-  if (state === "loading") {
-    return (
-      <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 mb-8">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse" />
-          <div className="flex-1 space-y-2">
-            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-1/3" />
-            <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-1/4" />
-          </div>
-        </div>
-        <div className="space-y-2">
-          {[100, 80, 90].map((w, i) => (
-            <div
-              key={i}
-              className="h-3 rounded bg-gray-200 dark:bg-gray-700 animate-pulse"
-              style={{ width: `${w}%`, animationDelay: `${i * 100}ms` }}
-            />
-          ))}
+// Veri yoksa zarif skeleton
+function Skeleton() {
+  return (
+    <div className="mb-10 overflow-hidden bg-white border rounded-2xl border-stone-200 dark:border-stone-700 dark:bg-stone-900">
+      <div className="pt-6 pb-5 space-y-3 border-b px-7 border-stone-100 dark:border-stone-800 animate-pulse">
+        <div className="h-2.5 bg-stone-100 dark:bg-stone-800 rounded w-1/4" />
+        <div className="w-3/4 rounded h-7 bg-stone-200 dark:bg-stone-700" />
+        <div className="w-1/2 h-4 rounded bg-stone-100 dark:bg-stone-800" />
+        <div className="space-y-1.5 pt-1">
+          <div className="w-full h-3 rounded bg-stone-100 dark:bg-stone-800" />
+          <div className="w-5/6 h-3 rounded bg-stone-100 dark:bg-stone-800" />
         </div>
       </div>
-    );
-  }
+      <div className="flex items-center justify-between py-4 px-7">
+        <div className="w-32 h-3 rounded bg-stone-100 dark:bg-stone-800 animate-pulse" />
+        <div className="w-24 h-8 rounded-lg bg-stone-100 dark:bg-stone-800 animate-pulse" />
+      </div>
+    </div>
+  );
+}
 
-  if (state === "error" || !data) return null;
+// ── Ana component — prop olarak veri alır ─────────────────────────────────
+export default function DailySummary({ data }) {
+  if (!data) return <Skeleton />;
+
+  const mood = MOOD_CONFIG[data.dayMood] || MOOD_CONFIG.uncertain;
+  const mustRead = (data.mustRead || []).slice(0, 3);
 
   return (
-    <div className="rounded-2xl border border-amber-200 dark:border-amber-800 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/20 overflow-hidden mb-8">
-      {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-amber-200 dark:border-amber-800">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-amber-500 flex items-center justify-center text-white font-bold text-lg">
-            ☀️
-          </div>
-          <div>
-            <p className="font-bold text-amber-900 dark:text-amber-100 text-sm leading-none">
-              Günlük Özet
-            </p>
-            <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5">
-              {data.date} · {data.articleCount} haber analiz edildi
-            </p>
-          </div>
-        </div>
-        {data.fromCache && (
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
-            ⚡ Güncel
+    <div className="mb-10">
+      {/* Üst bant */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <div className={`w-2 h-2 rounded-full ${mood.dot} animate-pulse`} />
+          <span className="text-xs font-bold tracking-widest uppercase text-stone-500 dark:text-stone-400">
+            Günün Özeti
           </span>
-        )}
+          <span className="text-stone-300 dark:text-stone-600">·</span>
+          <span className="text-xs text-stone-400 dark:text-stone-500">
+            {data.date}
+          </span>
+          {data.issueNumber && (
+            <>
+              <span className="text-stone-300 dark:text-stone-600">·</span>
+              <span className="text-xs text-stone-400 dark:text-stone-500">
+                Sayı {data.issueNumber}
+              </span>
+            </>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          <span
+            className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${mood.bg} ${mood.color}`}>
+            {mood.label}
+          </span>
+          <Link
+            href="/summary"
+            className="flex items-center gap-1 text-xs font-semibold transition-colors text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-white group">
+            Tam baskı
+            <svg
+              className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 5l7 7-7 7"
+              />
+            </svg>
+          </Link>
+        </div>
       </div>
 
-      <div className="p-6">
-        {/* Headline */}
-        <h2 className="text-xl font-black text-amber-900 dark:text-amber-100 mb-3 leading-snug">
-          {data.headline}
-        </h2>
+      {/* Kart */}
+      <div className="overflow-hidden transition-shadow bg-white border shadow-sm rounded-2xl border-stone-200 dark:border-stone-700 dark:bg-stone-900 hover:shadow-md">
+        {/* Manşet */}
+        <div className="pb-5 border-b px-7 pt-7 border-stone-100 dark:border-stone-800">
+          <h2
+            className="mb-2 text-2xl font-black leading-tight md:text-3xl text-stone-900 dark:text-stone-50"
+            style={{ fontFamily: "var(--font-display, Georgia, serif)" }}>
+            {data.headline}
+          </h2>
+          {data.subheadline && (
+            <p className="mb-3 text-sm text-stone-500 dark:text-stone-400">
+              {data.subheadline}
+            </p>
+          )}
+          <p className="text-sm leading-relaxed text-stone-600 dark:text-stone-300 line-clamp-3">
+            {data.intro}
+          </p>
+        </div>
 
-        {/* Intro */}
-        <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
-          {data.intro}
-        </p>
+        {/* Mutlaka Oku */}
+        {mustRead.length > 0 && (
+          <div className="py-5 border-b px-7 border-stone-100 dark:border-stone-800">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-stone-500 mb-4">
+              Mutlaka Oku
+            </p>
+            <div className="space-y-4">
+              {mustRead.map((story, i) => (
+                <div key={i} className="flex items-start gap-4">
+                  <span
+                    className="text-2xl font-black leading-none text-stone-200 dark:text-stone-700 w-7 shrink-0"
+                    style={{
+                      fontFamily: "var(--font-display, Georgia, serif)",
+                    }}>
+                    {story.rank}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                      <p className="text-sm font-bold leading-snug text-stone-800 dark:text-stone-100">
+                        {story.title}
+                      </p>
+                      <span
+                        className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${IMPACT_COLORS[story.impact] || IMPACT_COLORS.high}`}>
+                        {story.impact === "critical" ? "Kritik" : "Önemli"}
+                      </span>
+                    </div>
+                    <p className="text-xs leading-relaxed text-stone-500 dark:text-stone-400">
+                      {story.why}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
-        {/* Top stories */}
-        {data.topStories?.length > 0 && (
-          <div className="flex flex-col gap-2 mb-4">
-            {data.topStories.map((story, i) => (
-              <div key={i} className="flex items-start gap-3">
-                <span className="text-xs font-black text-amber-500 mt-0.5 w-4 shrink-0">
-                  {i + 1}
-                </span>
-                <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 leading-snug">
-                  {story}
+        {/* Bölümler */}
+        {data.sections?.length > 0 && (
+          <div className="grid grid-cols-1 border-b divide-y md:grid-cols-2 md:divide-y-0 md:divide-x divide-stone-100 dark:divide-stone-800 border-stone-100 dark:border-stone-800">
+            {data.sections.slice(0, 4).map((s, i) => (
+              <div key={i} className="px-6 py-5">
+                <div className="flex items-center gap-2 mb-2">
+                  <span>{s.emoji}</span>
+                  <p className="text-xs font-bold tracking-wider uppercase text-stone-500 dark:text-stone-400">
+                    {s.title}
+                  </p>
+                </div>
+                {s.headline && (
+                  <p className="text-xs font-semibold text-stone-800 dark:text-stone-100 mb-1.5 leading-snug">
+                    {s.headline}
+                  </p>
+                )}
+                <p className="text-xs leading-relaxed text-stone-500 dark:text-stone-400 line-clamp-2">
+                  {s.summary}
                 </p>
               </div>
             ))}
           </div>
         )}
 
-        {/* Sections — toggle ile açılır */}
-        {data.sections?.length > 0 && (
-          <>
-            <button
-              onClick={() => setExpanded((v) => !v)}
-              className="flex items-center gap-2 text-sm font-semibold text-amber-700 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-200 transition-colors mb-4">
-              {expanded ? "Daha az göster" : "Detaylı özetleri gör"}
+        {/* Alt bant: sayı + kavram + piyasalar + CTA */}
+        <div className="flex flex-col divide-y sm:flex-row sm:divide-y-0 sm:divide-x divide-stone-100 dark:divide-stone-800">
+          {data.numberofDay && (
+            <div className="flex-1 px-5 py-3.5">
+              <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest mb-0.5">
+                Günün Sayısı
+              </p>
+              <span
+                className="text-xl font-black text-stone-800 dark:text-stone-100"
+                style={{ fontFamily: "var(--font-display, Georgia, serif)" }}>
+                {data.numberofDay.figure}
+              </span>
+              <p className="text-[10px] text-stone-400 dark:text-stone-500 mt-0.5 line-clamp-1">
+                {data.numberofDay.context}
+              </p>
+            </div>
+          )}
+          {data.wordOfDay && (
+            <div className="flex-1 px-5 py-3.5">
+              <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest mb-0.5">
+                Kavram
+              </p>
+              <span
+                className="text-sm italic font-black text-stone-800 dark:text-stone-100"
+                style={{ fontFamily: "var(--font-display, Georgia, serif)" }}>
+                {data.wordOfDay.word}
+              </span>
+              <p className="text-[10px] text-stone-400 dark:text-stone-500 mt-0.5 line-clamp-1">
+                {data.wordOfDay.definition}
+              </p>
+            </div>
+          )}
+          {data.markets?.usdTry && (
+            <div className="flex-1 px-5 py-3.5">
+              <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest mb-1">
+                Piyasalar
+              </p>
+              <div className="flex items-center gap-2 text-xs">
+                {data.markets.bist100 && (
+                  <span className="font-bold text-stone-700 dark:text-stone-300">
+                    BIST {data.markets.bist100}
+                  </span>
+                )}
+                {data.markets.usdTry && (
+                  <span className="text-stone-500">
+                    $ {data.markets.usdTry}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+          <div className="flex-1 px-5 py-3.5 flex items-center justify-between sm:justify-end">
+            <p className="text-[10px] text-stone-400 sm:hidden">
+              {data.articleCount} haber
+            </p>
+            <Link
+              href="/summary"
+              className="flex items-center gap-1.5 px-4 py-2 bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 text-xs font-bold rounded-lg hover:opacity-90 transition-opacity">
+              Tam Baskı
               <svg
-                className={`w-4 h-4 transition-transform ${expanded ? "rotate-180" : ""}`}
+                className="w-3.5 h-3.5"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24">
@@ -114,39 +274,12 @@ export default function DailySummary() {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M19 9l-7 7-7-7"
+                  d="M9 5l7 7-7 7"
                 />
               </svg>
-            </button>
-
-            {expanded && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {data.sections.map((section, i) => (
-                  <div
-                    key={i}
-                    className="p-4 rounded-xl bg-white dark:bg-gray-800 border border-amber-100 dark:border-amber-900/50">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-lg">{section.emoji}</span>
-                      <p className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">
-                        {section.title}
-                      </p>
-                    </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-                      {section.summary}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
-        )}
-
-        {/* Closing note */}
-        {data.closingNote && (
-          <p className="mt-4 text-xs text-amber-600 dark:text-amber-500 italic border-t border-amber-200 dark:border-amber-800 pt-4">
-            {data.closingNote}
-          </p>
-        )}
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   );

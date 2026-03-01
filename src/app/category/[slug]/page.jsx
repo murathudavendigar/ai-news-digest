@@ -1,93 +1,139 @@
-import DailySummary from "@/app/components/DailySummary";
+
 import NewsFeed from "@/app/components/NewsFeed";
 import { getNewsByCategory } from "@/app/lib/news";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-// Kategori metadata
 const CATEGORIES = {
-  technology: { title: "Teknoloji", icon: "💻", category: "technology" },
-  sports: { title: "Spor", icon: "⚽", category: "sports" },
-  business: { title: "Ekonomi", icon: "💼", category: "business" },
-  health: { title: "Sağlık", icon: "🏥", category: "health" },
-  entertainment: { title: "Magazin", icon: "🎬", category: "entertainment" },
+  technology: {
+    title: "Teknoloji",
+    icon: "💻",
+    desc: "Yapay zeka, yazılım, donanım ve dijital dönüşüm",
+  },
+  sports: {
+    title: "Spor",
+    icon: "⚽",
+    desc: "Futbol, basketbol ve tüm spor dallarından haberler",
+  },
+  business: {
+    title: "Ekonomi",
+    icon: "📈",
+    desc: "Piyasalar, şirketler, makroekonomik gelişmeler",
+  },
+  health: {
+    title: "Sağlık",
+    icon: "🏥",
+    desc: "Tıp, halk sağlığı, araştırmalar ve ilaç haberleri",
+  },
+  entertainment: {
+    title: "Magazin",
+    icon: "🎬",
+    desc: "Sinema, müzik, sanat ve kültür dünyası",
+  },
+  politics: {
+    title: "Politika",
+    icon: "🏛️",
+    desc: "İç siyaset, meclis gündemi, seçim ve parti haberleri",
+  },
+  world: {
+    title: "Dünya",
+    icon: "🌍",
+    desc: "Uluslararası haberler, diplomasi ve küresel gelişmeler",
+  },
 };
+
+export async function generateMetadata({ params }) {
+  const { slug } = await params;
+  const cat = CATEGORIES[slug];
+  if (!cat) return {};
+  return {
+    title: `${cat.title} Haberleri — HaberAI`,
+    description: cat.desc,
+  };
+}
+
+export async function generateStaticParams() {
+  return Object.keys(CATEGORIES).map((slug) => ({ slug }));
+}
 
 export default async function CategoryPage({ params }) {
   const { slug } = await params;
+  const cat = CATEGORIES[slug];
+  if (!cat) notFound();
 
-  const categoryData = CATEGORIES[slug];
-
-  if (!categoryData) {
-    notFound();
-  }
-
-  const newsData = await getNewsByCategory(categoryData.category, "tr");
+  const newsData = await getNewsByCategory(slug, "tr");
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="container px-4 py-8 mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-3">
-            <span className="text-5xl">{categoryData.icon}</span>
-            <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
-              {categoryData.title}
-            </h1>
-          </div>
-          <p className="text-gray-600 dark:text-gray-400">
-            {categoryData.title} kategorisindeki en güncel haberler
-          </p>
-        </div>
-
+    <div className="min-h-screen">
+      <div className="px-4 py-8 mx-auto max-w-7xl sm:px-6">
         {/* Breadcrumb */}
-        <div className="flex items-center gap-2 mb-6 text-sm text-gray-600 dark:text-gray-400">
+        <div className="flex items-center gap-2 mb-6 text-xs text-stone-500 dark:text-stone-400">
           <Link
             href="/"
-            className="hover:text-primary-600 dark:hover:text-primary-400">
+            className="transition-colors hover:text-stone-900 dark:hover:text-stone-100">
             Anasayfa
           </Link>
-          <span>/</span>
-          <span className="font-semibold text-gray-900 dark:text-white">
-            {categoryData.title}
+          <span>›</span>
+          <span className="font-medium text-stone-700 dark:text-stone-300">
+            {cat.title}
           </span>
         </div>
 
-        {/* Stats */}
-        <div className="p-4 mb-8 border rounded-lg bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-800">
-          <p className="text-sm text-primary-700 dark:text-primary-300">
-            📊 <strong>{newsData.totalResults}</strong>{" "}
-            {categoryData.title.toLowerCase()} haberi bulundu
-          </p>
+        {/* Başlık */}
+        <div className="pb-6 mb-8 border-b border-stone-200 dark:border-stone-700">
+          <div className="flex items-center gap-4 mb-3">
+            <span className="text-5xl">{cat.icon}</span>
+            <div>
+              <h1
+                className="text-3xl font-black leading-none md:text-4xl text-stone-900 dark:text-stone-50"
+                style={{ fontFamily: "var(--font-display, Georgia, serif)" }}>
+                {cat.title}
+              </h1>
+              <p className="text-sm text-stone-500 dark:text-stone-400 mt-1.5">
+                {cat.desc}
+              </p>
+            </div>
+          </div>
+
+          {/* Haber sayısı */}
+          {newsData.totalResults > 0 && (
+            <div className="flex items-center gap-2 mt-4">
+              <span
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-stone-500 dark:text-stone-400
+                               bg-stone-100 dark:bg-stone-800 px-3 py-1.5 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                {newsData.totalResults} haber
+              </span>
+              <span className="text-xs text-stone-400 dark:text-stone-500">
+                · Canlı güncelleniyor
+              </span>
+            </div>
+          )}
         </div>
 
+        {/* İçerik */}
         {newsData.results?.length === 0 ? (
-          <div className="py-20 text-center">
-            <div className="mb-4 text-6xl">📭</div>
-            <h3 className="mb-2 text-xl font-semibold text-gray-700 dark:text-gray-300">
-              Henüz haber bulunmuyor
+          <div className="py-24 text-center">
+            <p className="mb-4 text-5xl">📭</p>
+            <h3 className="mb-2 text-lg font-bold text-stone-700 dark:text-stone-300">
+              Henüz haber yok
             </h3>
-            <p className="text-gray-500 dark:text-gray-400">
-              Lütfen daha sonra tekrar kontrol edin.
+            <p className="mb-6 text-sm text-stone-500 dark:text-stone-400">
+              {cat.title} kategorisinde yakında haberler yayınlanacak.
             </p>
+            <Link
+              href="/"
+              className="text-sm font-semibold transition-colors text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100">
+              ← Ana sayfaya dön
+            </Link>
           </div>
         ) : (
-          <>
-            <DailySummary />
-            <NewsFeed
-              initialArticles={newsData.results}
-              initialNextPage={newsData.nextPage || null}
-            />
-          </>
+          <NewsFeed
+            initialArticles={newsData.results}
+            initialNextPage={newsData.nextPage || null}
+          />
         )}
       </div>
     </div>
   );
-}
-
-// Static Params (Build time'da kategorileri oluştur)
-export async function generateStaticParams() {
-  return Object.keys(CATEGORIES).map((slug) => ({
-    slug,
-  }));
 }

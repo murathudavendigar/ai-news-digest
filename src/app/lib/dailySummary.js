@@ -1,5 +1,6 @@
+
 import { Redis } from "@upstash/redis";
-import { generateCompletion, GROQ_MODELS } from "./groq";
+import { generateWithGrounding, generateJSON, GEMINI_MODELS } from "./gemini";
 import { getLatest } from "./news";
 
 const redis = new Redis({
@@ -7,112 +8,192 @@ const redis = new Redis({
   token: process.env.STORAGE_KV_REST_API_TOKEN,
 });
 
-// Bugünün tarihini key olarak kullan — her gün otomatik yeni key
+const KEY_PREFIX = "daily-summary-v5";
+
 function todayKey() {
-  return `daily-summary:${new Date().toISOString().slice(0, 10)}`; // "daily-summary:2026-02-27"
+  return `${KEY_PREFIX}:${new Date().toISOString().slice(0, 10)}`;
 }
 
-export async function getDailySummary() {
-  const key = todayKey();
-
-  // Cache'de var mı?
-  try {
-    const cached = await redis.get(key);
-    if (cached) return { ...cached, fromCache: true };
-  } catch {}
-
-  return null; // Henüz üretilmemiş — cron tetikleyecek
-}
-
-export async function generateDailySummary() {
-  const key = todayKey();
-
-  // Günün haberlerini çek
-  const newsData = await getLatest("tr");
-  const articles = (newsData.results || []).slice(0, 15); // İlk 15 haber yeterli
-
-  if (articles.length === 0) {
-    return { error: "no_articles" };
-  }
-
-  // Haberleri prompt için formatla
-  const articleList = articles
-    .map(
-      (a, i) =>
-        `${i + 1}. [${a.source_name}] ${a.title}${a.description ? ` — ${a.description}` : ""}`,
-    )
-    .join("\n");
-
-  const today = new Date().toLocaleDateString("tr-TR", {
+function todayFormatted() {
+  return new Date().toLocaleDateString("tr-TR", {
     weekday: "long",
     day: "numeric",
     month: "long",
     year: "numeric",
   });
-
-  const systemPrompt = `Sen Türkiye'nin en iyi haber editörüsün. Her sabah okuyuculara o günün haberlerini akıcı, bağlamsal ve ilgi çekici bir şekilde özetliyorsun. Cevabın tamamen Türkçe olmalı.
-
-OUTPUT — sadece bu JSON'u döndür, başka hiçbir şey ekleme (markdown fence yok):
-{
-  "headline": "Bugünü tek cümlede özetleyen çarpıcı bir başlık.",
-  "intro": "2-3 cümle. Bugünün en önemli 2-3 gelişmesini bağlantılı biçimde anlat. Gazete manşeti havasında yaz.",
-  "sections": [
-    {
-      "emoji": "tek emoji",
-      "title": "Konu başlığı (örn: Siyaset, Ekonomi, Dünya)",
-      "summary": "Bu konudaki 2-3 haberi 2-3 cümlede sentezle. Spesifik ol."
-    }
-  ],
-  "closingNote": "Bugüne dair 1 cümlelik genel yorum veya bağlam.",
-  "topStories": ["Başlık 1", "Başlık 2", "Başlık 3"]
 }
 
-"sections" 3-5 arası olmalı. "topStories" en önemli 3 haberin başlığı.`;
-
-  const userPrompt = `Tarih: ${today}
-
-Bugünün haberleri:
-${articleList}
-
-Bu haberleri Türk okuyucular için günlük özet formatında sentezle.`;
-
-  const raw = await generateCompletion(userPrompt, {
-    model: GROQ_MODELS.BALANCED,
-    temperature: 0.4,
-    maxTokens: 2048,
-    systemPrompt,
-  });
-
-  const cleaned = raw
-    .replace(/^```(?:json)?/m, "")
-    .replace(/```$/m, "")
-    .trim();
-
-  let parsed;
-  try {
-    parsed = JSON.parse(cleaned);
-  } catch {
-    console.error("[dailySummary] JSON parse error:", cleaned.slice(0, 300));
-    return { error: "parse_error" };
-  }
-
-  const result = {
-    ...parsed,
-    date: today,
-    generatedAt: new Date().toISOString(),
-    articleCount: articles.length,
-  };
-
-  // Gece yarısına kadar cache'le (TTL = kalan saniye + 1 saat buffer)
+function ttlUntilMidnight() {
   const now = new Date();
   const midnight = new Date(now);
   midnight.setHours(24, 0, 0, 0);
-  const ttl = Math.floor((midnight - now) / 1000) + 3600;
+  return Math.floor((midnight - now) / 1000) + 3600;
+}
+
+function calcIssueNumber() {
+  return Math.floor((new Date() - new Date("2024-01-01")) / 86_400_000) + 1;
+}
+
+// Hata durumunda null dön, crash etme
+async function safeJSON(prompt, opts, label) {
+  try {
+    return await generateJSON(prompt, { ...opts, label });
+  } catch (err) {
+    console.error(`[dailySummary] "${label}" başarısız:`, err.message);
+    return null;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+export async function getDailySummary() {
+  try {
+    const cached = await redis.get(todayKey());
+    if (cached) return { ...cached, fromCache: true };
+  } catch (err) {
+    console.error("[dailySummary] Redis GET:", err.message);
+  }
+  return null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+export async function generateDailySummary() {
+  const newsData = await getLatest("tr");
+  const articles = (newsData.results || []).slice(0, 25);
+  if (!articles.length) return { error: "no_articles" };
+
+  const today = todayFormatted();
+
+  const articleList = articles
+    .map((a, i) =>
+      [
+        `[${i + 1}] ${a.source_name || "?"}`,
+        a.title,
+        a.description?.slice(0, 100),
+        a.category?.join("/"),
+        a.image_url ? `IMG:${a.image_url}` : null,
+      ]
+        .filter(Boolean)
+        .join(" | "),
+    )
+    .join("\n");
+
+  // ══════════════════════════════════════════════════
+  // AŞAMA 1 — Google Search grounding → ham metin
+  // ══════════════════════════════════════════════════
+  const groundingPrompt = `Sen Türkiye'nin en deneyimli haber editörüsün. Bugün ${today} gazete ön sayfası için analiz yapıyorsun.
+
+ELİNDEKİ HABERLER:
+${articleList}
+
+Google Search ile şunları araştır ve hem elimizdeki haberler HEM DE arama sonuçlarını kullanarak aşağıdaki başlıklar altında düz metin yaz:
+
+**MANŞET**: Tek çarpıcı cümle.
+**ALT BAŞLIK**: İkinci gelişme, 1 cümle.
+**GÜNÜN MOOODU**: tense / hopeful / turbulent / calm / critical / uncertain / positive
+**GİRİŞ**: 4-5 cümle analitik paragraf.
+**ZORUNLU OKU** (5-6 haber): SIRA|BAŞLIK|NEDEN(2 cümle)|critical veya high|kategori|GÖRSEL_URL
+**KATEGORİLER** (5 bölüm): EMOJİ|AD|ÖZET(3 cümle)|MANŞET|haberler|ÖNGÖRÜ
+**BÜYÜK TABLO**: 2-3 cümle ortak tema.
+**GÜNÜN SAYISI**: rakam|bağlam
+**GÜNÜN KAVRAMI**: Türkçe kavram|tanım
+**İSTANBUL HAVA**: durum|sıcaklık|not
+**PİYASALAR**: BIST-100 değeri|USD/TRY|EUR/TRY
+**DÜNYA** (3 haber): başlık|ülke|özet
+**TARİHTE BUGÜN**: yıl|olay|önem
+**GÜNÜN SÖZÜ**: alıntı|kişi|bağlam
+**EDİTÖR NOTU**: 2-3 cümle özgün analiz.`;
+
+  let groundedText;
+  try {
+    groundedText = await generateWithGrounding(groundingPrompt, {
+      model: GEMINI_MODELS.FLASH,
+      temperature: 0.45,
+      maxTokens: 10000,
+    });
+  } catch (err) {
+    console.error("[dailySummary] Grounding başarısız:", err.message);
+    return { error: "grounding_failed", message: err.message };
+  }
+
+  const ctx = groundedText.slice(0, 5000);
+
+  // ══════════════════════════════════════════════════
+  // AŞAMA 2 — 4 paralel küçük JSON çağrısı
+  // Her biri kendi alanlarını üretir, kesilme riski minimize
+  // ══════════════════════════════════════════════════
+
+  // A: Manşet + mood + giriş + mustRead + sections  (en büyük alan)
+  const pA = `Bu haber analizinden JSON üret. SADECE JSON. { ile başla } ile bit.
+
+${ctx}
+
+{"headline":"tek cümle manşet","subheadline":"alt başlık","dayMood":"tense|hopeful|turbulent|calm|critical|uncertain|positive","intro":"4-5 cümle","bigPicture":"2-3 cümle","mustRead":[{"rank":1,"title":"başlık","why":"2 cümle","impact":"critical|high","category":"politics|business|world|crime|health|technology|other","imageUrl":"url veya null"}],"sections":[{"id":"slug","emoji":"emoji","title":"ad","summary":"3-4 cümle","headline":"1 cümle","stories":[{"title":"başlık","brief":"1 cümle"}],"outlook":"1 cümle"}]}`;
+
+  // B: Sayısal veriler — kısa, hızlı
+  const pB = `Bu haber analizinden JSON üret. SADECE JSON. { ile başla } ile bit.
+
+${ctx.slice(0, 2000)}
+
+{"numberofDay":{"figure":"rakam — boşsa tahmini üret","context":"1 cümle Türkçe"},"wordOfDay":{"word":"Türkçe kavram","definition":"1-2 cümle Türkçe"},"markets":{"bist100":"değer ya da null","usdTry":"değer ya da null","eurTry":"değer ya da null","note":"yaklaşık"},"weather":{"city":"İstanbul","condition":"durum","tempRange":"min-max°C","note":"kısa not"}}`;
+
+  // C: Dünya haberleri + tarih + alıntı — orta boy
+  const pC = `Bu haber analizinden JSON üret. SADECE JSON. { ile başla } ile bit.
+
+${ctx.slice(0, 3000)}
+
+{"worldHeadlines":[{"title":"başlık","region":"ülke/bölge","brief":"1 cümle"}],"todayInHistory":{"year":"yıl","event":"olay","significance":"1 cümle"},"quoteOfDay":{"text":"alıntı","author":"kişi","context":"bağlam"}}`;
+
+  // D: Sadece editör notu — çok küçük, 300 token
+  const pD = `Bu haber analizine dayanarak JSON üret. SADECE JSON. { ile başla } ile bit.
+
+${ctx.slice(0, 1500)}
+
+{"editorNote":"2-3 cümle samimi özgün editör notu. Klişe değil."}`;
+
+  const [dA, dB, dC, dD] = await Promise.all([
+    safeJSON(
+      pA,
+      { model: GEMINI_MODELS.FLASH, temperature: 0.15, maxTokens: 5000 },
+      "Ana içerik",
+    ),
+    safeJSON(
+      pB,
+      { model: GEMINI_MODELS.FLASH, temperature: 0.15, maxTokens: 1200 },
+      "Sayısal",
+    ),
+    safeJSON(
+      pC,
+      { model: GEMINI_MODELS.FLASH, temperature: 0.15, maxTokens: 1800 },
+      "Dünya/Tarih",
+    ),
+    safeJSON(
+      pD,
+      { model: GEMINI_MODELS.FLASH, temperature: 0.2, maxTokens: 350 },
+      "Editör notu",
+    ),
+  ]);
+
+  // Ana içerik (dA) olmadan devam etme
+  if (!dA) return { error: "main_content_failed" };
+
+  const result = {
+    ...dA,
+    ...(dB || {}),
+    ...(dC || {}),
+    ...(dD || {}),
+    date: today,
+    issueNumber: calcIssueNumber(),
+    articleCount: articles.length,
+    generatedAt: new Date().toISOString(),
+  };
 
   try {
-    await redis.set(key, result, { ex: ttl });
+    await redis.set(todayKey(), result, { ex: ttlUntilMidnight() });
+    console.log(
+      `[dailySummary] ✓ Cache'e yazıldı — Sayı #${result.issueNumber}, ${articles.length} haber`,
+    );
   } catch (err) {
-    console.error("[dailySummary] Cache SET error:", err);
+    console.error("[dailySummary] Redis SET:", err.message);
   }
 
   return { ...result, fromCache: false };
