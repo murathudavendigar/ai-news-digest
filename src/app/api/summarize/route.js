@@ -8,6 +8,19 @@ import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
+// İn-flight dedup: aynı article için eş zamanlı istek gelirse beklet, tekrar AI çağrısı yapma.
+const inFlight = new Map();
+
+async function dedup(key, fn) {
+  if (inFlight.has(key)) {
+    console.log(`[summarize] In-flight HIT for ${key}`);
+    return inFlight.get(key);
+  }
+  const p = fn().finally(() => inFlight.delete(key));
+  inFlight.set(key, p);
+  return p;
+}
+
 export async function POST(req) {
   try {
     const body = await req.json();
@@ -32,9 +45,12 @@ export async function POST(req) {
       }
     }
 
-    // ── 2. Cache miss → call Groq ─────────────────────────────────────────
-    console.log(`[summarize] Cache MISS for ${articleId} — calling Groq`);
-    const result = await summarizeArticle(article, { forceLanguage, fast });
+    // ── 2. Cache miss → call AI ──────────────────────────────────────────
+    console.log(`[summarize] Cache MISS for ${articleId} — calling AI`);
+    const summarize = () => summarizeArticle(article, { forceLanguage, fast });
+    const result = articleId
+      ? await dedup(articleId, summarize)
+      : await summarize();
 
     // ── 3. Save to cache ──────────────────────────────────────────────────
     if (articleId) {

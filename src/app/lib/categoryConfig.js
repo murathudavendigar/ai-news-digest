@@ -1,4 +1,3 @@
-
 export const TIERS = {
   DEEP: "deep",
   STANDARD: "standard",
@@ -21,35 +20,35 @@ export const CATEGORY_TIER_MAP = {
   food: TIERS.MINIMAL,
   tourism: TIERS.MINIMAL,
   other: TIERS.MINIMAL,
-  top: TIERS.STANDARD, 
+  top: TIERS.STANDARD,
   domestic: TIERS.STANDARD,
-  breaking: TIERS.STANDARD, 
+  breaking: TIERS.STANDARD,
 };
 
 export const TIER_CONFIG = {
   [TIERS.DEEP]: {
     label: "Derin Analiz",
-    maxTokensSummary: 1200,
-    maxTokensScore: 1000,
-    maxTokensContext: 2048,
+    maxTokensSummary: 2000, // analysis(4-6 cümle) + 5 keyPoints + actionableInsights Türkçe
+    maxTokensScore: 1800, // artık analyzeArticle.js'de override ediliyor
+    maxTokensContext: 4000, // artık analyzeArticle.js'de override ediliyor
     showScore: true,
     showContext: true,
     showComparison: true,
   },
   [TIERS.STANDARD]: {
     label: "Standart Analiz",
-    maxTokensSummary: 800,
-    maxTokensScore: 700,
-    maxTokensContext: 1200,
+    maxTokensSummary: 1500,
+    maxTokensScore: 1800,
+    maxTokensContext: 2500,
     showScore: true,
     showContext: true,
     showComparison: true,
   },
   [TIERS.MINIMAL]: {
     label: "Özet",
-    maxTokensSummary: 500,
-    maxTokensScore: 0, 
-    maxTokensContext: 0, 
+    maxTokensSummary: 900, // kısa haber bile 500'de kesilebilir
+    maxTokensScore: 0,
+    maxTokensContext: 0,
     showScore: false,
     showContext: false,
     showComparison: false,

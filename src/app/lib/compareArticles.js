@@ -41,12 +41,12 @@ Description: ${description || ""}
 Search query:`;
 
   try {
-    const query = await generateCompletion(prompt, {
+    const result = await generateCompletion(prompt, {
       model: GROQ_MODELS.FAST,
       temperature: 0.1,
       maxTokens: 30,
     });
-    return query.replace(/["""''\.]/g, "").trim();
+    return result.text.replace(/["“”‘’\.]/g, "").trim();
   } catch {
     return title.split(" ").slice(0, 4).join(" ");
   }
@@ -157,14 +157,14 @@ export async function compareArticles(original, forceRefresh = false) {
     original.language,
   );
 
-  const raw = await generateCompletion(userPrompt, {
+  const completion = await generateCompletion(userPrompt, {
     model: GROQ_MODELS.BALANCED,
     temperature: 0.3,
     maxTokens: 2048,
     systemPrompt,
   });
 
-  const cleaned = raw
+  const cleaned = completion.text
     .replace(/^```(?:json)?/m, "")
     .replace(/```$/m, "")
     .trim();

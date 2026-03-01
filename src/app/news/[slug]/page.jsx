@@ -1,14 +1,22 @@
-
+import AISummary from "@/app/components/AISummary";
+import ArticleAnalysis from "@/app/components/ArticleAnalysis";
+import NewsComparison from "@/app/components/NewsComparison";
+import ReadingToolbar from "@/app/components/ReadingToolbar";
 import { getNewsByArticleID } from "@/app/lib/news";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import AISummary from "@/app/components/AISummary";
-import NewsComparison from "@/app/components/NewsComparison";
-import ArticleAnalysis from "@/app/components/ArticleAnalysis";
-import ReadingToolbar from "@/app/components/ReadingToolbar";
+
+// Slug formatı: "haber-basligi--articleId"
+// ID her zaman son "--" sonrasında gelir
+function extractId(slug) {
+  const idx = slug.lastIndexOf("--");
+  return idx !== -1 ? slug.slice(idx + 2) : slug;
+}
 
 export default async function NewsDetailPage({ params }) {
-  const { id } = await params;
+  const { slug } = await params;
+  const id = extractId(slug);
+  console.log(id);
   const data = await getNewsByArticleID(id);
   const article = data.results ? data.results[0] : null;
   if (!article) notFound();

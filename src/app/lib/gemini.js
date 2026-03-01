@@ -1,14 +1,14 @@
-
 // ── Model adları — sadece buradan değiştir ────────────────────────────────
 export const GEMINI_MODELS = {
   FLASH: "gemini-2.5-flash", // Ana model
-  FLASH_LITE: "gemini-2.5-flash-lite", 
-  FLASH_2: "gemini-2.0-flash", 
-  PRO: "gemini-3-flash", 
+  FLASH_LITE: "gemini-2.5-flash-lite",
+  FLASH_2: "gemini-2.0-flash",
+  PRO: "gemini-3-flash-preview",
 };
 
 // 429 / 503 / 500 durumunda bu sırayla denenir
 const FALLBACK_CHAIN = [
+  GEMINI_MODELS.PRO,
   GEMINI_MODELS.FLASH,
   GEMINI_MODELS.FLASH_LITE,
   GEMINI_MODELS.FLASH_2,

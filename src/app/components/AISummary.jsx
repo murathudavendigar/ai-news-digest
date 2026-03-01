@@ -1,7 +1,6 @@
 "use client";
 
-
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const SENTIMENT_CONFIG = {
   positive: {
@@ -65,7 +64,7 @@ export default function AISummary({ article, forceLanguage, fast = false }) {
       setState("loading");
       setErrorMsg("");
       try {
-        const res = await fetch("/api/summarize", {
+        const res = await fetch("/api/article-insight", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ article, forceLanguage, fast, forceRefresh }),
@@ -98,7 +97,7 @@ export default function AISummary({ article, forceLanguage, fast = false }) {
             AI Özet Oluşturuluyor
           </p>
           <span className="text-[10px] text-stone-400 ml-auto uppercase tracking-wider">
-            Groq · LLaMA 3.3
+            AI ile özetleniyor…
           </span>
         </div>
         <div className="p-5 space-y-2.5">
@@ -156,6 +155,16 @@ export default function AISummary({ article, forceLanguage, fast = false }) {
           <span className="text-[10px] text-stone-400 uppercase tracking-wider">
             {result.resolvedLanguage}
           </span>
+          {result.aiProvider && (
+            <>
+              <span className="text-stone-200 dark:text-stone-700">·</span>
+              <span
+                className="text-[10px] text-stone-400"
+                title={result.aiModel || ""}>
+                {result.aiProvider}
+              </span>
+            </>
+          )}
         </div>
         <div className="flex items-center gap-2">
           {result.fromCache ? (

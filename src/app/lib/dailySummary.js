@@ -16,10 +16,7 @@ function todayKey() {
 
 function todayFormatted() {
   return new Date().toLocaleDateString("tr-TR", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
+    weekday: "long", day: "numeric", month: "long", year: "numeric",
   });
 }
 
@@ -31,7 +28,7 @@ function ttlUntilMidnight() {
 }
 
 function calcIssueNumber() {
-  return Math.floor((new Date() - new Date("2024-01-01")) / 86_400_000) + 1;
+  return Math.floor((new Date() - new Date("2026-01-01")) / 86_400_000) + 1;
 }
 
 // Hata durumunda null dön, crash etme
@@ -73,7 +70,7 @@ export async function generateDailySummary() {
         a.image_url ? `IMG:${a.image_url}` : null,
       ]
         .filter(Boolean)
-        .join(" | "),
+        .join(" | ")
     )
     .join("\n");
 
@@ -151,26 +148,10 @@ ${ctx.slice(0, 1500)}
 {"editorNote":"2-3 cümle samimi özgün editör notu. Klişe değil."}`;
 
   const [dA, dB, dC, dD] = await Promise.all([
-    safeJSON(
-      pA,
-      { model: GEMINI_MODELS.FLASH, temperature: 0.15, maxTokens: 5000 },
-      "Ana içerik",
-    ),
-    safeJSON(
-      pB,
-      { model: GEMINI_MODELS.FLASH, temperature: 0.15, maxTokens: 1200 },
-      "Sayısal",
-    ),
-    safeJSON(
-      pC,
-      { model: GEMINI_MODELS.FLASH, temperature: 0.15, maxTokens: 1800 },
-      "Dünya/Tarih",
-    ),
-    safeJSON(
-      pD,
-      { model: GEMINI_MODELS.FLASH, temperature: 0.2, maxTokens: 350 },
-      "Editör notu",
-    ),
+    safeJSON(pA, { model: GEMINI_MODELS.FLASH, temperature: 0.15, maxTokens: 5000 }, "Ana içerik"),
+    safeJSON(pB, { model: GEMINI_MODELS.FLASH, temperature: 0.15, maxTokens: 1200 }, "Sayısal"),
+    safeJSON(pC, { model: GEMINI_MODELS.FLASH, temperature: 0.15, maxTokens: 1800 }, "Dünya/Tarih"),
+    safeJSON(pD, { model: GEMINI_MODELS.FLASH, temperature: 0.20, maxTokens: 350  }, "Editör notu"),
   ]);
 
   // Ana içerik (dA) olmadan devam etme
@@ -181,17 +162,15 @@ ${ctx.slice(0, 1500)}
     ...(dB || {}),
     ...(dC || {}),
     ...(dD || {}),
-    date: today,
-    issueNumber: calcIssueNumber(),
+    date:         today,
+    issueNumber:  calcIssueNumber(),
     articleCount: articles.length,
-    generatedAt: new Date().toISOString(),
+    generatedAt:  new Date().toISOString(),
   };
 
   try {
     await redis.set(todayKey(), result, { ex: ttlUntilMidnight() });
-    console.log(
-      `[dailySummary] ✓ Cache'e yazıldı — Sayı #${result.issueNumber}, ${articles.length} haber`,
-    );
+    console.log(`[dailySummary] ✓ Cache'e yazıldı — Sayı #${result.issueNumber}, ${articles.length} haber`);
   } catch (err) {
     console.error("[dailySummary] Redis SET:", err.message);
   }

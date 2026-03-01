@@ -1,4 +1,3 @@
-
 import { generateDailySummary, getDailySummary } from "@/app/lib/dailySummary";
 import Link from "next/link";
 
@@ -47,7 +46,7 @@ const WEATHER_ICONS = {
 };
 
 function weatherIcon(condition = "") {
-  const lower = condition.toLowerCase();
+  const lower = (condition ?? "").toLowerCase();
   for (const [key, icon] of Object.entries(WEATHER_ICONS)) {
     if (lower.includes(key)) return icon;
   }
@@ -122,6 +121,7 @@ export default async function SummaryPage() {
 
   return (
     <div
+      id="top"
       className="min-h-screen bg-stone-950 text-stone-200"
       style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>
       {/* ════════════════════════════════════════════════
@@ -153,7 +153,7 @@ export default async function SummaryPage() {
 
       <div className="px-6 mx-auto max-w-7xl">
         {/* Masthead logo + bilgiler */}
-        <div className="py-6 text-center border-b-2 border-stone-100">
+        <div className="py-6 text-center border-b-2 border-stone-700">
           {/* Üst meta satırı */}
           <div className="flex items-center justify-between text-[9px] text-stone-500 uppercase tracking-widest mb-4">
             <span>Sayı: {data.issueNumber || "—"}</span>
@@ -186,7 +186,7 @@ export default async function SummaryPage() {
         </div>
 
         {/* İçindekiler navigasyonu */}
-        <div className="flex items-center gap-0 overflow-x-auto border-b border-stone-700">
+        <div className="sticky top-0 z-20 bg-stone-950 flex items-center gap-0 overflow-x-auto border-b border-stone-700">
           {sections.slice(0, 7).map((s, i) => (
             <a
               key={i}
@@ -226,7 +226,7 @@ export default async function SummaryPage() {
                   <img
                     src={mainStory.imageUrl}
                     alt={mainStory.title}
-                    className="w-full h-64 object-cover grayscale-[20%] hover:grayscale-0 transition-all duration-500"
+                    className="w-full h-64 object-cover grayscale-20 hover:grayscale-0 transition-all duration-500"
                   />
                   <p className="text-[9px] text-stone-600 mt-1 uppercase tracking-wider">
                     {mainStory.title}
@@ -234,9 +234,9 @@ export default async function SummaryPage() {
                 </div>
               )}
 
-              {/* Giriş — gazete sütun akışı */}
-              <div className="gap-6 mb-5 md:columns-2">
-                <p className="mb-3 text-sm leading-relaxed text-stone-300">
+              {/* Giriş metni */}
+              <div className="mb-5 space-y-3">
+                <p className="text-sm leading-relaxed text-stone-300">
                   {data.intro}
                 </p>
                 {data.bigPicture && (
@@ -285,7 +285,7 @@ export default async function SummaryPage() {
                         <img
                           src={story.imageUrl}
                           alt={story.title}
-                          className="w-full h-28 object-cover mb-2 grayscale-[30%]"
+                          className="w-full h-28 object-cover mb-2 grayscale-30"
                         />
                       )}
                       <h3 className="text-sm font-black text-white mb-1.5 leading-snug">
@@ -431,7 +431,7 @@ export default async function SummaryPage() {
             <p className="text-[9px] font-black text-stone-600 uppercase tracking-widest mb-5">
               Diğer Önemli Gelişmeler
             </p>
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {belowFoldStories.map((story, i) => (
                 <div
                   key={i}
@@ -450,7 +450,7 @@ export default async function SummaryPage() {
                     <img
                       src={story.imageUrl}
                       alt={story.title}
-                      className="w-full h-24 object-cover mb-2 grayscale-[40%]"
+                      className="w-full h-24 object-cover mb-2 grayscale-40"
                     />
                   )}
                   <h3 className="mb-1 text-sm font-black leading-snug text-white">
@@ -471,7 +471,7 @@ export default async function SummaryPage() {
         {sections.length > 0 && (
           <section className="py-8 border-b border-stone-700">
             <Divider title="Kategoriler" />
-            <div className="grid grid-cols-1 gap-0 divide-x-0 divide-y md:grid-cols-2 lg:grid-cols-3 md:divide-y-0 md:divide-x divide-stone-700">
+            <div className="grid grid-cols-1 gap-0 divide-x-0 divide-y md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 md:divide-y-0 md:divide-x divide-stone-700">
               {sections.map((section, i) => (
                 <div
                   key={i}
@@ -632,11 +632,18 @@ export default async function SummaryPage() {
               {data.articleCount} haber analiz edildi · Yapay zeka destekli ·
               Veriler yaklaşık değerler içerebilir
             </p>
-            <Link
-              href="/"
-              className="text-xs font-bold tracking-widest uppercase transition-colors text-stone-600 hover:text-white">
-              Ana Sayfa →
-            </Link>
+            <div className="flex items-center gap-4">
+              <a
+                href="#top"
+                className="text-xs font-bold tracking-widest uppercase transition-colors text-stone-600 hover:text-white">
+                ↑ Başa Dön
+              </a>
+              <Link
+                href="/"
+                className="text-xs font-bold tracking-widest uppercase transition-colors text-stone-600 hover:text-white">
+                Ana Sayfa →
+              </Link>
+            </div>
           </div>
         </footer>
       </div>

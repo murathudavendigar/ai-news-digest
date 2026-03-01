@@ -1,0 +1,631 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+
+/* ── Yardımcı bileşenler ── */
+
+function Spinner({ sm }) {
+  const sz = sm ? "w-3.5 h-3.5" : "w-5 h-5";
+  return (
+    <svg className={`${sz} animate-spin`} fill="none" viewBox="0 0 24 24">
+      <circle
+        className="opacity-20"
+        cx="12"
+        cy="12"
+        r="10"
+        stroke="currentColor"
+        strokeWidth="4"
+      />
+      <path
+        className="opacity-80"
+        fill="currentColor"
+        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+      />
+    </svg>
+  );
+}
+
+function Section({ title, children, right }) {
+  return (
+    <div className="overflow-hidden border bg-stone-900 border-stone-800 rounded-2xl">
+      <div className="flex items-center justify-between px-5 py-3 border-b border-stone-800">
+        <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">
+          {title}
+        </p>
+        {right}
+      </div>
+      <div className="p-5">{children}</div>
+    </div>
+  );
+}
+
+function Stat({ label, value, sub, color = "white", large }) {
+  return (
+    <div className="p-4 border bg-stone-950 border-stone-800 rounded-xl">
+      <p className="text-[9px] font-black text-stone-500 uppercase tracking-widest mb-2">
+        {label}
+      </p>
+      <p
+        className={`font-black leading-none tabular-nums ${large ? "text-3xl" : "text-xl"} text-${color}-400`}
+        style={color === "white" ? { color: "white" } : {}}>
+        {value ?? "—"}
+      </p>
+      {sub && <p className="text-[10px] text-stone-600 mt-1.5">{sub}</p>}
+    </div>
+  );
+}
+
+function Badge({ children, color = "stone" }) {
+  const map = {
+    green: "bg-emerald-950/60 text-emerald-400 border-emerald-800",
+    red: "bg-red-950/60 text-red-400 border-red-800",
+    amber: "bg-amber-950/60 text-amber-400 border-amber-800",
+    blue: "bg-blue-950/60 text-blue-400 border-blue-800",
+    stone: "bg-stone-800 text-stone-400 border-stone-700",
+  };
+  return (
+    <span
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-wider ${map[color]}`}>
+      {children}
+    </span>
+  );
+}
+
+function ActionBtn({
+  onClick,
+  loading,
+  disabled,
+  variant = "ghost",
+  children,
+}) {
+  const styles = {
+    primary: "bg-amber-400 hover:bg-amber-300 text-stone-950",
+    danger:
+      "bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-800",
+    ghost:
+      "bg-stone-800 hover:bg-stone-700 text-stone-300 border border-stone-700",
+  };
+  return (
+    <button
+      onClick={onClick}
+      disabled={loading || disabled}
+      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold
+                  transition-colors disabled:opacity-40 ${styles[variant]}`}>
+      {loading ? <Spinner sm /> : null}
+      {children}
+    </button>
+  );
+}
+
+/* ── Formatlayıcılar ── */
+const fmt = (iso) =>
+  iso
+    ? new Date(iso).toLocaleString("tr-TR", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      })
+    : "—";
+const rel = (iso) => {
+  if (!iso) return "—";
+  const m = Math.floor((Date.now() - new Date(iso)) / 60000);
+  if (m < 1) return "az önce";
+  if (m < 60) return `${m} dk önce`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h} sa önce`;
+  return `${Math.floor(h / 24)} gün önce`;
+};
+const ms2s = (ms) =>
+  ms == null ? "—" : ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(1)}s`;
+const pct = (n) => (n == null ? "—" : `%${n}`);
+
+/* ── Ana bileşen ── */
+export default function AdminDashboard() {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [working, setWorking] = useState(null);
+  const [toast, setToast] = useState(null);
+  const [autoRefresh, setAutoRefresh] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const r = await fetch("/api/admin");
+      if (r.ok) setData(await r.json());
+    } catch {
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  // Otomatik yenileme — 30s
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const id = setInterval(load, 30000);
+    return () => clearInterval(id);
+  }, [autoRefresh, load]);
+
+  const act = async (action, label) => {
+    setWorking(action);
+    setToast(null);
+    try {
+      const r = await fetch("/api/admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      const res = await r.json();
+      setToast({
+        ok: r.ok,
+        msg: r.ok ? `✓ ${label} tamamlandı` : `✕ ${res.error || "Hata"}`,
+        detail: res.result ? JSON.stringify(res.result).slice(0, 120) : null,
+      });
+      if (action !== "trigger-cron") await load();
+      else setTimeout(load, 4000);
+    } catch (e) {
+      setToast({ ok: false, msg: `✕ ${e.message}` });
+    } finally {
+      setWorking(null);
+    }
+  };
+
+  if (loading && !data)
+    return (
+      <div className="space-y-4">
+        {[...Array(4)].map((_, i) => (
+          <div
+            key={i}
+            className="border h-28 bg-stone-900 border-stone-800 rounded-2xl animate-pulse"
+            style={{ animationDelay: `${i * 80}ms` }}
+          />
+        ))}
+      </div>
+    );
+
+  const {
+    stats,
+    cache,
+    logs = [],
+    lastSuccess,
+    cronSchedule,
+    now,
+  } = data || {};
+  const s = stats || {};
+
+  return (
+    <div className="space-y-6">
+      {/* Toast */}
+      {toast && (
+        <div
+          className={`px-5 py-3 rounded-xl border text-sm font-medium flex items-start justify-between gap-3 ${
+            toast.ok
+              ? "bg-emerald-950/40 border-emerald-800 text-emerald-300"
+              : "bg-red-950/40 border-red-800 text-red-300"
+          }`}>
+          <div>
+            <p>{toast.msg}</p>
+            {toast.detail && (
+              <p className="text-[10px] opacity-70 mt-0.5 font-mono">
+                {toast.detail}
+              </p>
+            )}
+          </div>
+          <button
+            onClick={() => setToast(null)}
+            className="opacity-50 hover:opacity-100 shrink-0">
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* Üst özet — 4 kart */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Stat
+          large
+          label="Cache Durumu"
+          value={cache?.today ? "✓ VAR" : "✕ YOK"}
+          color={cache?.today ? "emerald" : "red"}
+          sub={
+            cache?.todayMeta
+              ? `Sayı #${cache.todayMeta.issueNumber}`
+              : "Henüz üretilmedi"
+          }
+        />
+        <Stat
+          large
+          label="Son Cron"
+          value={rel(lastSuccess)}
+          color="white"
+          sub={fmt(lastSuccess)}
+        />
+        <Stat
+          large
+          label="Bugün API"
+          value={s.api?.callsToday ?? "—"}
+          color="white"
+          sub={`Toplam: ${s.api?.callsTotal ?? "—"}`}
+        />
+        <Stat
+          large
+          label="Cache Hit Rate"
+          value={pct(s.cache?.hitRate)}
+          color={
+            s.cache?.hitRate >= 70
+              ? "emerald"
+              : s.cache?.hitRate >= 40
+                ? "amber"
+                : "red"
+          }
+          sub={`${s.cache?.hitsToday ?? 0} hit / ${s.cache?.missesToday ?? 0} miss`}
+        />
+      </div>
+
+      {/* İşlemler */}
+      <Section
+        title="İşlemler"
+        right={
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-1.5 text-[10px] text-stone-500 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={autoRefresh}
+                onChange={(e) => setAutoRefresh(e.target.checked)}
+                className="w-3 h-3 accent-amber-400"
+              />
+              30s otomatik yenile
+            </label>
+            <button
+              onClick={load}
+              disabled={loading}
+              className="text-[10px] font-bold text-stone-500 hover:text-stone-300 transition-colors flex items-center gap-1">
+              {loading ? <Spinner sm /> : "↻"} Yenile
+            </button>
+          </div>
+        }>
+        <div className="flex flex-wrap gap-2.5">
+          <ActionBtn
+            variant="primary"
+            onClick={() => act("trigger-cron", "Özet üretimi")}
+            loading={working === "trigger-cron"}>
+            ▶ Özeti Şimdi Üret
+          </ActionBtn>
+          <ActionBtn
+            onClick={() => act("clear-cache", "Cache temizlendi")}
+            loading={working === "clear-cache"}
+            disabled={!cache?.today}>
+            🗑 Cache Temizle
+          </ActionBtn>
+          <ActionBtn
+            onClick={() => act("clear-logs", "Loglar temizlendi")}
+            loading={working === "clear-logs"}
+            disabled={!logs.length}>
+            🧹 Logları Temizle
+          </ActionBtn>
+          <ActionBtn
+            variant="danger"
+            onClick={() => act("reset-stats", "Stats sıfırlandı")}
+            loading={working === "reset-stats"}>
+            ⚠ Stats Sıfırla
+          </ActionBtn>
+        </div>
+        <p className="text-[9px] text-stone-700 mt-3">
+          Zamanlama: {cronSchedule} · Redis DB: {s.redis?.dbSize ?? "—"} key ·
+          Şu an: {fmt(now)}
+        </p>
+      </Section>
+
+      {/* Bugünkü özet */}
+      {cache?.todayMeta && (
+        <Section title="Bugünkü Özet — Önizleme">
+          <div className="space-y-3">
+            <p
+              className="text-sm font-bold leading-snug text-white"
+              style={{ fontFamily: "Georgia, serif" }}>
+              {cache.todayMeta.headline}
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+              <div className="px-3 py-2 border rounded-lg bg-stone-950 border-stone-800">
+                <p className="text-stone-600 mb-0.5">Sayı</p>
+                <p className="font-black text-white">
+                  #{cache.todayMeta.issueNumber}
+                </p>
+              </div>
+              <div className="px-3 py-2 border rounded-lg bg-stone-950 border-stone-800">
+                <p className="text-stone-600 mb-0.5">Haber</p>
+                <p className="font-black text-white">
+                  {cache.todayMeta.articleCount} adet
+                </p>
+              </div>
+              <div className="px-3 py-2 border rounded-lg bg-stone-950 border-stone-800">
+                <p className="text-stone-600 mb-0.5">Ruh Hali</p>
+                <p className="font-black text-amber-400">
+                  {cache.todayMeta.dayMood || "—"}
+                </p>
+              </div>
+              <div className="px-3 py-2 border rounded-lg bg-stone-950 border-stone-800">
+                <p className="text-stone-600 mb-0.5">Üretildi</p>
+                <p className="font-black text-white">
+                  {rel(cache.todayMeta.generatedAt)}
+                </p>
+              </div>
+            </div>
+          </div>
+        </Section>
+      )}
+
+      {/* AI Provider İstatistikleri */}
+      {s.aiProviders && Object.keys(s.aiProviders).length > 0 && (
+        <Section title="AI Provider İstatistikleri">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {Object.entries(s.aiProviders).map(([key, p]) => {
+              const hasErrors = p.errors > 0 || p.rateLimits > 0;
+              const isActive = p.callsToday > 0;
+              return (
+                <div
+                  key={key}
+                  className={`p-4 border rounded-xl ${
+                    isActive
+                      ? "bg-stone-950 border-stone-700"
+                      : "bg-stone-950/50 border-stone-800"
+                  }`}>
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-xs font-black text-stone-200">
+                      {p.name}
+                    </p>
+                    <span
+                      className={`w-2 h-2 rounded-full ${isActive ? "bg-emerald-500" : "bg-stone-700"}`}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-[10px]">
+                    <div>
+                      <p className="text-stone-600">Bugün</p>
+                      <p className="font-black text-white tabular-nums">
+                        {p.callsToday}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-stone-600">Toplam</p>
+                      <p className="font-black text-white tabular-nums">
+                        {p.calls}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-stone-600">Hata</p>
+                      <p
+                        className={`font-black tabular-nums ${p.errors > 0 ? "text-red-400" : "text-stone-500"}`}>
+                        {p.errors}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-stone-600">429 Rate</p>
+                      <p
+                        className={`font-black tabular-nums ${p.rateLimits > 0 ? "text-amber-400" : "text-stone-500"}`}>
+                        {p.rateLimits}
+                      </p>
+                    </div>
+                  </div>
+                  {hasErrors && (
+                    <div className="h-1 mt-3 overflow-hidden rounded-full bg-stone-800">
+                      <div
+                        className="h-full rounded-full bg-amber-500/60"
+                        style={{
+                          width: `${Math.min(100, p.calls > 0 ? Math.round(((p.errors + p.rateLimits) / p.calls) * 100) : 0)}%`,
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </Section>
+      )}
+
+      {/* Cache detay */}
+      <Section title="Cache Endpoint Detayı">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {Object.entries(s.cache?.byEndpoint || {}).map(([ep, d]) => {
+            const total = d.hits + d.misses;
+            const rate = total > 0 ? Math.round((d.hits / total) * 100) : null;
+            return (
+              <div
+                key={ep}
+                className="p-4 border bg-stone-950 border-stone-800 rounded-xl">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs font-black uppercase text-stone-300">
+                    {ep}
+                  </p>
+                  {rate !== null && (
+                    <span
+                      className={`text-[9px] font-black ${rate >= 70 ? "text-emerald-400" : rate >= 40 ? "text-amber-400" : "text-red-400"}`}>
+                      %{rate}
+                    </span>
+                  )}
+                </div>
+                <div className="h-1 mb-3 overflow-hidden rounded-full bg-stone-800">
+                  <div
+                    className={`h-full rounded-full transition-all ${rate >= 70 ? "bg-emerald-500" : rate >= 40 ? "bg-amber-500" : "bg-red-500"}`}
+                    style={{ width: `${rate || 0}%` }}
+                  />
+                </div>
+                <div className="flex justify-between text-[10px]">
+                  <span className="text-emerald-400">{d.hits} hit</span>
+                  <span className="text-red-400">{d.misses} miss</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Section>
+
+      {/* Cron stats */}
+      <Section title="Cron İstatistikleri">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          <Stat label="Toplam" value={s.cron?.totalRuns} />
+          <Stat label="Başarılı" value={s.cron?.successRuns} color="emerald" />
+          <Stat
+            label="Hatalı"
+            value={s.cron?.errorRuns}
+            color={s.cron?.errorRuns > 0 ? "red" : "white"}
+          />
+          <Stat label="Atlandı" value={s.cron?.skippedRuns} />
+          <Stat
+            label="Başarı Oranı"
+            value={pct(s.cron?.successRate)}
+            color={s.cron?.successRate >= 80 ? "emerald" : "amber"}
+          />
+          <Stat label="Ort. Süre" value={ms2s(s.cron?.avgDurationMs)} />
+        </div>
+        {s.cron?.minDurationMs != null && (
+          <p className="text-[10px] text-stone-600 mt-3">
+            Min: {ms2s(s.cron.minDurationMs)} · Max:{" "}
+            {ms2s(s.cron.maxDurationMs)}
+          </p>
+        )}
+      </Section>
+
+      {/* API hataları */}
+      <Section title="API Hata Sayaçları">
+        <div className="grid grid-cols-3 gap-3">
+          <Stat
+            label="Gemini"
+            value={s.errors?.gemini}
+            color={s.errors?.gemini > 0 ? "red" : "white"}
+            sub="Özet üretimi"
+          />
+          <Stat
+            label="Groq"
+            value={s.errors?.groq}
+            color={s.errors?.groq > 0 ? "red" : "white"}
+            sub="Analiz / Özet"
+          />
+          <Stat
+            label="NewsAPI"
+            value={s.errors?.news}
+            color={s.errors?.news > 0 ? "red" : "white"}
+            sub="Haber çekimi"
+          />
+        </div>
+      </Section>
+
+      {/* Cron log tablosu */}
+      <Section title={`Cron Geçmişi — Son ${logs.length} Çalışma`}>
+        {logs.length === 0 ? (
+          <div className="py-10 text-center">
+            <p className="mb-3 text-4xl">📭</p>
+            <p className="text-sm text-stone-500">Henüz cron çalışmamış.</p>
+            <p className="mt-1 text-xs text-stone-600">
+              &quot;Özeti Şimdi Üret&quot; ile test edin.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {logs.map((log, i) => (
+              <div
+                key={i}
+                className={`p-4 rounded-xl border ${
+                  log.status === "success"
+                    ? "bg-emerald-950/10 border-emerald-900/50"
+                    : log.status === "error"
+                      ? "bg-red-950/20 border-red-900/50"
+                      : log.status === "skipped"
+                        ? "bg-stone-800/40 border-stone-700"
+                        : "bg-stone-800/30 border-stone-700"
+                }`}>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge
+                      color={
+                        log.status === "success"
+                          ? "green"
+                          : log.status === "error"
+                            ? "red"
+                            : log.status === "skipped"
+                              ? "stone"
+                              : "amber"
+                      }>
+                      {log.status === "success"
+                        ? "✓ başarılı"
+                        : log.status === "error"
+                          ? "✕ hata"
+                          : log.status === "skipped"
+                            ? "⏭ atlandı"
+                            : "⟳ çalışıyor"}
+                    </Badge>
+                    <Badge
+                      color={
+                        log.triggeredBy?.includes("manual") ? "amber" : "blue"
+                      }>
+                      {log.triggeredBy?.includes("manual")
+                        ? "manuel"
+                        : "otomatik"}
+                    </Badge>
+                    {log.dayMood && (
+                      <Badge color="stone">😶 {log.dayMood}</Badge>
+                    )}
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-xs font-bold text-stone-300">
+                      {rel(log.triggeredAt)}
+                    </p>
+                    <p className="text-[9px] text-stone-600">
+                      {fmt(log.triggeredAt)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 mt-3 sm:grid-cols-4">
+                  {[
+                    ["Süre", ms2s(log.durationMs)],
+                    ["Sayı", log.issueNumber ? `#${log.issueNumber}` : null],
+                    [
+                      "Haberler",
+                      log.articleCount ? `${log.articleCount} adet` : null,
+                    ],
+                    ["Sebep", log.reason || log.step || null],
+                  ]
+                    .filter(([, v]) => v)
+                    .map(([l, v]) => (
+                      <div
+                        key={l}
+                        className="px-3 py-2 rounded-lg bg-stone-950/50">
+                        <p className="text-[9px] text-stone-600">{l}</p>
+                        <p className="text-[11px] font-black text-stone-300">
+                          {v}
+                        </p>
+                      </div>
+                    ))}
+                </div>
+
+                {log.error && (
+                  <div className="mt-2.5 px-3 py-2 bg-red-950/30 border border-red-900/40 rounded-lg">
+                    <p className="text-[9px] font-black text-red-500 mb-0.5 uppercase tracking-wider">
+                      Hata
+                    </p>
+                    <p className="text-[10px] text-red-400 font-mono break-all">
+                      {log.error}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </Section>
+
+      {/* Vercel linki */}
+      <div className="px-5 py-4 text-xs border bg-stone-900/50 border-stone-800 rounded-xl text-stone-600">
+        <span className="font-bold text-stone-500">Vercel Cron Logs: </span>
+        vercel.com → Proje → Settings → Cron Jobs — orada da otomatik
+        çalışmaları görebilirsiniz.
+      </div>
+    </div>
+  );
+}

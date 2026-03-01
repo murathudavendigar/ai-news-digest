@@ -3,6 +3,7 @@
 import { formatDate } from "@/app/lib/news";
 import Link from "next/link";
 import { useCallback, useState } from "react";
+import BookmarkButton from "./BookmarkButton";
 
 const VERDICT_COLORS = {
   reliable: "text-emerald-400 bg-emerald-950/60 border-emerald-700",
@@ -56,7 +57,19 @@ export default function NewsCard({ article, priority = false }) {
       onMouseEnter={handleMouseEnter}
       onMouseLeave={() => setHovered(false)}>
       <Link
-        href={`/news/${article.article_id}`}
+        href={`/news/${
+          article.title
+            ? article.title
+                .toLowerCase()
+                .replace(/[^a-z0-9\u00c0-\u024f\s-]/g, "")
+                .trim()
+                .replace(/\s+/g, "-")
+                .replace(/-+/g, "-")
+                .slice(0, 80) +
+              "--" +
+              article.article_id
+            : article.article_id
+        }`}
         className="block overflow-hidden transition-all duration-300 bg-white border shadow-sm group dark:bg-stone-900 border-stone-200 dark:border-stone-800 rounded-2xl hover:shadow-lg hover:border-stone-400 dark:hover:border-stone-600">
         {/* Görsel */}
         <div className="relative h-48 overflow-hidden bg-stone-100 dark:bg-stone-800">
@@ -74,7 +87,7 @@ export default function NewsCard({ article, priority = false }) {
           )}
 
           {/* Üstten aşağı gradient — kaynak badge okunabilirliği için */}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-linear-to-b from-black/30 via-transparent to-transparent" />
 
           {/* Kaynak badge */}
           <div
@@ -113,6 +126,14 @@ export default function NewsCard({ article, priority = false }) {
               </span>
             </div>
           )}
+
+          {/* Bookmark — sağ alt */}
+          <div className="absolute transition-opacity opacity-0 bottom-3 right-3 group-hover:opacity-100">
+            <BookmarkButton
+              article={article}
+              className="rounded-full w-7 h-7 bg-stone-950/70 backdrop-blur-sm hover:bg-stone-950/90"
+            />
+          </div>
         </div>
 
         {/* İçerik */}
@@ -148,9 +169,7 @@ export default function NewsCard({ article, priority = false }) {
               {formatDate(article.pubDate)}
             </span>
             {article.creator?.[0] && (
-              <span className="truncate max-w-[120px]">
-                {article.creator[0]}
-              </span>
+              <span className="truncate max-w-30">{article.creator[0]}</span>
             )}
           </div>
         </div>
@@ -158,8 +177,7 @@ export default function NewsCard({ article, priority = false }) {
 
       {/* Hover tooltip */}
       {hovered && scorePreview && (
-        <div
-          className="absolute z-30 w-56 p-3 mb-2 -translate-x-1/2 border shadow-2xl pointer-events-none bottom-full left-1/2 bg-stone-950 border-stone-700 rounded-xl">
+        <div className="absolute z-30 w-56 p-3 mb-2 -translate-x-1/2 border shadow-2xl pointer-events-none bottom-full left-1/2 bg-stone-950 border-stone-700 rounded-xl">
           <p className="text-[9px] font-black text-stone-500 uppercase tracking-widest mb-2.5">
             Güvenilirlik Skoru
           </p>
@@ -189,9 +207,7 @@ export default function NewsCard({ article, priority = false }) {
             );
           })}
           {/* Ok */}
-          <div
-            className="absolute w-0 h-0 -translate-x-1/2 border-t-4 border-l-4 border-r-4 top-full left-1/2 border-l-transparent border-r-transparent border-t-stone-950"
-          />
+          <div className="absolute w-0 h-0 -translate-x-1/2 border-t-4 border-l-4 border-r-4 top-full left-1/2 border-l-transparent border-r-transparent border-t-stone-950" />
         </div>
       )}
     </div>

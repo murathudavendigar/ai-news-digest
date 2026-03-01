@@ -16,6 +16,11 @@
 # misc
 .DS_Store
 *.pem
+RECOMMENDATIONS.md
+CONTEXT.md
+
+# local config files
+.cursor
 
 # debug
 npm-debug.log*

@@ -5,6 +5,8 @@
   --foreground: #171717;
 }
 
+/* @variant dark (&:is(.dark *)); */
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -27,7 +29,7 @@ body {
 
 @layer base {
   :root {
-    --font-display: 'Playfair Display';
-    --font-body: 'Source Serif 4';
+    --font-display: "Playfair Display";
+    --font-body: "Source Serif 4";
   }
 }
