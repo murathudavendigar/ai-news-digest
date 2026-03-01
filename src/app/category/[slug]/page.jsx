@@ -1,6 +1,6 @@
-import { siteConfig } from "@/app/lib/siteConfig";
 import NewsFeed from "@/app/components/NewsFeed";
 import { getNewsByCategory } from "@/app/lib/news";
+import { siteConfig } from "@/app/lib/siteConfig";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 

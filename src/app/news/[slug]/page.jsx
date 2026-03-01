@@ -1,10 +1,10 @@
-import { siteConfig } from "@/app/lib/siteConfig";
 import AISummary from "@/app/components/AISummary";
 import ArticleAnalysis from "@/app/components/ArticleAnalysis";
 import NewsComparison from "@/app/components/NewsComparison";
 import ReadingToolbar from "@/app/components/ReadingToolbar";
 import RelatedArticles from "@/app/components/RelatedArticles";
 import { getNewsByArticleID } from "@/app/lib/news";
+import { siteConfig } from "@/app/lib/siteConfig";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 

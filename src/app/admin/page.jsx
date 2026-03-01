@@ -1,4 +1,3 @@
-import { siteConfig } from "@/app/lib/siteConfig";
 import AdminShell from "@/app/components/AdminShell";
 export const metadata = { title: "Admin" };
 export const dynamic = "force-dynamic";

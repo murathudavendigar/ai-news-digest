@@ -2,8 +2,8 @@ import ConditionalFooter from "@/app/components/ConditionalFooter";
 import Navigation from "@/app/components/Navigation";
 import SearchBar from "@/app/components/SearchBar";
 import ThemeProvider from "@/app/components/ThemeProvider";
-import { Playfair_Display, Source_Serif_4 } from "next/font/google";
 import { siteConfig } from "@/app/lib/siteConfig";
+import { Playfair_Display, Source_Serif_4 } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 
@@ -115,7 +115,8 @@ export default function RootLayout({ children }) {
                     style={{
                       fontFamily: "var(--font-display), Georgia, serif",
                     }}>
-                    {logoPrimary}<span className="text-amber-400">{logoAccent}</span>
+                    {logoPrimary}
+                    <span className="text-amber-400">{logoAccent}</span>
                   </p>
                   <p className="text-[9px] text-stone-500 uppercase tracking-widest mt-0.5">
                     {subtitle}

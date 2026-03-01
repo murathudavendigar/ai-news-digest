@@ -1,6 +1,5 @@
 import { siteConfig } from "@/app/lib/siteConfig";
-import Link from 'next/link';
-import React from 'react'
+import Link from "next/link";
 
 export default function Footer() {
   return (

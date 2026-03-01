@@ -1,4 +1,3 @@
-import { siteConfig } from "@/app/lib/siteConfig";
 import SavedArticles from "@/app/components/SavedArticles";
 
 export const metadata = {

@@ -1,6 +1,5 @@
-import { siteConfig } from "@/app/lib/siteConfig";
-import { getLatest } from "@/app/lib/news";
 import SearchResults from "@/app/components/SearchResults";
+import { getLatest } from "@/app/lib/news";
 
 export function generateMetadata({ searchParams }) {
   const q = searchParams?.q || "";

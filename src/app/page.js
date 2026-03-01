@@ -1,8 +1,8 @@
-import { siteConfig } from "@/app/lib/siteConfig";
 import DailySummary from "@/app/components/DailySummary";
 import NewsFeed from "@/app/components/NewsFeed";
 import { getDailySummary } from "@/app/lib/dailySummary";
 import { getLatest } from "@/app/lib/news";
+import { siteConfig } from "@/app/lib/siteConfig";
 
 export const revalidate = 300; // 5 dakikada revalidate
 

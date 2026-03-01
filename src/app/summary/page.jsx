@@ -1,7 +1,7 @@
-import { siteConfig } from "@/app/lib/siteConfig";
 import SpeechButton from "@/app/components/SpeechButton";
 import SubscribeForm from "@/app/components/SubscribeForm";
 import { generateDailySummary, getDailySummary } from "@/app/lib/dailySummary";
+import { siteConfig } from "@/app/lib/siteConfig";
 import Link from "next/link";
 
 export const revalidate = 3600;
