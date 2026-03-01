@@ -90,9 +90,15 @@ export default function NewsCard({ article, priority = false }) {
               article.article_id
             : article.article_id
         }`}
-        className="block overflow-hidden transition-all duration-300 bg-white border shadow-sm group dark:bg-stone-900 border-stone-200 dark:border-stone-800 rounded-2xl hover:shadow-lg hover:border-stone-400 dark:hover:border-stone-600">
-        {/* Görsel */}
-        <div className="relative h-48 overflow-hidden bg-stone-100 dark:bg-stone-800">
+        className="flex md:block overflow-hidden transition-all duration-300
+                   bg-white border shadow-sm group dark:bg-stone-900
+                   border-stone-200 dark:border-stone-800 rounded-2xl
+                   hover:shadow-lg hover:border-stone-400 dark:hover:border-stone-600
+                   active:scale-[0.99]">
+        {/* Görsel — mobilde sabit genişlik, desktopda tam genişlik */}
+        <div
+          className="relative w-28 shrink-0 md:w-full self-stretch md:h-48
+                        overflow-hidden bg-stone-100 dark:bg-stone-800">
           {article.image_url ? (
             <img
               src={article.image_url}
@@ -106,12 +112,12 @@ export default function NewsCard({ article, priority = false }) {
             </div>
           )}
 
-          {/* Üstten aşağı gradient — kaynak badge okunabilirliği için */}
-          <div className="absolute inset-0 bg-linear-to-b from-black/30 via-transparent to-transparent" />
+          {/* Gradient — sadece desktopda */}
+          <div className="absolute inset-0 bg-linear-to-b from-black/30 via-transparent to-transparent hidden md:block" />
 
-          {/* Kaynak badge */}
+          {/* Kaynak badge — sadece desktop */}
           <div
-            className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1
+            className="absolute top-3 left-3 hidden md:flex items-center gap-1.5 px-2.5 py-1
                           bg-black/60 backdrop-blur-sm rounded-full">
             {article.source_icon && (
               <img
@@ -125,20 +131,20 @@ export default function NewsCard({ article, priority = false }) {
             </span>
           </div>
 
-          {/* Skor badge — cache'de varsa */}
+          {/* Skor badge — sadece desktop */}
           {scorePreview && (
             <div
-              className={`absolute top-3 right-3 flex items-center gap-1 px-2 py-0.5
-                            rounded-full border text-[10px] font-black backdrop-blur-sm
-                            ${verdictCfg.color}`}>
+              className={`absolute top-3 right-3 hidden md:flex items-center gap-1 px-2 py-0.5
+                          rounded-full border text-[10px] font-black backdrop-blur-sm
+                          ${verdictCfg.color}`}>
               {scorePreview.overallScore}
               <span className="font-medium opacity-80">{verdictCfg.label}</span>
             </div>
           )}
 
-          {/* Kategori chip — sol alt */}
+          {/* Kategori chip — sadece desktop */}
           {article.category?.[0] && (
-            <div className="absolute bottom-3 left-3">
+            <div className="absolute bottom-3 left-3 hidden md:block">
               <span
                 className="text-[9px] font-black uppercase tracking-widest
                                px-2 py-0.5 bg-stone-950/80 text-stone-300 rounded-sm">
@@ -147,8 +153,8 @@ export default function NewsCard({ article, priority = false }) {
             </div>
           )}
 
-          {/* Bookmark — sağ alt */}
-          <div className="absolute transition-opacity opacity-0 bottom-3 right-3 group-hover:opacity-100">
+          {/* Bookmark — desktop hover */}
+          <div className="absolute transition-opacity opacity-0 bottom-3 right-3 group-hover:opacity-100 hidden md:block">
             <BookmarkButton
               article={article}
               className="rounded-full w-7 h-7 bg-stone-950/70 backdrop-blur-sm hover:bg-stone-950/90"
@@ -157,25 +163,50 @@ export default function NewsCard({ article, priority = false }) {
         </div>
 
         {/* İçerik */}
-        <div className="p-4">
+        <div className="flex-1 min-w-0 p-3 md:p-4 flex flex-col justify-between">
+          {/* Mobil: kaynak satırı */}
+          <div className="flex items-center gap-1.5 mb-1.5 md:hidden">
+            {article.source_icon && (
+              <img
+                src={article.source_icon}
+                className="w-3 h-3 rounded-full shrink-0"
+                alt=""
+              />
+            )}
+            <span className="text-[10px] font-bold text-stone-400 truncate">
+              {article.source_name}
+            </span>
+            {scorePreview && (
+              <span
+                className={`ml-auto shrink-0 text-[9px] font-black px-1.5 py-0.5 rounded-full border ${verdictCfg.color}`}>
+                {scorePreview.overallScore}
+              </span>
+            )}
+          </div>
+
           <h3
-            className="mb-2 text-sm font-bold leading-snug transition-colors text-stone-900 dark:text-stone-100 line-clamp-2 group-hover:text-amber-600 dark:group-hover:text-amber-400"
+            className="text-sm font-bold leading-snug transition-colors
+                       text-stone-900 dark:text-stone-100
+                       line-clamp-2 md:line-clamp-2
+                       group-hover:text-amber-600 dark:group-hover:text-amber-400 mb-1.5"
             style={{ fontFamily: "var(--font-display, Georgia, serif)" }}>
             {article.title}
           </h3>
 
           {article.description && (
-            <p className="mb-3 text-xs leading-relaxed text-stone-500 dark:text-stone-400 line-clamp-2">
+            <p className="hidden md:block mb-3 text-xs leading-relaxed text-stone-500 dark:text-stone-400 line-clamp-2">
               {article.description}
             </p>
           )}
 
+          {/* Footer satırı */}
           <div
-            className="flex items-center justify-between text-[10px] text-stone-400 dark:text-stone-500
-                          pt-3 border-t border-stone-100 dark:border-stone-800">
+            className="flex items-center justify-between mt-auto
+                          text-[10px] text-stone-400 dark:text-stone-500
+                          pt-2 md:pt-3 border-t border-stone-100 dark:border-stone-800">
             <span className="flex items-center gap-1">
               <svg
-                className="w-3 h-3"
+                className="w-3 h-3 shrink-0"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24">
@@ -188,9 +219,27 @@ export default function NewsCard({ article, priority = false }) {
               </svg>
               {formatDate(article.pubDate)}
             </span>
-            {article.creator?.[0] && (
-              <span className="truncate max-w-30">{article.creator[0]}</span>
+            {/* Mobil: kategori chip */}
+            {article.category?.[0] && (
+              <span
+                className="md:hidden text-[9px] font-black uppercase tracking-widest
+                               px-2 py-0.5 bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400 rounded-sm">
+                {article.category[0]}
+              </span>
             )}
+            {/* Desktop: yazar */}
+            {article.creator?.[0] && (
+              <span className="hidden md:block truncate max-w-30">
+                {article.creator[0]}
+              </span>
+            )}
+            {/* Mobil: bookmark her zaman görünür */}
+            <div className="md:hidden">
+              <BookmarkButton
+                article={article}
+                className="w-7 h-7 rounded-full bg-stone-100 dark:bg-stone-800"
+              />
+            </div>
           </div>
         </div>
       </Link>

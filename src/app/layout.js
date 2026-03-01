@@ -3,6 +3,7 @@ import Navigation from "@/app/components/Navigation";
 import SearchBar from "@/app/components/SearchBar";
 import ThemeProvider from "@/app/components/ThemeProvider";
 import { Playfair_Display, Source_Serif_4 } from "next/font/google";
+import { siteConfig } from "@/app/lib/siteConfig";
 import Link from "next/link";
 import "./globals.css";
 
@@ -18,10 +19,56 @@ const sourceSerif = Source_Serif_4({
   display: "swap",
 });
 
+const {
+  url: SITE_URL,
+  name,
+  nameShort,
+  tagline,
+  description,
+  ogImage,
+  locale,
+  logoPrimary,
+  logoAccent,
+  subtitle,
+} = siteConfig;
+
+export const viewport = {
+  themeColor: "#1c1917",
+  width: "device-width",
+  initialScale: 1,
+};
+
 export const metadata = {
-  title: "HaberAI - Yapay Zeka Destekli Haber Analizi",
-  description:
-    "Türkiye ve dünyadan en güncel haberler — AI destekli güvenilirlik analizi ile",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: `${name} — ${tagline}`,
+    template: `%s — ${nameShort}`,
+  },
+  description,
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: name,
+  },
+  icons: {
+    apple: "/icons/icon-192.png",
+  },
+  openGraph: {
+    type: "website",
+    locale,
+    url: SITE_URL,
+    siteName: name,
+    title: `${name} — ${tagline}`,
+    description,
+    images: [{ url: ogImage, width: 1200, height: 630, alt: name }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${name} — ${tagline}`,
+    description,
+    images: [ogImage],
+  },
 };
 
 export default function RootLayout({ children }) {
@@ -59,16 +106,19 @@ export default function RootLayout({ children }) {
             <div className="px-4 mx-auto max-w-7xl sm:px-6">
               <div className="flex items-center justify-between gap-4 py-3">
                 {/* Logo */}
-                <Link href="/" className="shrink-0 group">
-                  <h1
+                <Link
+                  href="/"
+                  className="shrink-0 group"
+                  aria-label={`${name} — Ana Sayfa`}>
+                  <p
                     className="text-2xl font-black leading-none tracking-tight text-white transition-opacity group-hover:opacity-90"
                     style={{
                       fontFamily: "var(--font-display), Georgia, serif",
                     }}>
-                    Haber<span className="text-amber-400">AI</span>
-                  </h1>
+                    {logoPrimary}<span className="text-amber-400">{logoAccent}</span>
+                  </p>
                   <p className="text-[9px] text-stone-500 uppercase tracking-widest mt-0.5">
-                    Türkiye · Dünya · Analiz
+                    {subtitle}
                   </p>
                 </Link>
 
@@ -107,7 +157,9 @@ export default function RootLayout({ children }) {
           </header>
 
           {/* ── İçerik ── */}
-          <main>{children}</main>
+          <main className="pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
+            {children}
+          </main>
 
           {/* ── Footer ── */}
           <ConditionalFooter />

@@ -1,3 +1,4 @@
+import { siteConfig } from "@/app/lib/siteConfig";
 import Link from 'next/link';
 import React from 'react'
 
@@ -54,7 +55,7 @@ export default function Footer() {
             </Link>
           </div>
           <p className="text-xs text-center text-stone-700 md:text-right">
-            © {new Date().getFullYear()} HaberAI
+            © {new Date().getFullYear()} {siteConfig.name}
           </p>
         </div>
       </div>

@@ -1,9 +1,20 @@
+import { siteConfig } from "@/app/lib/siteConfig";
 import SpeechButton from "@/app/components/SpeechButton";
 import SubscribeForm from "@/app/components/SubscribeForm";
 import { generateDailySummary, getDailySummary } from "@/app/lib/dailySummary";
 import Link from "next/link";
 
 export const revalidate = 3600;
+
+export const metadata = {
+  title: "Günün Özeti",
+  description: `${siteConfig.name} yapay zekası tarafından hazırlanan günlük haber özeti — bugün ne oldu, tek sayfada.`,
+  openGraph: {
+    title: `Günün Özeti — ${siteConfig.name}`,
+    description:
+      "Yapay zeka tarafından hazırlanan günlük haber özeti. Bugün ne oldu, tek sayfada.",
+  },
+};
 
 // ── Konfigürasyonlar ───────────────────────────────────────────────────────
 const MOOD_CONFIG = {
@@ -189,8 +200,8 @@ export default async function SummaryPage() {
             <SpeechButton
               text={[
                 data.date
-                  ? `${data.date} — HaberAI Günlük Özet.`
-                  : "HaberAI Günlük Özet.",
+                  ? `${data.date} — ${siteConfig.name} Günlük Özet.`
+                  : `${siteConfig.name} Günlük Özet.`,
                 data.intro,
                 data.bigPicture,
                 ...(mustRead || [])

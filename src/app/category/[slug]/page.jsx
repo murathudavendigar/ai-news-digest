@@ -1,3 +1,4 @@
+import { siteConfig } from "@/app/lib/siteConfig";
 import NewsFeed from "@/app/components/NewsFeed";
 import { getNewsByCategory } from "@/app/lib/news";
 import Link from "next/link";
@@ -48,7 +49,7 @@ export async function generateMetadata({ params }) {
   const cat = CATEGORIES[slug];
   if (!cat) return {};
   return {
-    title: `${cat.title} Haberleri — HaberAI`,
+    title: `${cat.title} Haberleri — ${siteConfig.name}`,
     description: cat.desc,
   };
 }

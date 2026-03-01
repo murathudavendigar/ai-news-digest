@@ -3,6 +3,7 @@
 // Token = HMAC-SHA256(email, CRON_SECRET) — stateless, Redis'e ek kayıt gerekmez.
 // Welcome e-postasındaki link: /api/unsubscribe?token=<hex>&email=<encoded>
 
+import { siteConfig } from "@/app/lib/siteConfig";
 import { Redis } from "@upstash/redis";
 import { NextResponse } from "next/server";
 import { createHmac } from "node:crypto";
@@ -26,7 +27,7 @@ const page = (title, body, ok = true) => `<!DOCTYPE html>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>${title} — HaberAI</title>
+  <title>${title} — ${siteConfig.name}</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:Georgia,serif;background:#fafaf9;color:#1c1917;min-height:100vh;

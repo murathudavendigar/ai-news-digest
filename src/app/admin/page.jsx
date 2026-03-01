@@ -1,5 +1,6 @@
+import { siteConfig } from "@/app/lib/siteConfig";
 import AdminShell from "@/app/components/AdminShell";
-export const metadata = { title: "Admin — HaberAI" };
+export const metadata = { title: "Admin" };
 export const dynamic = "force-dynamic";
 
 export default function AdminPage() {

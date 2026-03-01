@@ -1,5 +1,6 @@
 "use client";
 
+import { siteConfig } from "@/app/lib/siteConfig";
 import { useEffect, useState } from "react";
 import AdminDashboard from "./AdminDashboard";
 
@@ -133,7 +134,7 @@ export default function AdminShell() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <p className="text-[10px] text-stone-500 uppercase tracking-widest mb-1">
-              HaberAI
+              {siteConfig.name}
             </p>
             <h1
               className="text-2xl font-black text-white"

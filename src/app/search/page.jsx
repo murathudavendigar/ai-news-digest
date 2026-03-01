@@ -1,10 +1,11 @@
+import { siteConfig } from "@/app/lib/siteConfig";
 import { getLatest } from "@/app/lib/news";
 import SearchResults from "@/app/components/SearchResults";
 
 export function generateMetadata({ searchParams }) {
   const q = searchParams?.q || "";
   return {
-    title: q ? `"${q}" — Arama — HaberAI` : "Arama — HaberAI",
+    title: q ? `"${q}" — Arama` : "Arama",
   };
 }
 

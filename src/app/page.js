@@ -1,10 +1,16 @@
-
-import NewsFeed from "@/app/components/NewsFeed";
+import { siteConfig } from "@/app/lib/siteConfig";
 import DailySummary from "@/app/components/DailySummary";
-import { getLatest } from "@/app/lib/news";
+import NewsFeed from "@/app/components/NewsFeed";
 import { getDailySummary } from "@/app/lib/dailySummary";
+import { getLatest } from "@/app/lib/news";
 
 export const revalidate = 300; // 5 dakikada revalidate
+
+export const metadata = {
+  title: "Son Dakika Haberler",
+  description: siteConfig.descriptionHome,
+  alternates: { canonical: siteConfig.url },
+};
 
 export default async function HomePage() {
   // Paralel fetch — ikisi aynı anda çalışır

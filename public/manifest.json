@@ -1,0 +1,39 @@
+{
+  "name": "HaberAI",
+  "short_name": "HaberAI",
+  "description": "Yapay zeka destekli haber analizi — Türkiye ve dünya",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1c1917",
+  "theme_color": "#1c1917",
+  "categories": ["news"],
+  "lang": "tr",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Günlük Özet",
+      "url": "/summary",
+      "description": "Bugünün AI haber özeti"
+    },
+    {
+      "name": "Kaydedilenler",
+      "url": "/saved",
+      "description": "Kaydettiğin haberler"
+    }
+  ]
+}
