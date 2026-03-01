@@ -1,3 +1,4 @@
+import { devLog, devWarn } from "@/app/lib/devLog";
 // ── Model adları — sadece buradan değiştir ────────────────────────────────
 export const GEMINI_MODELS = {
   FLASH: "gemini-2.5-flash", // Ana model
@@ -69,7 +70,7 @@ async function callWithFallback(
     try {
       const result = await callGemini(model, buildBody(model));
       if (model !== preferredModel) {
-        console.log(`[gemini] ✓ Fallback: ${model}`);
+        devLog(`[gemini] ✓ Fallback: ${model}`);
       }
       return result;
     } catch (err) {
@@ -79,13 +80,13 @@ async function callWithFallback(
         throw err;
       }
       if (err.status === 429 || err.status === 503 || err.status === 500) {
-        console.warn(
+        devWarn(
           `[gemini] ${model} rate-limit/geçici hata → sonraki model`,
         );
         continue; // sıradaki modele geç
       }
       if (err.status === 404) {
-        console.warn(`[gemini] ${model} bulunamadı → sonraki model`);
+        devWarn(`[gemini] ${model} bulunamadı → sonraki model`);
         continue; // sıradaki modele geç
       }
       // Bilinmeyen hata → dur
@@ -167,12 +168,12 @@ export async function generateWithGrounding(
   try {
     const { text, searches } = await callGemini(model, body);
     if (searches.length)
-      console.log("[gemini] Web searches:", searches.join(" | "));
+      devLog("[gemini] Web searches:", searches.join(" | "));
     return text;
   } catch (err) {
     if (err.status === 429 || err.status === 503) {
       // Grounding 429 → aramasız fallback dene
-      console.warn("[gemini] Grounding rate-limit → aramasız fallback");
+      devWarn("[gemini] Grounding rate-limit → aramasız fallback");
       const { text } = await callWithFallback(
         () => ({
           contents: [{ role: "user", parts: [{ text: prompt }] }],

@@ -1,3 +1,4 @@
+import { devLog, devWarn } from "@/app/lib/devLog";
 // api/subscribe/route.js
 // Günlük özet e-posta aboneliği — e-posta adresleri Redis'e kaydedilir.
 // Mail gönderimi şimdilik devre dışı, ilerleyen aşamada eklenecek.
@@ -47,7 +48,7 @@ export async function POST(req) {
       redis.incr(`stats:subscribers:today:${today}`).catch(() => {}),
     ]);
 
-    console.log(`[subscribe] Yeni abone: ${normalized}`);
+    devLog(`[subscribe] Yeni abone: ${normalized}`);
     return NextResponse.json({ message: "subscribed" });
   } catch (error) {
     console.error("[POST /api/subscribe] Error:", error);

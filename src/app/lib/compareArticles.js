@@ -1,3 +1,4 @@
+import { devLog, devWarn } from "@/app/lib/devLog";
 import { searchNewsAPI } from "@/app/lib/newsApi";
 import { Redis } from "@upstash/redis";
 import { buildComparePrompt } from "./comparePrompt";
@@ -75,7 +76,7 @@ async function findRelatedArticles(original, searchQuery) {
       ? newsAPIResult.value?.articles || []
       : [];
 
-  console.log(
+  devLog(
     `[compareArticles] NewsData: ${newsDataArticles.length}, NewsAPI: ${newsAPIArticles.length} articles found`,
   );
 
@@ -122,7 +123,7 @@ export async function compareArticles(original, forceRefresh = false) {
   if (!forceRefresh) {
     const cached = await getCached(articleId);
     if (cached) {
-      console.log(`[compareArticles] Cache HIT for ${articleId}`);
+      devLog(`[compareArticles] Cache HIT for ${articleId}`);
       return { ...cached, fromCache: true };
     }
   }
@@ -132,7 +133,7 @@ export async function compareArticles(original, forceRefresh = false) {
     original.title,
     original.description,
   );
-  console.log(`[compareArticles] Search query: "${searchQuery}"`);
+  devLog(`[compareArticles] Search query: "${searchQuery}"`);
 
   // 2. Hibrit arama
   const relatedArticles = await findRelatedArticles(original, searchQuery);
@@ -145,7 +146,7 @@ export async function compareArticles(original, forceRefresh = false) {
     };
   }
 
-  console.log(
+  devLog(
     `[compareArticles] Comparing ${relatedArticles.length + 1} sources:`,
     [original, ...relatedArticles].map((a) => a.source_name).join(", "),
   );

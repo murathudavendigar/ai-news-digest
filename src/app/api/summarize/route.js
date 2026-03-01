@@ -1,3 +1,4 @@
+import { devLog, devWarn } from "@/app/lib/devLog";
 import { summarizeArticle } from "@/app/lib/summarizeArticle";
 import {
   getCachedSummary,
@@ -13,7 +14,7 @@ const inFlight = new Map();
 
 async function dedup(key, fn) {
   if (inFlight.has(key)) {
-    console.log(`[summarize] In-flight HIT for ${key}`);
+    devLog(`[summarize] In-flight HIT for ${key}`);
     return inFlight.get(key);
   }
   const p = fn().finally(() => inFlight.delete(key));
@@ -40,13 +41,13 @@ export async function POST(req) {
     if (articleId && !forceRefresh) {
       const cached = await getCachedSummary(articleId);
       if (cached) {
-        console.log(`[summarize] Cache HIT for ${articleId}`);
+        devLog(`[summarize] Cache HIT for ${articleId}`);
         return NextResponse.json({ ...cached, fromCache: true });
       }
     }
 
     // ── 2. Cache miss → call AI ──────────────────────────────────────────
-    console.log(`[summarize] Cache MISS for ${articleId} — calling AI`);
+    devLog(`[summarize] Cache MISS for ${articleId} — calling AI`);
     const summarize = () => summarizeArticle(article, { forceLanguage, fast });
     const result = articleId
       ? await dedup(articleId, summarize)

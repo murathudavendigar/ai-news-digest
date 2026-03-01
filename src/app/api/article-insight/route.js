@@ -1,3 +1,4 @@
+import { devLog, devWarn } from "@/app/lib/devLog";
 // api/article-insight/route.js
 // Tek istekte hem summarize hem analyze çalıştırır.
 // Önce her iki cache'i kontrol eder; cache miss olan kısımları paralel üretir.
@@ -59,7 +60,7 @@ export async function POST(req) {
     const summaryHit = !!cachedSummary;
     const analysisHit = !!cachedAnalysis;
 
-    console.log(
+    devLog(
       `[article-insight] ${articleId} — summary:${summaryHit ? "HIT" : "MISS"} analyze:${analysisHit ? "HIT" : "MISS"}`,
     );
 

@@ -212,7 +212,7 @@ export default function NewsComparison({ article }) {
           </span>
         </div>
         <div className="flex items-center gap-2">
-          {result.fromCache && (
+          {process.env.NODE_ENV !== "production" && result.fromCache && (
             <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400">
               ⚡ Cache
             </span>

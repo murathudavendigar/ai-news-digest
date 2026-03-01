@@ -1,3 +1,4 @@
+import { devLog, devWarn } from "@/app/lib/devLog";
 import { generateDailySummary, getDailySummary } from "@/app/lib/dailySummary";
 import { Redis } from "@upstash/redis";
 import { NextResponse } from "next/server";
@@ -28,7 +29,7 @@ async function safeIncr(key) {
 export async function runDailySummaryCron(triggeredBy = "vercel-cron") {
   const triggeredAt = new Date().toISOString();
   const t0 = Date.now();
-  console.log(`[cron] ▶ ${triggeredBy} — ${triggeredAt}`);
+  devLog(`[cron] ▶ ${triggeredBy} — ${triggeredAt}`);
 
   /* ── 0. Günlük stats sıfırlama ── */
   try {
@@ -41,9 +42,9 @@ export async function runDailySummaryCron(triggeredBy = "vercel-cron") {
       ),
     ];
     await Promise.all(todayKeys.map((k) => redis.del(k).catch(() => {})));
-    console.log("[cron] ♻ Günlük stats sıfırlandı");
+    devLog("[cron] ♻ Günlük stats sıfırlandı");
   } catch (e) {
-    console.warn("[cron] Stats sıfırlama hatası (devam):", e.message);
+    devWarn("[cron] Stats sıfırlama hatası (devam):", e.message);
   }
 
   /* ── 1. Cache kontrolü (sadece otomatik cron için) ── */
@@ -60,11 +61,11 @@ export async function runDailySummaryCron(triggeredBy = "vercel-cron") {
           issueNumber: existing.issueNumber,
         };
         await writeLog(entry);
-        console.log("[cron] ⏭ Cache zaten var, atlandı");
+        devLog("[cron] ⏭ Cache zaten var, atlandı");
         return { success: true, skipped: true };
       }
     } catch (e) {
-      console.warn("[cron] Cache kontrol hatası (devam):", e.message);
+      devWarn("[cron] Cache kontrol hatası (devam):", e.message);
     }
   }
 
@@ -120,7 +121,7 @@ export async function runDailySummaryCron(triggeredBy = "vercel-cron") {
     dayMood: result.dayMood,
   });
 
-  console.log(`[cron] ✓ Sayı #${result.issueNumber} — ${durationMs}ms`);
+  devLog(`[cron] ✓ Sayı #${result.issueNumber} — ${durationMs}ms`);
   return {
     success: true,
     issueNumber: result.issueNumber,

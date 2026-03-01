@@ -1,3 +1,4 @@
+import { devLog, devWarn } from "@/app/lib/devLog";
 import { Redis } from "@upstash/redis";
 import { buildContextPrompt } from "./contextPrompt";
 import { generateCompletion, GROQ_MODELS } from "./groq";
@@ -89,7 +90,7 @@ function safeParseJSON(raw, label) {
     try {
       const repaired = repairTruncatedJSON(cleaned);
       const result = JSON.parse(repaired);
-      console.warn(`[analyzeArticle] JSON truncation repaired (${label})`);
+      devWarn(`[analyzeArticle] JSON truncation repaired (${label})`);
       return result;
     } catch {
       console.error(
@@ -109,7 +110,7 @@ export async function analyzeArticle(article, forceRefresh = false) {
     try {
       const cached = await redis.get(cacheKey);
       if (cached) {
-        console.log(`[analyzeArticle] Cache HIT for ${articleId}`);
+        devLog(`[analyzeArticle] Cache HIT for ${articleId}`);
         return { ...cached, fromCache: true };
       }
     } catch {}

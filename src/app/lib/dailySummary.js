@@ -1,3 +1,4 @@
+import { devLog, devWarn } from "@/app/lib/devLog";
 
 import { Redis } from "@upstash/redis";
 import { generateWithGrounding, generateJSON, GEMINI_MODELS } from "./gemini";
@@ -170,7 +171,7 @@ ${ctx.slice(0, 1500)}
 
   try {
     await redis.set(todayKey(), result, { ex: ttlUntilMidnight() });
-    console.log(`[dailySummary] ✓ Cache'e yazıldı — Sayı #${result.issueNumber}, ${articles.length} haber`);
+    devLog(`[dailySummary] ✓ Cache'e yazıldı — Sayı #${result.issueNumber}, ${articles.length} haber`);
   } catch (err) {
     console.error("[dailySummary] Redis SET:", err.message);
   }

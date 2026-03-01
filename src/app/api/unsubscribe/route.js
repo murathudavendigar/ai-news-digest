@@ -1,3 +1,4 @@
+import { devLog, devWarn } from "@/app/lib/devLog";
 // api/unsubscribe/route.js
 // Abonelikten çıkma endpoint'i.
 // Token = HMAC-SHA256(email, CRON_SECRET) — stateless, Redis'e ek kayıt gerekmez.
@@ -95,7 +96,7 @@ export async function GET(req) {
   }
 
   await redis.srem(SUBSCRIBERS_KEY, email).catch(() => {});
-  console.log(`[unsubscribe] Abonelik iptal: ${email}`);
+  devLog(`[unsubscribe] Abonelik iptal: ${email}`);
 
   return new Response(
     page(

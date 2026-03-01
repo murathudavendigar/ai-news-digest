@@ -55,6 +55,7 @@ export default function Footer() {
           </div>
           <p className="text-xs text-center text-stone-700 md:text-right">
             © {new Date().getFullYear()} {siteConfig.name}
+            <span className="ml-2 text-stone-800">v{siteConfig.version}</span>
           </p>
         </div>
       </div>

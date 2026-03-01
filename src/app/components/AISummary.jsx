@@ -223,7 +223,7 @@ export default function AISummary({ article, forceLanguage, fast = false }) {
         {state === "streaming" && (
           <div className="h-0.5 bg-stone-100 dark:bg-stone-800">
             <div
-              className="h-full bg-amber-400 transition-all duration-300"
+              className="h-full transition-all duration-300 bg-amber-400"
               style={{ width: `${streamProgress}%` }}
             />
           </div>
@@ -295,15 +295,16 @@ export default function AISummary({ article, forceLanguage, fast = false }) {
           )}
         </div>
         <div className="flex items-center gap-2">
-          {result.fromCache ? (
-            <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
-              ⚡ Cache
-            </span>
-          ) : (
-            <span className="text-[10px] font-bold text-stone-400">
-              ✨ Yeni
-            </span>
-          )}
+          {process.env.NODE_ENV !== "production" &&
+            (result.fromCache ? (
+              <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                ⚡ Cache
+              </span>
+            ) : (
+              <span className="text-[10px] font-bold text-stone-400">
+                ✨ Yeni
+              </span>
+            ))}
           <span className={`text-[10px] font-bold ${confidence.color}`}>
             {confidence.label}
           </span>

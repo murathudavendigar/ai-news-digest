@@ -1,3 +1,4 @@
+import { devLog, devWarn } from "@/app/lib/devLog";
 // api/stream-summary/route.js
 // AISummary için streaming endpoint.
 // Cache HIT  → application/json döner (hızlı, bekleme yok)
@@ -92,7 +93,7 @@ export async function POST(req) {
               });
             } catch {
               // JSON parse başarısız — sadece log
-              console.warn("[stream-summary] Cache yazılamadı: parse hatası");
+              devWarn("[stream-summary] Cache yazılamadı: parse hatası");
             }
           }
         }

@@ -1,3 +1,4 @@
+import { devLog, devWarn } from "@/app/lib/devLog";
 // lib/groq.js
 // Multi-provider AI client — otomatik fallback zinciri
 //
@@ -109,7 +110,7 @@ async function callProvider(
   }
 
   const model = provider.models[modelTier] || provider.models.BALANCED;
-  console.log(`[ai] → ${provider.name} · ${model}`);
+  devLog(`[ai] → ${provider.name} · ${model}`);
 
   const res = await fetch(`${provider.baseURL}/chat/completions`, {
     method: "POST",
@@ -138,7 +139,7 @@ async function callProvider(
   const content = data.choices?.[0]?.message?.content;
   if (!content) throw new Error(`${provider.name} boş yanıt döndürdü`);
 
-  console.log(`[ai] ✓ ${provider.name} başarılı`);
+  devLog(`[ai] ✓ ${provider.name} başarılı`);
   trackProviderUsage(providerKey);
   return {
     text: content.trim(),
@@ -181,7 +182,7 @@ export async function generateCompletion(userPrompt, options = {}) {
 
       // Rate limit → kısa bekle, sonra bir sonrakine geç
       if (err.status === 429) {
-        console.warn(
+        devWarn(
           `[ai] ${PROVIDERS[key].name} rate limit (429) — 1s bekleniyor, sonraki deneniyor`,
         );
         await new Promise((r) => setTimeout(r, 1000));
@@ -198,7 +199,7 @@ export async function generateCompletion(userPrompt, options = {}) {
       }
 
       // 404, 500, 503 vb. → yine de bir sonrakine geç
-      console.warn(
+      devWarn(
         `[ai] ${PROVIDERS[key].name} hata (${err.status || "?"}) — sonraki deneniyor`,
       );
       lastError = err;

@@ -122,7 +122,7 @@ export default function ArticleAnalysis({ article }) {
           Derin Analiz
         </p>
         <div className="flex items-center gap-2">
-          {result.fromCache && (
+          {process.env.NODE_ENV !== "production" && result.fromCache && (
             <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
               ⚡ Cache
             </span>
