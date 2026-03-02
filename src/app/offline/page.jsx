@@ -1,4 +1,5 @@
 import Link from "next/link";
+import RetryButton from "./RetryButton";
 
 export const metadata = {
   title: "Çevrimdışı — HaberAI",
@@ -18,11 +19,7 @@ export default function OfflinePage() {
         gösterilir.
       </p>
       <div className="flex gap-3 flex-wrap justify-center">
-        <button
-          onClick={() => window.location.reload()}
-          className="px-5 py-2.5 bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 text-sm font-bold rounded-xl hover:opacity-90 transition-opacity">
-          Tekrar Dene
-        </button>
+        <RetryButton />
         <Link
           href="/"
           className="px-5 py-2.5 bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 text-sm font-bold rounded-xl hover:opacity-90 transition-opacity">
