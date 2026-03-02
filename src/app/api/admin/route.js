@@ -115,6 +115,24 @@ export async function GET(request) {
     .filter((l) => l.durationMs)
     .map((l) => l.durationMs);
 
+  // NewsData API key havuzu durumu
+  const rawKeys = (
+    process.env.NEWSDATA_API_KEYS ||
+    process.env.NEWSDATA_API_KEY ||
+    ""
+  )
+    .split(",")
+    .map((k) => k.trim())
+    .filter(Boolean);
+  const keyStatuses = await Promise.all(
+    rawKeys.map(async (k) => ({
+      suffix: `…${k.slice(-6)}`,
+      exhausted: !!(await redis
+        .get(`newsdata:exhausted:${k.slice(-6)}`)
+        .catch(() => null)),
+    })),
+  );
+
   return NextResponse.json({
     now: new Date().toISOString(),
     today,
