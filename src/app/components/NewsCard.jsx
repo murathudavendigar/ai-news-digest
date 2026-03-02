@@ -27,6 +27,12 @@ const SCORE_LABELS = {
   sourceReputation: "Kaynak",
 };
 
+function readingTime(article) {
+  const text = [article.title, article.description].filter(Boolean).join(" ");
+  const words = text.trim().split(/\s+/).length;
+  return Math.max(1, Math.round(words / 200));
+}
+
 export default function NewsCard({ article, priority = false }) {
   const [scorePreview, setScorePreview] = useState(null);
   const [hovered, setHovered] = useState(false);
@@ -335,6 +341,10 @@ export default function NewsCard({ article, priority = false }) {
                 />
               </svg>
               {formatDate(article.pubDate)}
+              <span className="text-stone-300 dark:text-stone-600 mx-0.5">
+                ·
+              </span>
+              {readingTime(article)}&nbsp;dk
             </span>
             {/* Mobil: kategori chip */}
             {article.category?.[0] && (

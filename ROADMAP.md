@@ -131,13 +131,11 @@
 
 ---
 
-#### 26. Tahmini Okuma Süresi
+#### ✅ 26. Tahmini Okuma Süresi
 **Neden:** Her haber kartında "2 dk okuma" gibi bir gösterge kullanıcının beklentisini yönetir, profesyonel his verir.  
-**Ne yapılacak:**
-- `readingTime(text)` util — ortalama 200 kelime/dk hesabı
-- `NewsCard.jsx`'te yazar/tarih satırına `· 3 dk` eklenir
-- Haber detay sayfasında da gösterilir
-- Implementasyon süresi: ~20 dakika
+**Yapılanlar:**
+- `readingTime(article)` util `NewsCard.jsx` içinde — başlık + açıklama kelime sayısı, 200k/dk hesabı, min 1 dk
+- Footer satırında tarih yanına `· X dk` eklendi, her iki tema ve mobil/desktop'ta görünür
 
 ---
 
@@ -186,12 +184,13 @@
 
 ---
 
-#### 12. Scroll-to-Top Butonu
+#### ✅ 12. Scroll-to-Top Butonu
 **Neden:** Uzun haber listelerinde ihtiyaç var.  
-**Ne yapılacak:**
-- 400px+ scroll'da sağ alt köşede çıkan amber floating buton
-- Smooth scroll to top
-- Mobilde bottom bar'ın üzerinde konumlanmalı
+**Yapılanlar:**
+- `ScrollToTop.jsx` — 400px+ scroll'da sag alt koşede amber floating buton
+- CSS `opacity`/`translateY` geçişi ile görünür/kaybolur
+- Mobilde bottom bar'ın üzerinde: `bottom-[calc(4.5rem+env(safe-area-inset-bottom))]`
+- `layout.js`'e eklendi, tüm sayfalarda çalışır
 
 ---
 
@@ -374,12 +373,12 @@
 
 ---
 
-#### 35. Animasyonlu Sayaçlar (Admin Dashboard)
+#### ✅ 35. Animasyonlu Sayıçlar (Admin Dashboard)
 **Neden:** Admin paneli daha canlı ve görsel olur, özellikle stats ilk yüklenince.  
-**Ne yapılacak:**
-- `useCountUp.js` hook — `requestAnimationFrame` ile 0'dan hedef değere 600ms'de animasyon
-- Admin dashboard'daki tüm sayısal stat kartlarına ekle (API calls, cache hits, error count)
-- Kullanıcı sayfayı her açtığında animasyon çalışır
+**Yapılanlar:**
+- `useCountUp(target, duration)` hook `AdminDashboard.jsx` içinde — `requestAnimationFrame` + ease-out cubic
+- Tüm sayısal `Stat` kartları yüklenince 700ms'de 0'dan hedefe animate oluyor
+- String değerler ("az önce", "%75" vb.) animasyonsuz doğrudan gösterilir
 
 ---
 

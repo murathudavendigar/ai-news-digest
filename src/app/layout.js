@@ -2,6 +2,7 @@ import ConditionalFooter from "@/app/components/ConditionalFooter";
 import Navigation from "@/app/components/Navigation";
 import OfflineBanner from "@/app/components/OfflineBanner";
 import PWAInstallPrompt from "@/app/components/PWAInstallPrompt";
+import ScrollToTop from "@/app/components/ScrollToTop";
 import SearchBar from "@/app/components/SearchBar";
 import ServiceWorkerRegistration from "@/app/components/ServiceWorkerRegistration";
 import ThemeProvider from "@/app/components/ThemeProvider";
@@ -190,6 +191,9 @@ export default function RootLayout({ children }) {
 
           {/* ── Footer ── */}
           <ConditionalFooter />
+
+          {/* ── Scroll-to-Top ── */}
+          <ScrollToTop />
 
           {/* ── PWA Install Prompt ── */}
           <PWAInstallPrompt />

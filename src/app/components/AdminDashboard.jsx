@@ -1,6 +1,29 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+function useCountUp(target, duration = 700) {
+  const [display, setDisplay] = useState(0);
+  const rafRef = useRef(null);
+  useEffect(() => {
+    const num =
+      typeof target === "number" ? target : parseFloat(String(target));
+    if (isNaN(num)) {
+      setDisplay(target);
+      return;
+    }
+    const start = performance.now();
+    const tick = (now) => {
+      const p = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - p, 3); // ease-out cubic
+      setDisplay(Math.round(eased * num));
+      if (p < 1) rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [target, duration]);
+  return display;
+}
 
 /* ── Yardımcı bileşenler ── */
 
@@ -40,6 +63,9 @@ function Section({ title, children, right }) {
 }
 
 function Stat({ label, value, sub, color = "white", large }) {
+  const isNumeric = typeof value === "number";
+  const animated = useCountUp(isNumeric ? value : 0);
+  const display = isNumeric ? animated : (value ?? "—");
   return (
     <div className="p-4 border bg-stone-950 border-stone-800 rounded-xl">
       <p className="text-[9px] font-black text-stone-500 uppercase tracking-widest mb-2">
@@ -48,7 +74,7 @@ function Stat({ label, value, sub, color = "white", large }) {
       <p
         className={`font-black leading-none tabular-nums ${large ? "text-3xl" : "text-xl"} text-${color}-400`}
         style={color === "white" ? { color: "white" } : {}}>
-        {value ?? "—"}
+        {display}
       </p>
       {sub && <p className="text-[10px] text-stone-600 mt-1.5">{sub}</p>}
     </div>
