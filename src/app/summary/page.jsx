@@ -112,7 +112,9 @@ export default async function SummaryPage({ searchParams }) {
   const isToday = !requestedDate || requestedDate === today;
 
   // Tarih navigasyonu için önceki/sonraki gün hesapla
-  const dateObj = requestedDate ? new Date(requestedDate + "T12:00:00Z") : new Date();
+  const dateObj = requestedDate
+    ? new Date(requestedDate + "T12:00:00Z")
+    : new Date();
   const prevDateStr = new Date(dateObj.getTime() - 86_400_000)
     .toISOString()
     .slice(0, 10);

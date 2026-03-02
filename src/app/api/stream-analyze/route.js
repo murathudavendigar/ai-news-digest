@@ -47,13 +47,28 @@ function resolveModelTier(article) {
 }
 
 function repairJSON(str) {
-  let s = str.replace(/^```(?:json)?\s*/m, "").replace(/\s*```$/m, "").trim();
+  let s = str
+    .replace(/^```(?:json)?\s*/m, "")
+    .replace(/\s*```$/m, "")
+    .trim();
   if (s.endsWith(",")) s = s.slice(0, -1);
-  let curly = 0, square = 0, inStr = false, esc = false;
+  let curly = 0,
+    square = 0,
+    inStr = false,
+    esc = false;
   for (const ch of s) {
-    if (esc) { esc = false; continue; }
-    if (ch === "\\" && inStr) { esc = true; continue; }
-    if (ch === '"') { inStr = !inStr; continue; }
+    if (esc) {
+      esc = false;
+      continue;
+    }
+    if (ch === "\\" && inStr) {
+      esc = true;
+      continue;
+    }
+    if (ch === '"') {
+      inStr = !inStr;
+      continue;
+    }
     if (inStr) continue;
     if (ch === "{") curly++;
     else if (ch === "}") curly--;
@@ -61,14 +76,28 @@ function repairJSON(str) {
     else if (ch === "]") square--;
   }
   if (inStr) s += '"';
-  while (square > 0) { s += "]"; square--; }
-  while (curly > 0) { s += "}"; curly--; }
+  while (square > 0) {
+    s += "]";
+    square--;
+  }
+  while (curly > 0) {
+    s += "}";
+    curly--;
+  }
   return s;
 }
 
 function safeParse(raw) {
-  try { return JSON.parse(raw); } catch { /* fall through */ }
-  try { return JSON.parse(repairJSON(raw)); } catch { return null; }
+  try {
+    return JSON.parse(raw);
+  } catch {
+    /* fall through */
+  }
+  try {
+    return JSON.parse(repairJSON(raw));
+  } catch {
+    return null;
+  }
 }
 
 export async function POST(req) {
@@ -76,7 +105,10 @@ export async function POST(req) {
     const { article, forceRefresh = false } = await req.json();
 
     if (!article?.article_id || !article?.title) {
-      return NextResponse.json({ error: "article_id ve title gerekli" }, { status: 400 });
+      return NextResponse.json(
+        { error: "article_id ve title gerekli" },
+        { status: 400 },
+      );
     }
 
     const cacheKey = `analyze:${article.article_id}`;
@@ -90,7 +122,9 @@ export async function POST(req) {
           redis.incr("stats:hits:analyze").catch(() => {});
           return NextResponse.json({ ...cached, fromCache: true });
         }
-      } catch { /* Redis bağlantı hatası — cache miss ile devam */ }
+      } catch {
+        /* Redis bağlantı hatası — cache miss ile devam */
+      }
     }
 
     redis.incr("stats:miss:analyze").catch(() => {});
@@ -109,8 +143,12 @@ export async function POST(req) {
       async start(controller) {
         const send = (obj) => {
           try {
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify(obj)}\n\n`));
-          } catch { /* controller kapatılmış */ }
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify(obj)}\n\n`),
+            );
+          } catch {
+            /* controller kapatılmış */
+          }
         };
 
         try {
@@ -166,6 +204,9 @@ export async function POST(req) {
       },
     });
   } catch (err) {
-    return NextResponse.json({ error: "Analiz başlatılamadı" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Analiz başlatılamadı" },
+      { status: 500 },
+    );
   }
 }

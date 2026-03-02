@@ -54,7 +54,8 @@ export default function NewsFeed({ initialArticles, initialNextPage }) {
           />
         ))}
         {/* Load-more sırasında grid'in sonuna skeleton ekle */}
-        {loading && [0, 1, 2].map((i) => <NewsCardSkeleton key={`sk-${i}`} index={i} />)}
+        {loading &&
+          [0, 1, 2].map((i) => <NewsCardSkeleton key={`sk-${i}`} index={i} />)}
       </div>
 
       {/* Load more / exhausted */}
@@ -64,11 +65,22 @@ export default function NewsFeed({ initialArticles, initialNextPage }) {
             onClick={loadMore}
             disabled={loading}
             className="flex items-center gap-2 px-8 py-3 font-semibold text-white transition-all bg-gray-900 dark:bg-white dark:text-gray-900 rounded-xl hover:opacity-90 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed">
-            {loading ? "Yükleniyor..." : (
+            {loading ? (
+              "Yükleniyor..."
+            ) : (
               <>
                 Daha Fazla Haber
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
                 </svg>
               </>
             )}
