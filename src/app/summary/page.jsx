@@ -1,10 +1,15 @@
 import SpeechButton from "@/app/components/SpeechButton";
 import SubscribeForm from "@/app/components/SubscribeForm";
-import { generateDailySummary, getDailySummary } from "@/app/lib/dailySummary";
+import {
+  generateDailySummary,
+  getDailySummary,
+  getSummaryByDate,
+} from "@/app/lib/dailySummary";
 import { siteConfig } from "@/app/lib/siteConfig";
 import Link from "next/link";
 
 export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Günün Özeti",
@@ -96,9 +101,36 @@ function ImpactBadge({ impact }) {
 }
 
 // ── Sayfa ──────────────────────────────────────────────────────────────────
-export default async function SummaryPage() {
-  let data = await getDailySummary();
-  if (!data) data = await generateDailySummary();
+export default async function SummaryPage({ searchParams }) {
+  const today = new Date().toISOString().slice(0, 10);
+  const rawDate = (await searchParams)?.date;
+  // Geçerli YYYY-MM-DD formatı ve bugün veya öncesi mi kontrol et
+  const requestedDate =
+    rawDate && /^\d{4}-\d{2}-\d{2}$/.test(rawDate) && rawDate <= today
+      ? rawDate
+      : null;
+  const isToday = !requestedDate || requestedDate === today;
+
+  // Tarih navigasyonu için önceki/sonraki gün hesapla
+  const dateObj = requestedDate ? new Date(requestedDate + "T12:00:00Z") : new Date();
+  const prevDateStr = new Date(dateObj.getTime() - 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+  const nextDateStr = new Date(dateObj.getTime() + 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+  const canGoNext = !isToday && nextDateStr <= today;
+
+  const fmtDate = (d) =>
+    new Date(d + "T12:00:00Z").toLocaleDateString("tr-TR", {
+      day: "numeric",
+      month: "long",
+    });
+
+  let data = requestedDate
+    ? await getSummaryByDate(requestedDate)
+    : await getDailySummary();
+  if (!data && isToday) data = await generateDailySummary();
 
   if (!data || data.error) {
     return (
@@ -109,17 +141,37 @@ export default async function SummaryPage() {
             style={{ fontFamily: "Georgia, serif" }}>
             📰
           </div>
-          <p className="text-sm text-stone-400">
-            Günün baskısı hazırlanıyor...
-          </p>
-          <p className="text-xs text-stone-600">
-            Her sabah 07:00&apos;de yayınlanır
-          </p>
-          <Link
-            href="/"
-            className="inline-block px-4 py-2 mt-4 text-xs transition-colors border text-stone-600 hover:text-stone-400 border-stone-700">
-            ← Ana Sayfaya Dön
-          </Link>
+          {requestedDate ? (
+            <>
+              <p className="text-sm text-stone-400">
+                {fmtDate(requestedDate)} tarihli baskı bulunamadı.
+              </p>
+              <p className="text-xs text-stone-600">
+                Redis&apos;te henüz arşivlenmemiş olabilir.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-stone-400">
+                Günün baskısı hazırlanıyor...
+              </p>
+              <p className="text-xs text-stone-600">
+                Her sabah 07:00&apos;de yayınlanır
+              </p>
+            </>
+          )}
+          <div className="flex items-center justify-center gap-4 pt-2">
+            <Link
+              href={`/summary?date=${prevDateStr}`}
+              className="inline-block px-4 py-2 text-xs transition-colors border text-stone-600 hover:text-stone-400 border-stone-700">
+              ← {fmtDate(prevDateStr)}
+            </Link>
+            <Link
+              href="/summary"
+              className="inline-block px-4 py-2 text-xs transition-colors border text-stone-600 hover:text-stone-400 border-stone-700">
+              Bugün
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -171,9 +223,30 @@ export default async function SummaryPage() {
           <div className="flex items-center justify-between text-[9px] text-stone-500 uppercase tracking-widest mb-4">
             <span>Sayı: {data.issueNumber || "—"}</span>
             <div className="flex-1 h-px mx-4 bg-stone-700" />
-            <span className="text-stone-400">{data.date}</span>
+            {/* Tarih + navigasyon okları */}
+            <div className="flex items-center gap-3">
+              <Link
+                href={`/summary?date=${prevDateStr}`}
+                title={fmtDate(prevDateStr)}
+                className="text-stone-600 hover:text-stone-300 transition-colors">
+                ←
+              </Link>
+              <span className="text-stone-400 whitespace-nowrap">
+                {requestedDate ? fmtDate(requestedDate) : data.date}
+              </span>
+              {canGoNext ? (
+                <Link
+                  href={`/summary?date=${nextDateStr}`}
+                  title={fmtDate(nextDateStr)}
+                  className="text-stone-600 hover:text-stone-300 transition-colors">
+                  →
+                </Link>
+              ) : (
+                <span className="text-stone-800">→</span>
+              )}
+            </div>
             <div className="flex-1 h-px mx-4 bg-stone-700" />
-            <span>Yıllık Baskı</span>
+            <span>{isToday ? "Bugünün Baskısı" : "Arşiv"}</span>
           </div>
 
           {/* Logo */}

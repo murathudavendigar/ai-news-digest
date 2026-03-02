@@ -53,6 +53,22 @@ export async function getDailySummary() {
   return null;
 }
 
+// Belirli bir tarih için özet döner (YYYY-MM-DD formatı)
+export async function getSummaryByDate(dateStr) {
+  // Tarih formatı doğrulama
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return null;
+  const today = new Date().toISOString().slice(0, 10);
+  // Gelecek tarih istenmişse null
+  if (dateStr > today) return null;
+  try {
+    const cached = await redis.get(`${KEY_PREFIX}:${dateStr}`);
+    if (cached) return { ...cached, fromCache: true };
+  } catch (err) {
+    console.error("[dailySummary] Redis GET by date:", err.message);
+  }
+  return null;
+}
+
 // ─────────────────────────────────────────────────────────────────────────
 export async function generateDailySummary() {
   const newsData = await getLatest("tr");

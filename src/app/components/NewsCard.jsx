@@ -27,6 +27,35 @@ const SCORE_LABELS = {
 export default function NewsCard({ article, priority = false }) {
   const [scorePreview, setScorePreview] = useState(null);
   const [hovered, setHovered] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const articleSlug = article.title
+    ? article.title
+        .toLowerCase()
+        .replace(/[^a-z0-9\u00c0-\u024f\s-]/g, "")
+        .trim()
+        .replace(/\s+/g, "-")
+        .replace(/-+/g, "-")
+        .slice(0, 80) + "--" + article.article_id
+    : article.article_id;
+
+  const handleShare = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const fullUrl = `${window.location.origin}/news/${articleSlug}`;
+    const shareData = { title: article.title, url: fullUrl };
+    try {
+      if (navigator.share && navigator.canShare?.(shareData)) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(fullUrl);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
+    } catch {
+      // Kullanıcı iptal etti veya izin yok — sessizce yoksay
+    }
+  };
 
   const handleMouseEnter = useCallback(async () => {
     setHovered(true);
@@ -77,19 +106,7 @@ export default function NewsCard({ article, priority = false }) {
       onMouseEnter={handleMouseEnter}
       onMouseLeave={() => setHovered(false)}>
       <Link
-        href={`/news/${
-          article.title
-            ? article.title
-                .toLowerCase()
-                .replace(/[^a-z0-9\u00c0-\u024f\s-]/g, "")
-                .trim()
-                .replace(/\s+/g, "-")
-                .replace(/-+/g, "-")
-                .slice(0, 80) +
-              "--" +
-              article.article_id
-            : article.article_id
-        }`}
+        href={`/news/${articleSlug}`}
         className="flex md:block overflow-hidden transition-all duration-300
                    bg-white border shadow-sm group dark:bg-stone-900
                    border-stone-200 dark:border-stone-800 rounded-2xl
@@ -153,8 +170,24 @@ export default function NewsCard({ article, priority = false }) {
             </div>
           )}
 
-          {/* Bookmark — desktop hover */}
-          <div className="absolute transition-opacity opacity-0 bottom-3 right-3 group-hover:opacity-100 hidden md:block">
+          {/* Bookmark + Share — desktop hover */}
+          <div className="absolute transition-opacity opacity-0 bottom-3 right-3 group-hover:opacity-100 hidden md:flex items-center gap-1.5">
+            <button
+              onClick={handleShare}
+              aria-label="Haberi paylaş"
+              className="w-7 h-7 rounded-full bg-stone-950/70 backdrop-blur-sm hover:bg-stone-950/90
+                         flex items-center justify-center transition-colors">
+              {copied ? (
+                <svg className="w-3 h-3 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                </svg>
+              )}
+            </button>
             <BookmarkButton
               article={article}
               className="rounded-full w-7 h-7 bg-stone-950/70 backdrop-blur-sm hover:bg-stone-950/90"
@@ -233,8 +266,25 @@ export default function NewsCard({ article, priority = false }) {
                 {article.creator[0]}
               </span>
             )}
-            {/* Mobil: bookmark her zaman görünür */}
-            <div className="md:hidden">
+            {/* Mobil: bookmark + share her zaman görünür */}
+            <div className="md:hidden flex items-center gap-1.5">
+              <button
+                onClick={handleShare}
+                aria-label="Haberi paylaş"
+                className="w-7 h-7 rounded-full bg-stone-100 dark:bg-stone-800
+                           flex items-center justify-center transition-colors
+                           hover:bg-amber-100 dark:hover:bg-amber-900/40">
+                {copied ? (
+                  <svg className="w-3 h-3 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : (
+                  <svg className="w-3 h-3 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                      d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                  </svg>
+                )}
+              </button>
               <BookmarkButton
                 article={article}
                 className="w-7 h-7 rounded-full bg-stone-100 dark:bg-stone-800"
