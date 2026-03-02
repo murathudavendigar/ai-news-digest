@@ -1,6 +1,6 @@
 # HaberAI — Geliştirme Yol Haritası
 
-> Son güncelleme: 2 Mart 2026  
+> Son güncelleme: 2 Mart 2026 (v2)  
 > Durum: aktif geliştirme
 
 ---
@@ -38,24 +38,12 @@
 
 ### 🔴 Kritik
 
-#### 1. `next/image` Migrasyonu
+#### ✅ 1. `next/image` Migrasyonu
 **Neden:** `<img>` tag'i layout shift yaratıyor, Lighthouse CLS skorunu düşürüyor.  
-**Ne yapılacak:**
-- `NewsCard.jsx` içindeki `<img>` → `<Image>` (next/image)
+**Yapılanlar:**
+- `NewsCard.jsx` içindeki tüm `<img>` → `<Image>` (next/image)
 - `sizes` prop ile responsive breakpoint'ler
-- `placeholder="blur"` + `blurDataURL` (haber API'sinden gelen görseller için low-quality placeholder)
-- Harici domain'leri `next.config.mjs`'e ekle: `images.remotePatterns`
-
-```js
-// next.config.mjs içine eklenecek
-images: {
-  remotePatterns: [
-    { protocol: "https", hostname: "**.cdninstagram.com" },
-    { protocol: "https", hostname: "**.bbc.co.uk" },
-    // haber kaynaklarının CDN domainleri
-  ]
-}
-```
+- `next.config.mjs`'e wildcard `remotePatterns` eklendi: `hostname: "**"` (http + https)
 
 ---
 
@@ -143,14 +131,47 @@ images: {
 
 ---
 
+#### 26. Tahmini Okuma Süresi
+**Neden:** Her haber kartında "2 dk okuma" gibi bir gösterge kullanıcının beklentisini yönetir, profesyonel his verir.  
+**Ne yapılacak:**
+- `readingTime(text)` util — ortalama 200 kelime/dk hesabı
+- `NewsCard.jsx`'te yazar/tarih satırına `· 3 dk` eklenir
+- Haber detay sayfasında da gösterilir
+- Implementasyon süresi: ~20 dakika
+
+---
+
+#### 27. Sesli Okuma (TTS)
+**Neden:** Sabah haberleri, araç kullanımı, erişilebilirlik. Rakip uygulamalarda yok.  
+**Ne yapılacak:**
+- `ReadingToolbar.jsx`'e 🎧 butonu ekle
+- `window.speechSynthesis` API — Türkçe `tr-TR` voice seç
+- Oynat / Duraklat / Durdur kontrolü, mevcut cümleyi highlight et
+- Ayarlar'a TTS hız seçeneği (0.75× / 1× / 1.25× / 1.5×)
+
+---
+
+#### 28. Günün Haber Quiz'i 🎮
+**Neden:** Gamification = retention. Kullanıcı günlük özeti okuduktan sonra 3 soruluk mini quiz yapıyor.  
+**Ne yapılacak:**
+- `/api/quiz` — günlük özet içeriğinden Gemini ile 3 çoktan seçmeli soru üret, Redis'e cache'le
+- `/quiz` sayfası — kart flip animasyonuyla sorular, skor gösterimi
+- Günlük özet sayfasının altında "Bugünü ne kadar takip ettin? 🎯" CTA butonu
+- LocalStorage'da streak sayacı (kaç gün arka arkaya katıldın)
+- Implementasyon süresi: ~3 saat
+
+---
+
 ### 🟡 Orta
 
-#### 10. Pull-to-Refresh (Mobil)
+#### ✅ 10. Pull-to-Refresh (Mobil)
 **Neden:** Native uygulama hissi. Mobil kullanıcıların beklediği gesture.  
-**Ne yapılacak:**
-- `usePullToRefresh` hook — `touchstart` / `touchmove` / `touchend`
-- 60px+ aşağı çekilince "Yenileniyor..." animasyonu
-- `router.refresh()` çağrısı
+**Yapılanlar:**
+- `hooks/usePullToRefresh.js` — `touchstart`/`touchmove`/`touchend`, rubber-band direnç, 64px eşiği
+- `NewsFeed.jsx`'e entegre: çekiş sırasında ok animasyonu (ilerlemeyle döner), bırakınca `router.refresh()`
+- "Yenilemek için çek" → "Bırak, yenile!" → "Yenileniyor…" durumları
+- 5 dakikalık ISR cache sayesinde gereksiz API isteği atılmaz
+- Sadece mobilde görünür (`md:hidden`)
 
 ---
 
@@ -197,6 +218,47 @@ images: {
 - Haber detay sayfasının altında "Benzer Haberler" bölümü
 - `/api/news?related=<article_id>` veya aynı kategori + benzer anahtar kelimeler
 - 3 kart horizontal scroll (mobil) veya grid (desktop)
+
+---
+
+#### 29. AI Ton & Taraflılık Analizi
+**Neden:** En güçlü differentiator. Haberin duygusal tonu ve olası taraflılığı görmek kullanıcıya güç verir.  
+**Ne yapılacak:**
+- `ArticleAnalysis.jsx`'e yeni sekme: "🎭 Ton Analizi"
+- Gemini prompt: haberin tonu (nötr/olumsuz/olumlu/alarm), anlatı çerçevesi, eksik perspektifler
+- Renk kodlu ton göstergesi — kırmızı (alarm) → sarı (nötr) → yeşil (olumlu) yatay bar
+- `scorePrompt.js`'e `toneScore` ve `biasIndicators` alanları ekle
+
+---
+
+#### 30. Trending Topics (Kelime Skoru)
+**Neden:** Hangi konular gündemde? Tek bakışta anlamak için görsel bir ısı haritası.  
+**Ne yapılacak:**
+- `/api/trending` — son 50 haberin başlıklarından stop-word filtreli kelime frekansı 
+- Ana sayfaya "📈 Günün Trendleri" bölümü: büyüklüğü frekansa göre değişen pill'ler
+- Her pill tıklanınca o kelimeyle arama sayfasına yönlendir
+- Redis'te 30 dk cache
+
+---
+
+#### 31. Klavye Kısayolları
+**Neden:** Power user'lar ve masaüstü kullanıcıları için productivity boost.  
+**Ne yapılacak:**
+- `useKeyboardShortcuts.js` hook — `document.addEventListener("keydown")`
+- `j` / `k` → sonraki/önceki haber odağı, `Enter` → haberi aç, `b` → bookmark toggle, `s` → paylaş, `?` → kısayol listesi modalı
+- Kısayol listesi `Cmd+K` / `Ctrl+K` ile açılan command palette (`cmdk` paketi veya custom)
+- Settings sayfasında kısayolları göster / devre dışı bırak seçeneği
+
+---
+
+#### 32. Haber Kartı Görünüm Modu
+**Neden:** Kimi kullanıcı yoğun içerik, kimi sadece başlık listesi ister.  
+**Ne yapılacak:**
+- Navigation veya NewsFeed başlığında 3 görünüm seçici: `▦ Kart` / `☰ Liste` / `▤ Kompakt`
+- **Kart:** mevcut tasarım
+- **Liste:** resim yok, başlık + kaynak + süre tek satır
+- **Kompakt:** resim küçük thumbnail, 2 satır başlık, çok daha fazla haber aynı ekranda
+- Tercih localStorage'a kaydedilir
 
 ---
 
@@ -292,6 +354,44 @@ images: {
 
 ---
 
+#### 33. Günlük E-posta Digest
+**Neden:** Push bildirimini kabul etmeyen kullanıcıları geri getirmenin en klassik yolu.  
+**Ne yapılacak:**
+- `/api/digest/send` — günlük özet oluştuktan sonra cron tetikler
+- Resend veya Brevo ile HTML email şablonu — günün manşeti + 5 önemli haber
+- `/settings`'te e-posta abonelik yönetimi (zaten `digest:subscribers` Redis key'i var)
+- Unsubscribe linki: HMAC token (zaten `CRON_SECRET` ile `api/unsubscribe` var)
+
+---
+
+#### 34. Metin Boyutu & Okunabilirlik Ayarları
+**Neden:** Erişilebilirlik. Yaşlı kullanıcılar veya düşük görme yetisi olanlar için kritik.  
+**Ne yapılacak:**
+- `/settings`'e font boyutu seçici: `A-` / `A` / `A+` / `A++`
+- `document.documentElement.style.setProperty("--reading-size", "18px")` CSS var
+- Article/summary sayfalarında `reading-size` CSS değişkeni kullanılır
+- Satır aralığı ve paragraf genişliği de ayarlanabilir (Orta / Geniş / Tam)
+
+---
+
+#### 35. Animasyonlu Sayaçlar (Admin Dashboard)
+**Neden:** Admin paneli daha canlı ve görsel olur, özellikle stats ilk yüklenince.  
+**Ne yapılacak:**
+- `useCountUp.js` hook — `requestAnimationFrame` ile 0'dan hedef değere 600ms'de animasyon
+- Admin dashboard'daki tüm sayısal stat kartlarına ekle (API calls, cache hits, error count)
+- Kullanıcı sayfayı her açtığında animasyon çalışır
+
+---
+
+#### 36. Baskı / Okuyucu Modu
+**Neden:** Reklamlar, navigasyon ve görseller olmadan temiz baskı. `Ctrl+P` ile otomatik devreye girer.  
+**Ne yapılacak:**
+- `globals.css`'e `@media print` kuralları: navigasyon gizle, renkler siyah/beyaz, font optimize
+- Haber detay sayfasına 🖨️ ikonu — tıklayınca `window.print()`
+- Okuyucu modu: tam genişlik, serif font, beyaz arka plan, tüm dekoratif öğeler gizli
+
+---
+
 ## Teknik Borç
 
 | Dosya                      | Sorun                                                     | Çözüm                        |
@@ -321,11 +421,19 @@ images: {
 ## Öneri Sıralaması (Hızlı Başlangıç)
 
 ```
-1. next/image migrasyonu      → 1-2 saat, Lighthouse +15 puan
-2. Skeleton loading            → 2-3 saat, algılanan hız ++
-3. Native Share butonu         → 30 dakika, viral potansiyel
+1. next/image migrasyonu      ✅ tamamlandı
+2. Skeleton loading            ✅ tamamlandı
+3. Native Share butonu         ✅ tamamlandı
 4. Scroll-to-top butonu        → 15 dakika, UX +
-5. Okuma geçmişi               → 1 saat, retention +
-6. Streaming AI responses      → 3-4 saat, WOW faktörü ++
-7. Web Push bildirimleri       → 1 gün, engagement +++
+5. Okuma geçmişi               ✅ tamamlandı
+6. Streaming AI responses      ✅ tamamlandı
+7. Pull-to-Refresh             ✅ tamamlandı
+8. Tahmini okuma süresi        → 20 dakika, profesyonel his +
+9. Haber kartı görünüm modu    → 2 saat, kişiselleştirme ++
+10. Trending Topics            → 2 saat, görsellik +++
+11. Günün Quiz'i               → 3 saat, gamification +++
+12. AI Ton & Taraflılık        → 2 saat, differentiator +++
+13. Klavye kısayolları         → 1 saat, power users +
+14. Sesli okuma (TTS)          → 2 saat, erişilebilirlik ++
+15. Web Push bildirimleri      → 1 gün, engagement +++
 ```
