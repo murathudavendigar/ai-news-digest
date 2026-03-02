@@ -1,7 +1,10 @@
-import { devLog, devWarn } from "@/app/lib/devLog";
 import { generateDailySummary, getDailySummary } from "@/app/lib/dailySummary";
+import { devLog, devWarn } from "@/app/lib/devLog";
 import { Redis } from "@upstash/redis";
 import { NextResponse } from "next/server";
+
+// Vercel Hobby plan max 60s — AI grounding + 4 paralel çağrı için gerekli
+export const maxDuration = 60;
 
 const redis = new Redis({
   url: process.env.STORAGE_KV_REST_API_URL,

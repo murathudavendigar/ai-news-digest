@@ -247,12 +247,13 @@ images: {
 
 ---
 
-#### 21. Analytics (Privacy-First)
+#### ✅ 21. Analytics (Privacy-First)
 **Neden:** Hangi haberler, kategoriler, özellikler kullanılıyor?  
-**Ne yapılacak:**
-- Vercel Analytics (zaten Vercel'desin, tek tıkla aktif)
-- veya Plausible (GDPR uyumlu, çerez yok)
-- Admin dashboarda page view + en çok tıklanan kategoriler
+**Yapılanlar:**
+- Vercel Analytics aktif (Vercel dashboard'dan enable edildi)
+- `/api/admin/analytics` route — Vercel Analytics REST API'sinden son 7 günlük veri çeker
+- Admin dashboard'a "📊 Vercel Analytics" section eklendi: tekil ziyaretçi, sayfa görüntüleme, ort. süre, hemen çıkma oranı, en çok ziyaret edilen sayfalar, cihaz dağılımı
+- `VERCEL_TOKEN` + `VERCEL_PROJECT_ID` env var gerekli
 
 ---
 

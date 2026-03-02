@@ -178,6 +178,7 @@ export async function GET(request) {
           (Number(errGroq) || 0) +
           (Number(errNews) || 0),
       },
+      newsApiKeys: keyStatuses,
       cron: {
         totalRuns: logs.length,
         successRuns: successLogs.length,

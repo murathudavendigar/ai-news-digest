@@ -1,4 +1,9 @@
 {
+  "functions": {
+    "src/app/api/cron/daily-summary/route.js": {
+      "maxDuration": 60
+    }
+  },
   "crons": [
     {
       "path": "/api/cron/daily-summary",

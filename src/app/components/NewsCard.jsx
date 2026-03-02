@@ -3,6 +3,7 @@
 import { formatDate } from "@/app/lib/news";
 import { CREDIBILITY_CONFIG, getSourceTier } from "@/app/lib/sourceCredibility";
 import { isArticleRead, trackArticle } from "@/app/lib/useArticleHistory";
+import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import BookmarkButton from "./BookmarkButton";
@@ -134,15 +135,18 @@ export default function NewsCard({ article, priority = false }) {
                    hover:shadow-lg hover:border-stone-400 dark:hover:border-stone-600
                    active:scale-[0.99]">
         {/* Görsel — mobilde sabit genişlik, desktopda tam genişlik */}
-        <div
-          className="relative w-28 shrink-0 md:w-full self-stretch md:h-48
-                        overflow-hidden bg-stone-100 dark:bg-stone-800">
+        <div className="relative self-stretch overflow-hidden w-28 shrink-0 md:w-full md:h-48 bg-stone-100 dark:bg-stone-800">
           {article.image_url ? (
-            <img
+            <Image
               src={article.image_url}
               alt={article.title}
-              className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
+              fill
+              sizes="(max-width: 768px) 112px, (max-width: 1024px) 50vw, 33vw"
+              className="object-cover transition-transform duration-500 group-hover:scale-105"
               loading={priority ? "eager" : "lazy"}
+              onError={(e) => {
+                e.currentTarget.style.display = "none";
+              }}
             />
           ) : (
             <div className="flex items-center justify-center w-full h-full bg-stone-100 dark:bg-stone-800">
@@ -151,17 +155,22 @@ export default function NewsCard({ article, priority = false }) {
           )}
 
           {/* Gradient — sadece desktopda */}
-          <div className="absolute inset-0 bg-linear-to-b from-black/30 via-transparent to-transparent hidden md:block" />
+          <div className="absolute inset-0 hidden bg-linear-to-b from-black/30 via-transparent to-transparent md:block" />
 
           {/* Kaynak badge — sadece desktop */}
           <div
             className="absolute top-3 left-3 hidden md:flex items-center gap-1.5 px-2.5 py-1
                           bg-black/60 backdrop-blur-sm rounded-full">
             {article.source_icon && (
-              <img
+              <Image
                 src={article.source_icon}
-                className="w-3.5 h-3.5 rounded-full"
+                width={14}
+                height={14}
+                className="rounded-full"
                 alt=""
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                }}
               />
             )}
             <span className="text-[10px] font-bold text-white tracking-wide">
@@ -182,7 +191,7 @@ export default function NewsCard({ article, priority = false }) {
                           ${verdictCfg.color}`}>
               {isHot && <span className="mr-0.5">🔥</span>}
               {scorePreview.overallScore}
-              <span className="font-medium opacity-80 hidden md:inline">
+              <span className="hidden font-medium opacity-80 md:inline">
                 {verdictCfg.label}
               </span>
             </div>
@@ -190,7 +199,7 @@ export default function NewsCard({ article, priority = false }) {
 
           {/* Kategori chip — sadece desktop */}
           {article.category?.[0] && (
-            <div className="absolute bottom-3 left-3 hidden md:block">
+            <div className="absolute hidden bottom-3 left-3 md:block">
               <span
                 className="text-[9px] font-black uppercase tracking-widest
                                px-2 py-0.5 bg-stone-950/80 text-stone-300 rounded-sm">
@@ -204,8 +213,7 @@ export default function NewsCard({ article, priority = false }) {
             <button
               onClick={handleShare}
               aria-label="Haberi paylaş"
-              className="w-7 h-7 rounded-full bg-stone-950/70 backdrop-blur-sm hover:bg-stone-950/90
-                         flex items-center justify-center transition-colors">
+              className="flex items-center justify-center transition-colors rounded-full w-7 h-7 bg-stone-950/70 backdrop-blur-sm hover:bg-stone-950/90">
               {copied ? (
                 <svg
                   className="w-3 h-3 text-emerald-400"
@@ -242,14 +250,19 @@ export default function NewsCard({ article, priority = false }) {
         </div>
 
         {/* İçerik */}
-        <div className="flex-1 min-w-0 p-3 md:p-4 flex flex-col justify-between">
+        <div className="flex flex-col justify-between flex-1 min-w-0 p-3 md:p-4">
           {/* Mobil: kaynak satırı */}
           <div className="flex items-center gap-1.5 mb-1.5 md:hidden">
             {article.source_icon && (
-              <img
+              <Image
                 src={article.source_icon}
-                className="w-3 h-3 rounded-full shrink-0"
+                width={12}
+                height={12}
+                className="rounded-full shrink-0"
                 alt=""
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                }}
               />
             )}
             <span className="text-[10px] font-bold text-stone-400 truncate">
@@ -296,8 +309,10 @@ export default function NewsCard({ article, priority = false }) {
           </h3>
 
           {article.description && (
-            <p className="hidden md:block mb-3 text-xs leading-relaxed text-stone-500 dark:text-stone-400 line-clamp-2">
-              {article.description}
+            <p className="hidden mb-3 overflow-hidden text-xs leading-relaxed md:block text-stone-500 dark:text-stone-400 line-clamp-2">
+              {article.description.length > 120
+                ? article.description.slice(0, 120).trimEnd() + "…"
+                : article.description}
             </p>
           )}
 
@@ -331,7 +346,7 @@ export default function NewsCard({ article, priority = false }) {
             )}
             {/* Desktop: yazar */}
             {article.creator?.[0] && (
-              <span className="hidden md:block truncate max-w-30">
+              <span className="hidden truncate md:block max-w-30">
                 {article.creator[0]}
               </span>
             )}
@@ -340,9 +355,7 @@ export default function NewsCard({ article, priority = false }) {
               <button
                 onClick={handleShare}
                 aria-label="Haberi paylaş"
-                className="w-7 h-7 rounded-full bg-stone-100 dark:bg-stone-800
-                           flex items-center justify-center transition-colors
-                           hover:bg-amber-100 dark:hover:bg-amber-900/40">
+                className="flex items-center justify-center transition-colors rounded-full w-7 h-7 bg-stone-100 dark:bg-stone-800 hover:bg-amber-100 dark:hover:bg-amber-900/40">
                 {copied ? (
                   <svg
                     className="w-3 h-3 text-emerald-500"
@@ -373,7 +386,7 @@ export default function NewsCard({ article, priority = false }) {
               </button>
               <BookmarkButton
                 article={article}
-                className="w-7 h-7 rounded-full bg-stone-100 dark:bg-stone-800"
+                className="rounded-full w-7 h-7 bg-stone-100 dark:bg-stone-800"
               />
             </div>
           </div>

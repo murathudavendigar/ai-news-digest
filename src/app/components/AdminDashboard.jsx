@@ -133,6 +133,9 @@ export default function AdminDashboard() {
   const [subListLoading, setSubListLoading] = useState(false);
   const [subFilter, setSubFilter] = useState("");
   const [removingEmail, setRemovingEmail] = useState(null);
+  const [analytics, setAnalytics] = useState(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [analyticsError, setAnalyticsError] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -195,6 +198,21 @@ export default function AdminDashboard() {
     } catch {
     } finally {
       setRemovingEmail(null);
+    }
+  };
+
+  const loadAnalytics = async () => {
+    setAnalyticsLoading(true);
+    setAnalyticsError(null);
+    try {
+      const r = await fetch("/api/admin/analytics");
+      const json = await r.json();
+      if (!r.ok) setAnalyticsError(json.error || "Hata");
+      else setAnalytics(json);
+    } catch (e) {
+      setAnalyticsError(e.message);
+    } finally {
+      setAnalyticsLoading(false);
     }
   };
 
@@ -679,6 +697,40 @@ export default function AdminDashboard() {
         </div>
       </Section>
 
+      {/* NewsData API key havuzu */}
+      {s.newsApiKeys?.length > 0 && (
+        <Section title="🔑 NewsData API Key Havuzu">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+            {s.newsApiKeys.map((k, i) => (
+              <div
+                key={i}
+                className={`px-4 py-3 rounded-xl border flex items-center gap-2.5 ${
+                  k.exhausted
+                    ? "bg-red-950/30 border-red-900/50"
+                    : "bg-emerald-950/20 border-emerald-900/40"
+                }`}>
+                <span className="text-lg">{k.exhausted ? "🔴" : "🟢"}</span>
+                <div>
+                  <p className="text-xs font-black text-stone-200 font-mono">
+                    {k.suffix}
+                  </p>
+                  <p
+                    className={`text-[9px] font-bold uppercase tracking-wider mt-0.5 ${k.exhausted ? "text-red-400" : "text-emerald-500"}`}>
+                    {k.exhausted ? "Limit doldu" : "Aktif"}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="text-[9px] text-stone-600 mt-3">
+            Tükenen key'ler 24 saat sonra otomatik olarak yeniden aktif olur.
+            Yeni key eklemek için{" "}
+            <code className="text-stone-500">NEWSDATA_API_KEYS</code> env
+            değişkenine virgülle ekleyin.
+          </p>
+        </Section>
+      )}
+
       {/* Cron log tablosu */}
       <Section title={`Cron Geçmişi — Son ${logs.length} Çalışma`}>
         {logs.length === 0 ? (
@@ -780,6 +832,159 @@ export default function AdminDashboard() {
                 )}
               </div>
             ))}
+          </div>
+        )}
+      </Section>
+
+      {/* ─── Vercel Analytics ─────────────────────────────────────────── */}
+      <Section
+        title="📊 Vercel Analytics — Son 7 Gün"
+        right={
+          <ActionBtn
+            onClick={loadAnalytics}
+            loading={analyticsLoading}
+            variant="ghost">
+            {analytics ? "Yenile" : "Yükle"}
+          </ActionBtn>
+        }>
+        {!analytics && !analyticsLoading && !analyticsError && (
+          <p className="text-xs text-stone-500 py-2">
+            Vercel Analytics verilerini görmek için &quot;Yükle&quot; butonuna
+            basın.
+          </p>
+        )}
+        {analyticsLoading && (
+          <div className="flex items-center gap-2 py-4 text-xs text-stone-500">
+            <Spinner sm /> Yükleniyor...
+          </div>
+        )}
+        {analyticsError && (
+          <div className="px-4 py-3 rounded-xl bg-red-950/30 border border-red-900/40 text-xs text-red-400">
+            {analyticsError === "VERCEL_TOKEN veya VERCEL_PROJECT_ID eksik"
+              ? "⚠️ VERCEL_TOKEN ve VERCEL_PROJECT_ID ortam değişkenleri gerekli. Vercel → Settings → Environment Variables."
+              : `Hata: ${analyticsError}`}
+          </div>
+        )}
+        {analytics && (
+          <div className="space-y-5">
+            {/* Genel istatistikler */}
+            {analytics.overview?.data && (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {[
+                  { label: "Tekil Ziyaretçi", key: "uniqueVisitors" },
+                  { label: "Sayfa Görüntüleme", key: "pageViews" },
+                  {
+                    label: "Ort. Süre",
+                    key: "avgDuration",
+                    fmt: (v) => (v == null ? "—" : `${Math.round(v / 1000)}s`),
+                  },
+                  {
+                    label: "Hemen Çıkma",
+                    key: "bounceRate",
+                    fmt: (v) => (v == null ? "—" : `%${Math.round(v * 100)}`),
+                  },
+                ].map(({ label, key, fmt }) => {
+                  const raw = analytics.overview.data[key];
+                  const val = raw?.value ?? raw;
+                  const prev = raw?.previousValue;
+                  const display = fmt
+                    ? fmt(val)
+                    : (val?.toLocaleString("tr-TR") ?? "—");
+                  const diff =
+                    !fmt && prev != null && val != null ? val - prev : null;
+                  return (
+                    <div
+                      key={key}
+                      className="p-4 border bg-stone-950 border-stone-800 rounded-xl">
+                      <p className="text-[9px] font-black text-stone-500 uppercase tracking-widest mb-2">
+                        {label}
+                      </p>
+                      <p className="text-xl font-black text-white">{display}</p>
+                      {diff !== null && (
+                        <p
+                          className={`text-[10px] mt-1 ${diff >= 0 ? "text-emerald-500" : "text-red-400"}`}>
+                          {diff >= 0 ? "+" : ""}
+                          {diff.toLocaleString("tr-TR")} önceki döneme kıyasla
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* En çok görüntülenen sayfalar */}
+            {analytics.topPages?.data?.length > 0 && (
+              <div>
+                <p className="text-[9px] font-black text-stone-500 uppercase tracking-widest mb-3">
+                  En Çok Ziyaret Edilen Sayfalar
+                </p>
+                <div className="space-y-1.5">
+                  {analytics.topPages.data.slice(0, 8).map((page, i) => {
+                    const maxViews = analytics.topPages.data[0]?.pageViews || 1;
+                    const pct = Math.round(
+                      ((page.pageViews || 0) / maxViews) * 100,
+                    );
+                    return (
+                      <div key={i} className="flex items-center gap-3">
+                        <span className="text-[9px] text-stone-600 w-4 shrink-0 tabular-nums">
+                          {i + 1}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-0.5">
+                            <span className="text-[11px] text-stone-300 truncate font-mono">
+                              {page.path || page.page || "/"}
+                            </span>
+                            <span className="text-[9px] font-black text-stone-400 ml-2 shrink-0 tabular-nums">
+                              {(page.pageViews || 0).toLocaleString("tr-TR")}
+                            </span>
+                          </div>
+                          <div className="h-1 rounded-full bg-stone-800">
+                            <div
+                              className="h-full rounded-full bg-amber-500"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Cihaz dağılımı */}
+            {analytics.devices?.data?.length > 0 && (
+              <div>
+                <p className="text-[9px] font-black text-stone-500 uppercase tracking-widest mb-3">
+                  Cihaz Dağılımı
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {analytics.devices.data.map((d, i) => (
+                    <div
+                      key={i}
+                      className="px-3 py-2 rounded-xl bg-stone-950 border border-stone-800 text-center">
+                      <p className="text-xs font-black text-white">
+                        {d.device || d.type || "—"}
+                      </p>
+                      <p className="text-[9px] text-stone-500">
+                        {(d.percentage != null
+                          ? `%${Math.round(d.percentage * 100)}`
+                          : d.pageViews?.toLocaleString("tr-TR")) || "—"}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <a
+              href="https://vercel.com/analytics"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 text-[10px] font-bold text-stone-500 hover:text-stone-300 transition-colors">
+              Vercel Analytics Paneli →
+            </a>
           </div>
         )}
       </Section>
