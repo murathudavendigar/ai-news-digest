@@ -76,13 +76,13 @@ function weatherIcon(condition = "") {
 function Divider({ title }) {
   return (
     <div className="flex items-center gap-3 my-8">
-      <div className="flex-1 h-px bg-stone-700" />
+      <div className="flex-1 h-px bg-stone-200 dark:bg-stone-700" />
       {title && (
         <p className="text-[9px] font-black uppercase tracking-[0.2em] text-stone-500 px-2 whitespace-nowrap">
           {title}
         </p>
       )}
-      <div className="flex-1 h-px bg-stone-700" />
+      <div className="flex-1 h-px bg-stone-200 dark:bg-stone-700" />
     </div>
   );
 }
@@ -136,7 +136,7 @@ export default async function SummaryPage({ searchParams }) {
 
   if (!data || data.error) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-stone-950">
+      <div className="flex items-center justify-center min-h-screen bg-white dark:bg-stone-950">
         <div className="space-y-3 text-center">
           <div
             className="text-6xl font-black text-stone-700"
@@ -189,7 +189,7 @@ export default async function SummaryPage({ searchParams }) {
   return (
     <div
       id="top"
-      className="min-h-screen bg-stone-950 text-stone-200"
+      className="min-h-screen bg-white dark:bg-stone-950 text-stone-800 dark:text-stone-200"
       style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>
       {/* ════════════════════════════════════════════════
           MASTHEAD — Gazete kimliği
@@ -220,11 +220,11 @@ export default async function SummaryPage({ searchParams }) {
 
       <div className="px-6 mx-auto max-w-7xl">
         {/* Masthead logo + bilgiler */}
-        <div className="py-6 text-center border-b-2 border-stone-700">
+        <div className="py-6 text-center border-b-2 border-stone-200 dark:border-stone-700">
           {/* Üst meta satırı */}
           <div className="flex items-center justify-between text-[9px] text-stone-500 uppercase tracking-widest mb-4">
             <span>Sayı: {data.issueNumber || "—"}</span>
-            <div className="flex-1 h-px mx-4 bg-stone-700" />
+            <div className="flex-1 h-px mx-4 bg-stone-200 dark:bg-stone-700" />
             {/* Tarih + navigasyon okları */}
             <div className="flex items-center gap-3">
               <Link
@@ -247,12 +247,12 @@ export default async function SummaryPage({ searchParams }) {
                 <span className="text-stone-800">→</span>
               )}
             </div>
-            <div className="flex-1 h-px mx-4 bg-stone-700" />
+            <div className="flex-1 h-px mx-4 bg-stone-200 dark:bg-stone-700" />
             <span>{isToday ? "Bugünün Baskısı" : "Arşiv"}</span>
           </div>
 
           {/* Logo */}
-          <h1 className="font-black leading-none tracking-tight text-white text-7xl md:text-8xl lg:text-9xl">
+          <h1 className="font-black leading-none tracking-tight text-stone-900 dark:text-white text-7xl md:text-8xl lg:text-9xl">
             Haber<span style={{ color: mood.accent }}>AI</span>
           </h1>
           <div className="flex items-center justify-center gap-3 mt-2 text-[9px] text-stone-500 uppercase tracking-[0.3em]">
@@ -289,18 +289,18 @@ export default async function SummaryPage({ searchParams }) {
         </div>
 
         {/* İçindekiler navigasyonu */}
-        <div className="sticky top-0 z-20 bg-stone-950 flex items-center gap-0 overflow-x-auto border-b border-stone-700">
+        <div className="sticky top-0 z-20 bg-white dark:bg-stone-950 flex items-center gap-0 overflow-x-auto border-b border-stone-200 dark:border-stone-700">
           {sections.slice(0, 7).map((s, i) => (
             <a
               key={i}
               href={`#section-${i}`}
-              className="px-4 py-2.5 text-[10px] font-bold text-stone-500 hover:text-white hover:bg-stone-800 transition-colors whitespace-nowrap border-r border-stone-700 uppercase tracking-widest">
+              className="px-4 py-2.5 text-[10px] font-bold text-stone-500 hover:text-stone-900 dark:hover:text-white hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors whitespace-nowrap border-r border-stone-200 dark:border-stone-700 uppercase tracking-widest">
               {s.emoji} {s.title}
             </a>
           ))}
           <a
             href="#world"
-            className="px-4 py-2.5 text-[10px] font-bold text-stone-500 hover:text-white hover:bg-stone-800 transition-colors whitespace-nowrap uppercase tracking-widest">
+            className="px-4 py-2.5 text-[10px] font-bold text-stone-500 hover:text-stone-900 dark:hover:text-white hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors whitespace-nowrap uppercase tracking-widest">
             🌍 Dünya
           </a>
         </div>
@@ -308,13 +308,13 @@ export default async function SummaryPage({ searchParams }) {
         {/* ════════════════════════════════════════════════
             MANŞET BÖLÜMÜ — ana grid
         ════════════════════════════════════════════════ */}
-        <section className="pt-8 pb-6 border-b border-stone-700">
+        <section className="pt-8 pb-6 border-b border-stone-200 dark:border-stone-700">
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
             {/* SOL SÜTUN: Ana manşet */}
-            <div className="lg:col-span-7 lg:border-r lg:border-stone-700 lg:pr-8">
+            <div className="lg:col-span-7 lg:border-r lg:border-stone-200 dark:lg:border-stone-700 lg:pr-8">
               {/* Ana başlık */}
               <div className="mb-5">
-                <h2 className="text-4xl md:text-5xl font-black text-white leading-[1.05] mb-3">
+                <h2 className="text-4xl md:text-5xl font-black text-stone-900 dark:text-white leading-[1.05] mb-3">
                   {data.headline}
                 </h2>
                 <div
@@ -339,11 +339,11 @@ export default async function SummaryPage({ searchParams }) {
 
               {/* Giriş metni */}
               <div className="mb-5 space-y-3">
-                <p className="text-sm leading-relaxed text-stone-300">
+                <p className="text-sm leading-relaxed text-stone-600 dark:text-stone-300">
                   {data.intro}
                 </p>
                 {data.bigPicture && (
-                  <p className="pl-3 text-sm italic leading-relaxed border-l-2 text-stone-500 border-stone-700">
+                  <p className="pl-3 text-sm italic leading-relaxed border-l-2 text-stone-500 border-stone-300 dark:border-stone-700">
                     {data.bigPicture}
                   </p>
                 )}
@@ -351,14 +351,14 @@ export default async function SummaryPage({ searchParams }) {
 
               {/* Ana haber kutusu */}
               {mainStory && (
-                <div className="p-5 border border-stone-700 bg-stone-900">
+                <div className="p-5 border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900">
                   <div className="flex items-center gap-2 mb-3">
                     <ImpactBadge impact={mainStory.impact} />
                     <span className="text-[9px] text-stone-500 uppercase tracking-widest">
                       {CAT_ICONS[mainStory.category]} {mainStory.category}
                     </span>
                   </div>
-                  <h3 className="mb-2 text-xl font-black leading-snug text-white">
+                  <h3 className="mb-2 text-xl font-black leading-snug text-stone-900 dark:text-white">
                     {mainStory.title}
                   </h3>
                   <p className="text-sm leading-relaxed text-stone-400">
@@ -369,7 +369,7 @@ export default async function SummaryPage({ searchParams }) {
             </div>
 
             {/* SAĞ SÜTUN: İkincil haberler + widget'lar */}
-            <div className="space-y-0 divide-y lg:col-span-5 divide-stone-700">
+            <div className="space-y-0 divide-y lg:col-span-5 divide-stone-200 dark:divide-stone-200 dark:divide-stone-700">
               {/* İkincil haberler */}
               {secondaryStories.map((story, i) => (
                 <div key={i} className="py-5 first:pt-0">
@@ -391,7 +391,7 @@ export default async function SummaryPage({ searchParams }) {
                           className="w-full h-28 object-cover mb-2 grayscale-30"
                         />
                       )}
-                      <h3 className="text-sm font-black text-white mb-1.5 leading-snug">
+                      <h3 className="text-sm font-black text-stone-900 dark:text-white mb-1.5 leading-snug">
                         {story.title}
                       </h3>
                       <p className="text-xs leading-relaxed text-stone-500">
@@ -418,11 +418,11 @@ export default async function SummaryPage({ searchParams }) {
                         item.value && (
                           <div
                             key={item.label}
-                            className="p-2 text-center border bg-stone-900 border-stone-700">
+                            className="p-2 text-center border bg-stone-50 dark:bg-stone-900 border-stone-200 dark:border-stone-700">
                             <p className="text-[8px] text-stone-600 uppercase tracking-wider mb-0.5">
                               {item.label}
                             </p>
-                            <p className="text-sm font-black text-white">
+                            <p className="text-sm font-black text-stone-900 dark:text-white">
                               {item.value}
                             </p>
                           </div>
@@ -448,7 +448,7 @@ export default async function SummaryPage({ searchParams }) {
                       {weatherIcon(data.weather.condition)}
                     </span>
                     <div>
-                      <p className="text-lg font-black text-white">
+                      <p className="text-lg font-black text-stone-900 dark:text-white">
                         {data.weather.tempRange}
                       </p>
                       <p className="text-xs text-stone-500">
@@ -470,8 +470,8 @@ export default async function SummaryPage({ searchParams }) {
         {/* ════════════════════════════════════════════════
             GÜNÜN SAYISI + KAVRAMI + ALINTI — yatay bant
         ════════════════════════════════════════════════ */}
-        <section className="py-6 border-b border-stone-700">
-          <div className="grid grid-cols-1 divide-y md:grid-cols-3 md:divide-y-0 md:divide-x divide-stone-700">
+        <section className="py-6 border-b border-stone-200 dark:border-stone-700">
+          <div className="grid grid-cols-1 divide-y md:grid-cols-3 md:divide-y-0 md:divide-x divide-stone-200 dark:divide-stone-200 dark:divide-stone-700">
             {/* Günün sayısı */}
             {data.numberofDay && (
               <div className="py-4 md:py-0 md:pr-8">
@@ -495,7 +495,7 @@ export default async function SummaryPage({ searchParams }) {
                 <p className="text-[9px] font-black text-stone-600 uppercase tracking-widest mb-2">
                   Günün Kavramı
                 </p>
-                <p className="mb-2 text-2xl italic font-black text-white">
+                <p className="mb-2 text-2xl italic font-black text-stone-900 dark:text-white">
                   {data.wordOfDay.word}
                 </p>
                 <p className="text-xs leading-relaxed text-stone-400">
@@ -510,10 +510,10 @@ export default async function SummaryPage({ searchParams }) {
                 <p className="text-[9px] font-black text-stone-600 uppercase tracking-widest mb-2">
                   Günün Sözü
                 </p>
-                <p className="mb-2 text-sm italic leading-relaxed text-stone-300">
+                <p className="mb-2 text-sm italic leading-relaxed text-stone-600 dark:text-stone-300">
                   &quot;{data.quoteOfDay.text}&quot;
                 </p>
-                <p className="text-xs font-black text-white">
+                <p className="text-xs font-black text-stone-900 dark:text-white">
                   — {data.quoteOfDay.author}
                 </p>
                 {data.quoteOfDay.context && (
@@ -530,7 +530,7 @@ export default async function SummaryPage({ searchParams }) {
             DİĞER ÖNEMLİ HABERLER — yatay bant
         ════════════════════════════════════════════════ */}
         {belowFoldStories.length > 0 && (
-          <section className="py-6 border-b border-stone-700">
+          <section className="py-6 border-b border-stone-200 dark:border-stone-700">
             <p className="text-[9px] font-black text-stone-600 uppercase tracking-widest mb-5">
               Diğer Önemli Gelişmeler
             </p>
@@ -556,7 +556,7 @@ export default async function SummaryPage({ searchParams }) {
                       className="w-full h-24 object-cover mb-2 grayscale-40"
                     />
                   )}
-                  <h3 className="mb-1 text-sm font-black leading-snug text-white">
+                  <h3 className="mb-1 text-sm font-black leading-snug text-stone-900 dark:text-white">
                     {story.title}
                   </h3>
                   <p className="text-xs leading-relaxed text-stone-500">
@@ -572,19 +572,19 @@ export default async function SummaryPage({ searchParams }) {
             KATEGORİ SÜTUNLARI
         ════════════════════════════════════════════════ */}
         {sections.length > 0 && (
-          <section className="py-8 border-b border-stone-700">
+          <section className="py-8 border-b border-stone-200 dark:border-stone-700">
             <Divider title="Kategoriler" />
-            <div className="grid grid-cols-1 gap-0 divide-x-0 divide-y md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 md:divide-y-0 md:divide-x divide-stone-700">
+            <div className="grid grid-cols-1 gap-0 divide-x-0 divide-y md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 md:divide-y-0 md:divide-x divide-stone-200 dark:divide-stone-200 dark:divide-stone-700">
               {sections.map((section, i) => (
                 <div
                   key={i}
                   id={`section-${i}`}
                   className="px-0 py-6 md:px-6 first:pl-0 last:pr-0">
                   {/* Bölüm başlığı */}
-                  <div className="flex items-center gap-2 pb-3 mb-3 border-b border-stone-700">
+                  <div className="flex items-center gap-2 pb-3 mb-3 border-b border-stone-200 dark:border-stone-700">
                     <span className="text-xl">{section.emoji}</span>
                     <div>
-                      <p className="text-xs font-black tracking-widest text-white uppercase">
+                      <p className="text-xs font-black tracking-widest text-stone-900 dark:text-white uppercase">
                         {section.title}
                       </p>
                       {section.headline && (
@@ -595,7 +595,7 @@ export default async function SummaryPage({ searchParams }) {
                     </div>
                   </div>
 
-                  <p className="mb-4 text-sm leading-relaxed text-stone-300">
+                  <p className="mb-4 text-sm leading-relaxed text-stone-600 dark:text-stone-300">
                     {section.summary}
                   </p>
 
@@ -608,7 +608,7 @@ export default async function SummaryPage({ searchParams }) {
                             ›
                           </span>
                           <div>
-                            <p className="text-xs font-bold text-stone-300">
+                            <p className="text-xs font-bold text-stone-600 dark:text-stone-300">
                               {story.title}
                             </p>
                             {story.brief && (
@@ -623,7 +623,7 @@ export default async function SummaryPage({ searchParams }) {
                   )}
 
                   {section.outlook && (
-                    <div className="pt-3 border-t border-stone-800">
+                    <div className="pt-3 border-t border-stone-100 dark:border-stone-800">
                       <p className="text-[8px] font-black text-stone-600 uppercase tracking-widest mb-1">
                         Öngörü
                       </p>
@@ -641,15 +641,17 @@ export default async function SummaryPage({ searchParams }) {
         {/* ════════════════════════════════════════════════
             DÜNYA + TARİHTE BUGÜN — alt bant
         ════════════════════════════════════════════════ */}
-        <section className="py-8 border-b border-stone-700" id="world">
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:divide-x divide-stone-700">
+        <section
+          className="py-8 border-b border-stone-200 dark:border-stone-700"
+          id="world">
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:divide-x divide-stone-200 dark:divide-stone-200 dark:divide-stone-700">
             {/* Dünya başlıkları */}
             {data.worldHeadlines?.length > 0 && (
               <div className="lg:pr-8">
                 <p className="text-[9px] font-black text-stone-600 uppercase tracking-widest mb-5">
                   🌍 Dünyadan
                 </p>
-                <div className="space-y-0 divide-y divide-stone-800">
+                <div className="space-y-0 divide-y divide-stone-100 dark:divide-stone-100 dark:divide-stone-800">
                   {data.worldHeadlines.map((item, i) => (
                     <div key={i} className="py-4 first:pt-0">
                       <div className="flex items-start gap-3">
@@ -660,7 +662,7 @@ export default async function SummaryPage({ searchParams }) {
                           <span className="text-[8px] font-black uppercase tracking-widest text-stone-600 block mb-1">
                             {item.region}
                           </span>
-                          <h3 className="mb-1 text-sm font-bold leading-snug text-stone-200">
+                          <h3 className="mb-1 text-sm font-bold leading-snug text-stone-700 dark:text-stone-200">
                             {item.title}
                           </h3>
                           <p className="text-xs text-stone-500">{item.brief}</p>
@@ -678,13 +680,13 @@ export default async function SummaryPage({ searchParams }) {
                 <p className="text-[9px] font-black text-stone-600 uppercase tracking-widest mb-5">
                   📅 Tarihte Bugün
                 </p>
-                <div className="p-6 border border-stone-700 bg-stone-900">
+                <div className="p-6 border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900">
                   <p
                     className="mb-3 text-5xl font-black leading-none"
                     style={{ color: mood.accent }}>
                     {data.todayInHistory.year}
                   </p>
-                  <h3 className="mb-2 text-lg font-black leading-snug text-white">
+                  <h3 className="mb-2 text-lg font-black leading-snug text-stone-900 dark:text-white">
                     {data.todayInHistory.event}
                   </h3>
                   <p className="text-sm italic leading-relaxed text-stone-400">
@@ -708,7 +710,7 @@ export default async function SummaryPage({ searchParams }) {
               <span className="absolute leading-none select-none -top-4 -left-2 text-8xl text-stone-800">
                 &quot;
               </span>
-              <blockquote className="text-lg italic leading-relaxed text-stone-300">
+              <blockquote className="text-lg italic leading-relaxed text-stone-600 dark:text-stone-300">
                 {data.editorNote}
               </blockquote>
               <span className="absolute leading-none rotate-180 select-none -bottom-8 -right-2 text-8xl text-stone-800">
@@ -721,10 +723,10 @@ export default async function SummaryPage({ searchParams }) {
         {/* ════════════════════════════════════════════════
             GAZETE FOOTER
         ════════════════════════════════════════════════ */}
-        <footer className="py-6 mt-6 border-t-2 border-stone-700">
+        <footer className="py-6 mt-6 border-t-2 border-stone-200 dark:border-stone-700">
           <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
             <div>
-              <p className="text-xl font-black text-white">
+              <p className="text-xl font-black text-stone-900 dark:text-white">
                 Haber<span style={{ color: mood.accent }}>AI</span>
               </p>
               <p className="text-[9px] text-stone-700 mt-0.5 uppercase tracking-widest">
@@ -743,12 +745,12 @@ export default async function SummaryPage({ searchParams }) {
             <div className="flex items-center gap-4">
               <a
                 href="#top"
-                className="text-xs font-bold tracking-widest uppercase transition-colors text-stone-600 hover:text-white">
+                className="text-xs font-bold tracking-widest uppercase transition-colors text-stone-600 hover:text-stone-900 dark:hover:text-white">
                 ↑ Başa Dön
               </a>
               <Link
                 href="/"
-                className="text-xs font-bold tracking-widest uppercase transition-colors text-stone-600 hover:text-white">
+                className="text-xs font-bold tracking-widest uppercase transition-colors text-stone-600 hover:text-stone-900 dark:hover:text-white">
                 Ana Sayfa →
               </Link>
             </div>

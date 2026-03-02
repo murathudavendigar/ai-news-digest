@@ -1,7 +1,9 @@
 import ConditionalFooter from "@/app/components/ConditionalFooter";
 import Navigation from "@/app/components/Navigation";
+import OfflineBanner from "@/app/components/OfflineBanner";
 import PWAInstallPrompt from "@/app/components/PWAInstallPrompt";
 import SearchBar from "@/app/components/SearchBar";
+import ServiceWorkerRegistration from "@/app/components/ServiceWorkerRegistration";
 import ThemeProvider from "@/app/components/ThemeProvider";
 import { siteConfig } from "@/app/lib/siteConfig";
 import { Playfair_Display, Source_Serif_4 } from "next/font/google";
@@ -89,15 +91,15 @@ export default function RootLayout({ children }) {
         <ThemeProvider>
           {/* ── Header ── */}
           <header
-            className="sticky top-0 z-50 shadow-xl bg-stone-950"
+            className="sticky top-0 z-50 shadow-xl bg-white dark:bg-stone-950 shadow-stone-200/50 dark:shadow-stone-950"
             style={{ "--header-height": "88px" }}>
             {/* Üst ince bant */}
-            <div className="border-b border-white/10">
+            <div className="border-b border-stone-100 dark:border-white/10">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 py-1.5 flex items-center justify-between">
-                <p className="text-[10px] text-stone-500 uppercase tracking-widest hidden sm:block">
+                <p className="text-[10px] text-stone-400 dark:text-stone-500 uppercase tracking-widest hidden sm:block">
                   {now}
                 </p>
-                <p className="text-[10px] text-stone-500 italic hidden sm:block">
+                <p className="text-[10px] text-stone-400 dark:text-stone-500 italic hidden sm:block">
                   Yapay zeka destekli haber analizi
                 </p>
               </div>
@@ -112,7 +114,7 @@ export default function RootLayout({ children }) {
                   className="shrink-0 group"
                   aria-label={`${name} — Ana Sayfa`}>
                   <p
-                    className="text-2xl font-black leading-none tracking-tight text-white transition-opacity group-hover:opacity-90"
+                    className="text-2xl font-black leading-none tracking-tight text-stone-900 dark:text-white transition-opacity group-hover:opacity-90"
                     style={{
                       fontFamily: "var(--font-display), Georgia, serif",
                     }}>
@@ -129,14 +131,14 @@ export default function RootLayout({ children }) {
                   <Navigation />
 
                   {/* Sağ araç çubuğu */}
-                  <div className="flex items-center gap-1 pl-2 ml-2 border-l border-white/10">
+                  <div className="flex items-center gap-1 pl-2 ml-2 border-l border-stone-200 dark:border-white/10">
                     <SearchBar />
 
                     {/* Kaydedilenler */}
                     <Link
                       href="/saved"
                       title="Kaydedilenler"
-                      className="flex items-center justify-center w-8 h-8 transition-all rounded-lg text-stone-400 hover:text-amber-400 hover:bg-white/10">
+                      className="flex items-center justify-center w-8 h-8 transition-all rounded-lg text-stone-400 dark:text-stone-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-stone-100 dark:hover:bg-white/10">
                       <svg
                         className="w-4 h-4"
                         fill="none"
@@ -151,7 +153,30 @@ export default function RootLayout({ children }) {
                       </svg>
                     </Link>
 
-                    {/* <ThemeToggle /> */}
+                    {/* Ayarlar */}
+                    <Link
+                      href="/settings"
+                      title="Ayarlar"
+                      className="flex items-center justify-center w-8 h-8 transition-all rounded-lg text-stone-400 dark:text-stone-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-stone-100 dark:hover:bg-white/10">
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                        />
+                      </svg>
+                    </Link>
                   </div>
                 </div>
               </div>
@@ -168,6 +193,12 @@ export default function RootLayout({ children }) {
 
           {/* ── PWA Install Prompt ── */}
           <PWAInstallPrompt />
+
+          {/* ── Offline Banner ── */}
+          <OfflineBanner />
+
+          {/* ── Service Worker ── */}
+          <ServiceWorkerRegistration />
         </ThemeProvider>
       </body>
     </html>

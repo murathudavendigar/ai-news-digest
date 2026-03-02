@@ -183,11 +183,11 @@ images: {
 
 ---
 
-#### 14. Karanlık / Aydınlık Mod Geçiş Animasyonu
+#### ✅ 14. Karanlık / Aydınlık Mod Geçiş Animasyonu
 **Neden:** Şu anki mod geçişi anlık — yumuşatma kullanıcı deneyimini iyileştirir.  
-**Ne yapılacak:**
-- `ThemeProvider.jsx`'e `transition-colors duration-300` ekle (tüm sayfa)
-- `ThemeToggle.jsx`'e rotate animasyonu (güneş/ay ikonları)
+**Yapılanlar:**
+- `globals.css`'e `*, *::before, *::after` için `transition-property: background-color, border-color, color` (200ms ease)
+- `ThemeToggle.jsx`'e `key` prop trick ile spin animasyonu (tema değişiminde ikon döner)
 
 ---
 
@@ -200,23 +200,23 @@ images: {
 
 ---
 
-#### 16. Offline Desteği (Service Worker Cache)
+#### ✅ 16. Offline Desteği (Service Worker Cache)
 **Neden:** PWA tamamlanması için kritik. Bağlantı kesilince son okunan haberler gösterilmeli.  
-**Ne yapılacak:**
-- `public/sw.js` — Cache-first for static, Network-first for API
-- Son 20 haberı Cache API'ye yaz
-- Offline banner: "Çevrimdışısınız — önbellek gösteriliyor"
+**Yapılanlar:**
+- `public/sw.js` — cacheFirst (statik), networkFirst (API, 1500ms timeout), staleWhileRevalidate (sayfalar)
+- `ServiceWorkerRegistration.jsx` — window load sonrası kayıt
+- `OfflineBanner.jsx` — çevrimdışı/yeniden bağlandı durumu (fixed top banner)
+- `offline/page.jsx` — offline fallback sayfası
 
 ---
 
-#### 17. Kullanıcı Tercih Ayarları
+#### ✅ 17. Kullanıcı Tercih Ayarları
 **Neden:** Kişiselleştirme retention artırır.  
-**Ne yapılacak:**
-- `/settings` sayfası (minimal)
-- Tercihli kategoriler seç → anasayfada önce onlar görünsün
-- Haber dili tercihi (TR / EN)
-- AI özeti uzunluğu (kısa / normal / detaylı)
-- localStorage'a kaydet
+**Yapılanlar:**
+- `useUserPreferences.js` hook — localStorage + cross-tab sync
+- `/settings` sayfası — tercihli kategoriler, dimReadArticles, AI özet uzunluğu
+- `NewsFeed.jsx`'te tercihli kategoriler önce gösterilir
+- Navigation'a Ayarlar sekmesi eklendi
 
 ---
 
@@ -256,12 +256,12 @@ images: {
 
 ---
 
-#### 22. Haber Kaynağı Güvenilirlik Skoru
+#### ✅ 22. Haber Kaynağı Güvenilirlik Skoru
 **Neden:** AI destekli haber uygulamasının güçlü differentiator'ı.  
-**Ne yapılacak:**
-- News API'den gelen `source.name` bazında önceden tanımlanmış güvenilirlik skoru
-- Kartlarda küçük kaynak badge (🟢 Güvenilir / 🟡 Taraflı / 🔴 Dikkatli Ol)
-- AI prompt'una kaynak bilgisi ekle → analizde kaynak güvenilirliğini de değerlendir
+**Yapılanlar:**
+- `sourceCredibility.js` — 60+ kaynak eşlemesi (high/medium/low), `getSourceTier()` + `CREDIBILITY_CONFIG`
+- `NewsCard.jsx`'te kaynak adı yanına 🟢 (güvenilir) / 🔴 (dikkatli) badge eklendi
+- Orta tier kaynaklar badge almaz (siyasi etiketlemeden kaçınmak için)
 
 ---
 

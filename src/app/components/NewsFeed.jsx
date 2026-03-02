@@ -1,6 +1,7 @@
 "use client";
 
 import { sortByHistory } from "@/app/hooks/useReadingHistory";
+import { sortByPreferredCategories } from "@/app/lib/useUserPreferences";
 import { useCallback, useEffect, useState } from "react";
 import NewsCard from "./NewsCard";
 import NewsCardSkeleton from "./NewsCardSkeleton";
@@ -11,9 +12,20 @@ export default function NewsFeed({ initialArticles, initialNextPage }) {
   const [loading, setLoading] = useState(false);
   const [exhausted, setExhausted] = useState(!initialNextPage);
 
-  // Client mount'ta localStorage geçmişine göre sırala
+  // Client mount'ta localStorage geçmişine + tercihli kategorilere göre sırala
   useEffect(() => {
-    setArticles((prev) => sortByHistory(prev));
+    const { preferredCategories = [] } = (() => {
+      try {
+        return JSON.parse(
+          localStorage.getItem("haberai:user-preferences") || "{}",
+        );
+      } catch {
+        return {};
+      }
+    })();
+    setArticles((prev) =>
+      sortByPreferredCategories(sortByHistory(prev), preferredCategories),
+    );
   }, []);
 
   const loadMore = useCallback(async () => {

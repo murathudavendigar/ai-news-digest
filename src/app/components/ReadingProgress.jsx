@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function ReadingProgress({ title }) {
   const [progress, setProgress] = useState(0);
@@ -42,7 +42,7 @@ export default function ReadingProgress({ title }) {
   return (
     <>
       {/* Amber progress bar — tema rengiyle */}
-      <div className="fixed top-0 left-0 right-0 z-[200] h-0.5 bg-stone-800">
+      <div className="fixed top-0 left-0 right-0 z-[200] h-0.5 bg-stone-200 dark:bg-stone-800">
         <div
           className="h-full bg-amber-400"
           style={{ width: `${progress}%`, transition: "width 0.1s linear" }}
@@ -62,22 +62,22 @@ export default function ReadingProgress({ title }) {
         }}>
         <div
           className="flex items-center gap-2
-                        bg-stone-950/95 backdrop-blur-sm
-                        border border-stone-700 rounded-full
-                        px-3 py-1.5 shadow-xl">
+                        bg-white/95 dark:bg-stone-950/95 backdrop-blur-sm
+                        border border-stone-200 dark:border-stone-700 rounded-full
+                        px-3 py-1.5 shadow-xl shadow-stone-200/50 dark:shadow-stone-950/50">
           {/* Yüzde */}
-          <span className="text-[10px] font-black tabular-nums text-amber-400 min-w-[28px] text-center">
+          <span className="text-[10px] font-black tabular-nums text-amber-500 dark:text-amber-400 min-w-[28px] text-center">
             %{progress}
           </span>
-          <div className="w-px h-3 bg-stone-700" />
+          <div className="w-px h-3 bg-stone-200 dark:bg-stone-700" />
           {/* Okuma modu toggle */}
           <button
             onClick={() => setReadingMode((v) => !v)}
             title={readingMode ? "Normal moda dön" : "Okuma modunu aç"}
             className={`text-[10px] font-bold transition-colors ${
               readingMode
-                ? "text-amber-400"
-                : "text-stone-400 hover:text-stone-200"
+                ? "text-amber-500 dark:text-amber-400"
+                : "text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200"
             }`}>
             {readingMode ? "📖 Okuma" : "📄 Okuma"}
           </button>

@@ -1,6 +1,7 @@
 "use client";
 
 import { formatDate } from "@/app/lib/news";
+import { CREDIBILITY_CONFIG, getSourceTier } from "@/app/lib/sourceCredibility";
 import { isArticleRead, trackArticle } from "@/app/lib/useArticleHistory";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
@@ -112,6 +113,10 @@ export default function NewsCard({ article, priority = false }) {
   // 🔥 badge eşiği
   const isHot = scorePreview?.overallScore >= 80;
 
+  // Kaynak güvenilirliği
+  const sourceTier = getSourceTier(article.source_name);
+  const credCfg = sourceTier ? CREDIBILITY_CONFIG[sourceTier] : null;
+
   return (
     <div
       className={`relative transition-opacity duration-300 ${isRead ? "opacity-60" : "opacity-100"}`}
@@ -162,6 +167,11 @@ export default function NewsCard({ article, priority = false }) {
             <span className="text-[10px] font-bold text-white tracking-wide">
               {article.source_name}
             </span>
+            {credCfg && (
+              <span title={credCfg.label} className="text-[10px]">
+                {credCfg.badge}
+              </span>
+            )}
           </div>
 
           {/* Skor badge — desktop (score yüklenince her zaman görünür) */}
@@ -245,6 +255,11 @@ export default function NewsCard({ article, priority = false }) {
             <span className="text-[10px] font-bold text-stone-400 truncate">
               {article.source_name}
             </span>
+            {credCfg && (
+              <span title={credCfg.label} className="shrink-0 text-[10px]">
+                {credCfg.badge}
+              </span>
+            )}
             {scorePreview && (
               <span
                 className={`ml-auto shrink-0 text-[9px] font-black px-1.5 py-0.5 rounded-full border ${verdictCfg.color}`}>

@@ -44,7 +44,7 @@ export default function SearchBar() {
       <button
         onClick={() => setOpen((v) => !v)}
         title="Ara (⌘K)"
-        className="flex items-center justify-center w-8 h-8 transition-all rounded-lg text-stone-400 hover:text-white hover:bg-white/10">
+        className="flex items-center justify-center w-8 h-8 transition-all rounded-lg text-stone-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-stone-100 dark:hover:bg-white/10">
         <svg
           className="w-4 h-4"
           fill="none"
@@ -124,7 +124,7 @@ export default function SearchBar() {
               </button>
             </form>
 
-            <p className="mt-3 text-xs text-center text-stone-600">
+            <p className="hidden mt-3 text-xs text-center md:block text-stone-600">
               <kbd className="px-1.5 py-0.5 rounded bg-stone-800 text-stone-400 text-[10px] font-mono">
                 ESC
               </kbd>{" "}
