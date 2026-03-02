@@ -1,5 +1,6 @@
 import ConditionalFooter from "@/app/components/ConditionalFooter";
 import Navigation from "@/app/components/Navigation";
+import PWAInstallPrompt from "@/app/components/PWAInstallPrompt";
 import SearchBar from "@/app/components/SearchBar";
 import ThemeProvider from "@/app/components/ThemeProvider";
 import { siteConfig } from "@/app/lib/siteConfig";
@@ -164,6 +165,9 @@ export default function RootLayout({ children }) {
 
           {/* ── Footer ── */}
           <ConditionalFooter />
+
+          {/* ── PWA Install Prompt ── */}
+          <PWAInstallPrompt />
         </ThemeProvider>
       </body>
     </html>
