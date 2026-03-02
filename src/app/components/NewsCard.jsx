@@ -1,8 +1,9 @@
 "use client";
 
 import { formatDate } from "@/app/lib/news";
+import { isArticleRead, trackArticle } from "@/app/lib/useArticleHistory";
 import Link from "next/link";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import BookmarkButton from "./BookmarkButton";
 
 const VERDICT_COLORS = {
@@ -28,6 +29,12 @@ export default function NewsCard({ article, priority = false }) {
   const [scorePreview, setScorePreview] = useState(null);
   const [hovered, setHovered] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isRead, setIsRead] = useState(false);
+
+  // Okunma durumunu localStorage'dan al (hydration sonrası)
+  useEffect(() => {
+    setIsRead(isArticleRead(article.article_id));
+  }, [article.article_id]);
 
   const articleSlug = article.title
     ? article.title
@@ -102,13 +109,20 @@ export default function NewsCard({ article, priority = false }) {
       }
     : null;
 
+  // 🔥 badge eşiği
+  const isHot = scorePreview?.overallScore >= 80;
+
   return (
     <div
-      className="relative"
+      className={`relative transition-opacity duration-300 ${isRead ? "opacity-60" : "opacity-100"}`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={() => setHovered(false)}>
       <Link
         href={`/news/${articleSlug}`}
+        onClick={() => {
+          trackArticle(article);
+          setIsRead(true);
+        }}
         className="flex md:block overflow-hidden transition-all duration-300
                    bg-white border shadow-sm group dark:bg-stone-900
                    border-stone-200 dark:border-stone-800 rounded-2xl
@@ -150,14 +164,17 @@ export default function NewsCard({ article, priority = false }) {
             </span>
           </div>
 
-          {/* Skor badge — sadece desktop */}
+          {/* Skor badge — desktop (score yüklenince her zaman görünür) */}
           {scorePreview && (
             <div
-              className={`absolute top-3 right-3 hidden md:flex items-center gap-1 px-2 py-0.5
+              className={`absolute top-3 right-3 flex items-center gap-1 px-2 py-0.5
                           rounded-full border text-[10px] font-black backdrop-blur-sm
                           ${verdictCfg.color}`}>
+              {isHot && <span className="mr-0.5">🔥</span>}
               {scorePreview.overallScore}
-              <span className="font-medium opacity-80">{verdictCfg.label}</span>
+              <span className="font-medium opacity-80 hidden md:inline">
+                {verdictCfg.label}
+              </span>
             </div>
           )}
 
@@ -231,7 +248,25 @@ export default function NewsCard({ article, priority = false }) {
             {scorePreview && (
               <span
                 className={`ml-auto shrink-0 text-[9px] font-black px-1.5 py-0.5 rounded-full border ${verdictCfg.color}`}>
+                {isHot && "🔥"}
                 {scorePreview.overallScore}
+              </span>
+            )}
+            {isRead && !scorePreview && (
+              <span className="ml-auto shrink-0 text-[9px] text-stone-400 dark:text-stone-600 flex items-center gap-0.5">
+                <svg
+                  className="w-3 h-3"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+                okundu
               </span>
             )}
           </div>

@@ -114,13 +114,13 @@ images: {
 
 ---
 
-#### 7. Okuma Geçmişi
+#### ✅ 7. Okuma Geçmişi
 **Neden:** Kullanıcı hangi haberleri okuduğunu bilmek ister. Bookmark'ı tamamlar.  
-**Ne yapılacak:**
-- `useReadHistory` hook — localStorage'da `read-history` key, max 50 haber
-- `NewsCard`'da `onClick` ile history'e ekle
-- Okunmuş kartlar hafif soluk (`opacity-60`) veya "✓ Okundu" badge
-- `/saved` sayfasına "Geçmiş" sekmesi ekle
+**Yapılanlar:**
+- `useArticleHistory` hook — localStorage `haberai:article-history`, max 100 haber, çapraz sekme senkronizasyonu
+- `NewsCard`'da `onClick` ile history'e ekle, `useEffect` ile okunma durumunu kontrol et
+- Okunmuş kartlar `opacity-60` + mobilde "✓ okundu" göstergesi
+- `/saved` sayfasına "📖 Geçmiş" sekmesi eklendi (sekme sayısı gösteriyor, temizle butonu)  
 
 ---
 
@@ -154,13 +154,14 @@ images: {
 
 ---
 
-#### 11. Kategori Swipe (Mobil)
+#### ✅ 11. Kategori Swipe (Mobil)
 **Neden:** Kategoriler arasında swipe ile geçiş native uygulama deneyimi verir.  
-**Ne yapılacak:**
-- Category sayfalarında `touchstart`/`touchend` X delta takibi
-- Sağa swipe → önceki kategori, sola → sonraki
-- Sayfalar arası slide animasyonu (CSS transform)
-- Bottom tab'daki aktif kategori indikatörü
+**Yapılanlar:**
+- `CategorySwipe.jsx` bileşeni — `touchstart`/`touchend` X delta takibi (eşik 60px)
+- Sağa swipe → önceki kategori, sola swipe → sonraki
+- Mobilde swipe yönünde kenar göstergesi (yarı-şeffaf pill)
+- Desktopda sayfa altına ‹ prev | next › butonları
+- `category/[slug]/page.jsx`'e entegre edildi, CATEGORY_KEYS sırasını kullanıyor  
 
 ---
 
@@ -173,12 +174,12 @@ images: {
 
 ---
 
-#### 13. Haber Puanlama / Önem Skoru Görseli
+#### ✅ 13. Haber Puanlama / Önem Skoru Görseli
 **Neden:** `NewsScore` bileşeni var ama görünürlüğü düşük.  
-**Ne yapılacak:**
-- Kart üzerinde daha belirgin skor göstergesi (mini gauge veya renk bar)
-- Yüksek skorlu haberler ("🔥 Öne Çıkan") badge
-- Skor bazlı sıralama seçeneği
+**Yapılanlar:**
+- Kart üzerinde skor badge her zaman görünür (hover gerekmez), hem mobil hem desktop
+- `overallScore >= 80` → 🔥 alev badge
+- Score badge'i hem mobilde hem desktopda score yüklenince kalıcı göster  
 
 ---
 
