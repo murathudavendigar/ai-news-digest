@@ -53,7 +53,7 @@ export const metadata = {
     title: name,
   },
   icons: {
-    apple: "/apple-icon.png",
+    apple: "/apple-touch-icon.png",
   },
   openGraph: {
     type: "website",
