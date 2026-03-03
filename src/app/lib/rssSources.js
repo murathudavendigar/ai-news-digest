@@ -3,6 +3,8 @@
 // icon: favicon URL — detail sayfasında kaynak logosu olarak kullanılır
 
 const SOZCU_FAVICON = "https://www.sozcu.com.tr/static/web/assets/favicon.webp";
+const TECHNOPAT_ICON =
+  "https://www.technopat.net/wp-content/uploads/2025/10/192x192.png";
 
 export const RSS_SOURCES = [
   // ── GÜNDEM / POLİTİKA ────────────────────────────────────────────────────
@@ -340,7 +342,7 @@ export const RSS_SOURCES = [
     id: "technopat",
     name: "Technopat",
     url: "https://www.technopat.net/feed/",
-    icon: "https://www.technopat.net/favicon.ico",
+    icon: TECHNOPAT_ICON,
     categories: ["technology"],
     lang: "tr",
     priority: 2,

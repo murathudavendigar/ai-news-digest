@@ -57,6 +57,11 @@ export default function Footer() {
               className="transition-colors hover:text-stone-900 dark:hover:text-stone-200">
               Teknoloji
             </Link>
+            <Link
+              href="/about"
+              className="transition-colors hover:text-stone-900 dark:hover:text-stone-200">
+              Hakkımda
+            </Link>
           </div>
           <p className="text-xs text-center text-stone-500 dark:text-stone-600 md:text-right">
             © {new Date().getFullYear()} {siteConfig.name}
