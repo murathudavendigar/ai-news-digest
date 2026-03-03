@@ -145,11 +145,37 @@ Güvenilirlik skorlaması ve bağlamsal analiz köklü iyileştirildi.
 
 ---
 
+### v1.7.0 — Günlük Özet Mimarisi Yenilendi ✅ (Güncel)
+
+- `dailySummary.js` komple yeniden yazıldı: tek Gemini grounding çağrısı → **4 paralel bağımsız grounding çağrısı** (haber analizi, piyasalar, hava durumu, dünya haberleri)
+- Yeni önbellek anahtarı: `daily-summary-v6` (eski: `v5`)
+- Hava durumu: `tempRange` → `tempHigh` + `tempLow` + `humidity` (nem) — her alan ayrı
+- Piyasalar: `bist100Change` (% değişim) + `goldGram` (gram altın TL) alanları eklendi
+- Dünya haberleri: ayrı grounding çağrısıyla alınıyor — karışma riski sıfır
+- `getSummaryByDate()` arşiv işlevi `v6` öneki ile korundu
+- `summary/page.jsx`: `tempRange` backward-compatible, piyasa grid'ine altın + % değişim eklendi, nem göstergesi eklendi
+- Tailwind duplicate `dark:divide-*` class çakışmaları düzeltildi (5 nokta)
+- `calcIssueNumber()` taban tarihi: `2026-01-01` → `2024-01-01`
+- Admin panel `clear-cache` eylemi artık `v6` anahtarlarını da temizliyor
+
+---
+
+### v1.7.1 — Gerçek Zamanlı Piyasa & Hava Verisi ✅ (Güncel)
+
+- Yeni dosya: `lib/realTimeData.js` — AI olmadan gerçek API'lerden veri çeker
+- **Hava durumu**: Open-Meteo API (ücretsiz, API key gerektirmez) — `tempHigh`, `tempLow`, `humidity`, `condition` WMO kodundan üretilir, yağış ihtimali > %50 ise notta gösterilir, 30 dk önbellek
+- **Piyasalar**: Yahoo Finance API (ücretsiz, API key gerektirmez) — BIST 100 (`XU100.IS`), USD/TRY, EUR/TRY, gram altın (GC=F/31.1035 × USD/TRY), `bist100Change` %, 15 dk önbellek
+- `dailySummary.js` `fetchMarkets()` ve `fetchWeather()` Gemini grounding çağrıları kaldırıldı
+- `generateDailySummary()` artık **2 Gemini grounding** (haber analizi + dünya haberleri) + **2 doğrudan API** çağrısı yapıyor
+- JSON parse hatası sorunu tamamen ortadan kalktı — piyasa/hava için AI yok
+
+---
+
 ## 🔜 Planlanan Sürümler
 
 ---
 
-### v1.7.0 — Feed Keşif İyileştirmeleri
+### v1.8.0 — Feed Keşif İyileştirmeleri
 **Öncelik:** 🟠 Yüksek | **Tahmini süre:** 3-4 saat
 
 - **Infinite scroll:** `NewsFeed.jsx`'te `IntersectionObserver` — "Daha fazla" butonu kaldırılıyor, ilk 10 haber, her geçişte +10, liste sonunda skeleton
@@ -159,7 +185,7 @@ Güvenilirlik skorlaması ve bağlamsal analiz köklü iyileştirildi.
 
 ---
 
-### v1.7.1 — Teknik Borç Patch
+### v1.8.1 — Teknik Borç Patch
 **Öncelik:** 🟠 Yüksek | **Tahmini süre:** 1-2 saat
 
 - `api/compare/route.js`: `console.error` → `devWarn`
@@ -266,10 +292,10 @@ MAJOR versiyon — uygulamadan platforma geçiş.
 | Dosya                      | Sorun                                                                     | Hedef Sürüm |
 | -------------------------- | ------------------------------------------------------------------------- | ----------- |
 | `api/compare/route.js`     | `console.error` → `devWarn`'a taşınmamış                                  | v1.7.1      |
-| `NewsCard.jsx`             | `<img>` tag → `next/image`                                                | v1.7.0      |
+| `NewsCard.jsx`             | `<img>` tag → `next/image`                                                | v1.8.0      |
 | `category/[slug]/page.jsx` | `CATEGORIES` objesi `categoryConfig.js`'te tekrarlıyor                    | v1.7.1      |
 | `lib/news.js`              | Error handling tutarsız, `catch` blokları farklı pattern                  | v1.7.1      |
-| `analyzeArticle.js`        | Score ve context sıralı çalışıyor → `Promise.all` ile paralel yapılabilir | v1.7.0      |
+| `analyzeArticle.js`        | Score ve context sıralı çalışıyor → `Promise.all` ile paralel yapılabilir | v1.8.0      |
 
 ---
 

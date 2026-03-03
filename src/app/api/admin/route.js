@@ -1,4 +1,5 @@
 import { getProviderKeys, getProviderName } from "@/app/lib/groq";
+import { fetchMarketData, fetchWeatherData } from "@/app/lib/realTimeData";
 import { Redis } from "@upstash/redis";
 import { NextResponse } from "next/server";
 import { runDailySummaryCron } from "../cron/daily-summary/route";
@@ -47,8 +48,8 @@ export async function GET(request) {
   ] = await Promise.all([
     redis.lrange("cron:log", 0, 29).catch(() => []),
     redis.get("cron:lastSuccess").catch(() => null),
-    redis.get(`daily-summary-v5:${today}`).catch(() => null),
-    redis.get(`daily-summary-v5:${yesterday}`).catch(() => null),
+    redis.get(`daily-summary-v6:${today}`).catch(() => null),
+    redis.get(`daily-summary-v6:${yesterday}`).catch(() => null),
     redis.get("stats:api:calls:today").catch(() => 0),
     redis.get("stats:api:calls:total").catch(() => 0),
     redis.get("stats:cache:hits:today").catch(() => 0),
@@ -257,10 +258,32 @@ export async function POST(request) {
     );
   }
 
+  if (action === "refresh-markets") {
+    await redis.del("realtime:markets").catch(() => {});
+    const result = await fetchMarketData().catch((e) => ({ error: e.message }));
+    return NextResponse.json({ refreshed: true, result });
+  }
+
+  if (action === "refresh-weather") {
+    // Istanbul’u seed'le; diğer şehirler ilk istek gelince öyle dolar
+    const { CITIES } = await import("@/app/lib/cityConfig");
+    const deleted = await Promise.all(
+      CITIES.map((c) => redis.del(`realtime:weather:${c.key}`).catch(() => {})),
+    );
+    const istanbul = await fetchWeatherData("Istanbul").catch((e) => ({
+      error: e.message,
+    }));
+    return NextResponse.json({
+      refreshed: true,
+      deleted: deleted.length,
+      istanbul,
+    });
+  }
+
   if (action === "clear-cache") {
     const t = new Date().toISOString().slice(0, 10);
     await Promise.all(
-      ["v5", "v4", "v3"].map((v) =>
+      ["v6", "v5", "v4", "v3"].map((v) =>
         redis.del(`daily-summary-${v}:${t}`).catch(() => {}),
       ),
     );

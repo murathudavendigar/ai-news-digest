@@ -93,13 +93,13 @@ export default function NewsContext({ context }) {
                   📅 Kronoloji
                 </p>
                 <div className="relative pl-1 space-y-4">
-                  <div className="absolute left-[11px] top-0 bottom-0 w-px bg-stone-200 dark:bg-stone-700" />
+                  <div className="absolute left-2.75 top-0 bottom-0 w-px bg-stone-200 dark:bg-stone-700" />
                   {context.timeline.map((item, i) => {
                     const isLast = i === context.timeline.length - 1;
                     return (
                       <div key={i} className="relative flex gap-4">
                         <div
-                          className={`w-[22px] h-[22px] rounded-full shrink-0 flex items-center justify-center z-10 ${
+                          className={`w-5.5 h-5.5 rounded-full shrink-0 flex items-center justify-center z-10 ${
                             isLast
                               ? "bg-stone-900 dark:bg-stone-100 ring-2 ring-stone-200 dark:ring-stone-700"
                               : "bg-white dark:bg-stone-900 border-2 border-stone-300 dark:border-stone-600"

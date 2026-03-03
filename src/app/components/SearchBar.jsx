@@ -62,7 +62,7 @@ export default function SearchBar() {
       {/* Arama overlay */}
       {open && (
         <div
-          className="fixed inset-0 z-[300] flex items-start justify-center pt-[15vh] px-4"
+          className="fixed inset-0 z-300 flex items-start justify-center pt-[15vh] px-4"
           onClick={() => {
             setOpen(false);
             setQuery("");

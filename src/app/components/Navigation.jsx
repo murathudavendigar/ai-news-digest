@@ -4,7 +4,7 @@ import { hapticLight } from "@/app/lib/haptic";
 import { CATEGORIES as categories } from "@/app/lib/siteConfig";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { startTransition, useEffect, useRef, useState } from "react";
 
 /* ─── İkonlar ─────────────────────────────────────────────────────────── */
 function HomeIcon({ active }) {
@@ -121,8 +121,10 @@ export default function Navigation() {
 
   // Sayfa değişince her şeyi kapat
   useEffect(() => {
-    setCatOpen(false);
-    setDropOpen(false);
+    startTransition(() => {
+      setCatOpen(false);
+      setDropOpen(false);
+    });
   }, [pathname]);
 
   // Mobil sheet açıkken scroll kilitle
@@ -200,7 +202,7 @@ export default function Navigation() {
 
           {/* Dropdown panel */}
           {dropOpen && (
-            <div className="absolute top-full left-0 mt-1.5 w-64 bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-white/10 shadow-2xl z-[70] overflow-hidden">
+            <div className="absolute top-full left-0 mt-1.5 w-64 bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-white/10 shadow-2xl z-70 overflow-hidden">
               <div className="grid grid-cols-2 gap-0.5 p-1.5">
                 {categories.map((cat) => {
                   const href = `/category/${cat.slug}`;
@@ -211,7 +213,7 @@ export default function Navigation() {
                       className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
                         isActive(href)
                           ? "bg-amber-50 dark:bg-amber-900/25 text-amber-700 dark:text-amber-400 font-semibold"
-                          : "text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-white/[0.06] hover:text-stone-900 dark:hover:text-white"
+                          : "text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-white/6 hover:text-stone-900 dark:hover:text-white"
                       }`}>
                       <span className="text-base leading-none">{cat.icon}</span>
                       <span>{cat.title}</span>
@@ -242,7 +244,7 @@ export default function Navigation() {
       ═══════════════════════════════════ */}
       <nav
         className="fixed bottom-0 left-0 right-0 z-50 md:hidden
-                   bg-white/95 dark:bg-stone-950/95 backdrop-blur-xl border-t border-stone-200 dark:border-white/[0.08]"
+                   bg-white/95 dark:bg-stone-950/95 backdrop-blur-xl border-t border-stone-200 dark:border-white/8"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
         <div className="flex items-center justify-around h-16 px-0.5">
           <Link
@@ -313,7 +315,7 @@ export default function Navigation() {
           KATEGORİ SHEET
       ═══════════════════════════════════ */}
       {catOpen && (
-        <div className="fixed inset-0 z-[60] md:hidden">
+        <div className="fixed inset-0 z-60 md:hidden">
           <div
             className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             onClick={() => setCatOpen(false)}

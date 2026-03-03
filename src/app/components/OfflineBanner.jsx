@@ -39,7 +39,7 @@ export default function OfflineBanner() {
   return (
     <div
       className={`fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:max-w-xs
-        z-[200] flex items-center gap-2.5 px-4 py-3 rounded-2xl shadow-2xl
+        z-200 flex items-center gap-2.5 px-4 py-3 rounded-2xl shadow-2xl
         text-xs font-bold transition-all duration-300
         ${
           status === "offline"

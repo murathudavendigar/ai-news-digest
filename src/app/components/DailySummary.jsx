@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 const MOOD_CONFIG = {
   tense: {
@@ -75,6 +76,18 @@ function Skeleton() {
 
 // ── Ana component — prop olarak veri alır ─────────────────────────────────
 export default function DailySummary({ data }) {
+  // Başlangıçta SSR'dan gelen marketi kullan, mount sonrası taze veriyi çek
+  const [markets, setMarkets] = useState(data?.markets ?? null);
+  // Mobilde detaylar başta gizli; kullanıcı isteğiyle açılır
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/markets")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => d && !d.error && setMarkets(d))
+      .catch(() => {});
+  }, []);
+
   if (!data) return <Skeleton />;
 
   const mood = MOOD_CONFIG[data.dayMood] || MOOD_CONFIG.uncertain;
@@ -141,7 +154,7 @@ export default function DailySummary({ data }) {
               {data.subheadline}
             </p>
           )}
-          <p className="text-sm leading-relaxed text-stone-600 dark:text-stone-300 line-clamp-3">
+          <p className="text-sm leading-relaxed text-stone-600 dark:text-stone-300 sm:line-clamp-3 line-clamp-2">
             {data.intro}
           </p>
         </div>
@@ -152,9 +165,13 @@ export default function DailySummary({ data }) {
             <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:text-stone-500 mb-4">
               Mutlaka Oku
             </p>
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {mustRead.map((story, i) => (
-                <div key={i} className="flex items-start gap-4">
+                <div
+                  key={i}
+                  className={`flex items-start gap-3 sm:gap-4${
+                    i >= 2 ? (expanded ? "" : " hidden sm:flex") : ""
+                  }`}>
                   <span
                     className="text-2xl font-black leading-none text-stone-200 dark:text-stone-700 w-7 shrink-0"
                     style={{
@@ -172,7 +189,10 @@ export default function DailySummary({ data }) {
                         {story.impact === "critical" ? "Kritik" : "Önemli"}
                       </span>
                     </div>
-                    <p className="text-xs leading-relaxed text-stone-500 dark:text-stone-400">
+                    <p
+                      className={`text-xs leading-relaxed text-stone-500 dark:text-stone-400${
+                        expanded ? "" : " hidden sm:block"
+                      }`}>
                       {story.why}
                     </p>
                   </div>
@@ -182,9 +202,12 @@ export default function DailySummary({ data }) {
           </div>
         )}
 
-        {/* Bölümler */}
+        {/* Bölümler — mobilde varsayılan gizli, expanded veya md+ görünür */}
         {data.sections?.length > 0 && (
-          <div className="grid grid-cols-1 border-b divide-y md:grid-cols-2 md:divide-y-0 md:divide-x divide-stone-100 dark:divide-stone-800 border-stone-100 dark:border-stone-800">
+          <div
+            className={`${
+              expanded ? "grid" : "hidden md:grid"
+            } grid-cols-1 border-b divide-y md:grid-cols-2 md:divide-y-0 md:divide-x divide-stone-100 dark:divide-stone-800 border-stone-100 dark:border-stone-800`}>
             {data.sections.slice(0, 4).map((s, i) => (
               <div key={i} className="px-6 py-5">
                 <div className="flex items-center gap-2 mb-2">
@@ -206,10 +229,28 @@ export default function DailySummary({ data }) {
           </div>
         )}
 
+        {/* Mobil genişlet / daralt toggle */}
+        <button
+          onClick={() => setExpanded((v) => !v)}
+          className="sm:hidden w-full py-2.5 flex items-center justify-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-stone-400 hover:text-stone-700 dark:hover:text-stone-300 border-t border-stone-100 dark:border-stone-800 transition-colors">
+          {expanded ? (
+            <>
+              <span>Daha Az</span>
+              <span className="text-[8px]">▴</span>
+            </>
+          ) : (
+            <>
+              <span>Tüm İçerik</span>
+              <span className="text-[8px]">▾</span>
+            </>
+          )}
+        </button>
+
         {/* Alt bant: sayı + kavram + piyasalar + CTA */}
         <div className="flex flex-col divide-y sm:flex-row sm:divide-y-0 sm:divide-x divide-stone-100 dark:divide-stone-800">
           {data.numberofDay && (
-            <div className="flex-1 px-5 py-3.5">
+            <div
+              className={`flex-1 px-5 py-3.5${expanded ? "" : " hidden sm:block"}`}>
               <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest mb-0.5">
                 Günün Sayısı
               </p>
@@ -224,7 +265,8 @@ export default function DailySummary({ data }) {
             </div>
           )}
           {data.wordOfDay && (
-            <div className="flex-1 px-5 py-3.5">
+            <div
+              className={`flex-1 px-5 py-3.5${expanded ? "" : " hidden sm:block"}`}>
               <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest mb-0.5">
                 Kavram
               </p>
@@ -238,23 +280,26 @@ export default function DailySummary({ data }) {
               </p>
             </div>
           )}
-          {data.markets?.usdTry && (
-            <div className="flex-1 px-5 py-3.5">
+          {markets?.usdTry && markets.usdTry !== "—" && (
+            <div
+              className={`flex-1 px-5 py-3.5${expanded ? "" : " hidden sm:block"}`}>
               <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest mb-1">
                 Piyasalar
               </p>
               <div className="flex items-center gap-2 text-xs">
-                {data.markets.bist100 && (
+                {markets.bist100 && markets.bist100 !== "—" && (
                   <span className="font-bold text-stone-700 dark:text-stone-300">
-                    BIST {data.markets.bist100}
+                    BIST {markets.bist100}
                   </span>
                 )}
-                {data.markets.usdTry && (
-                  <span className="text-stone-500">
-                    $ {data.markets.usdTry}
-                  </span>
+                {markets.usdTry && markets.usdTry !== "—" && (
+                  <span className="text-stone-500">$ {markets.usdTry}</span>
+                )}
+                {markets.eurTry && markets.eurTry !== "—" && (
+                  <span className="text-stone-500">€ {markets.eurTry}</span>
                 )}
               </div>
+              <div className="mt-2 h-1.5 w-full rounded-full bg-stone-200 dark:bg-stone-800"></div>
             </div>
           )}
           <div className="flex-1 px-5 py-3.5 flex items-center justify-between sm:justify-end">

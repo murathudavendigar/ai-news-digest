@@ -560,6 +560,31 @@ export default function AdminDashboard() {
             ⚠ Stats Sıfırla
           </ActionBtn>
         </div>
+
+        {/* Gerçek zamanlı veri güncelleme */}
+        <div className="mt-4 pt-4 border-t border-stone-800">
+          <p className="text-[9px] font-black text-stone-500 uppercase tracking-widest mb-2.5">
+            📊 Gerçek Zamanlı Veri Güncelle
+          </p>
+          <div className="flex flex-wrap gap-2.5">
+            <ActionBtn
+              onClick={() =>
+                act("refresh-markets", "Piyasa verisi güncellendi")
+              }
+              loading={working === "refresh-markets"}>
+              💹 Piyasaları Güncelle
+            </ActionBtn>
+            <ActionBtn
+              onClick={() => act("refresh-weather", "Hava durumu güncellendi")}
+              loading={working === "refresh-weather"}>
+              🌤 Hava Durumunu Güncelle
+            </ActionBtn>
+          </div>
+          <p className="text-[9px] text-stone-700 mt-2">
+            Redis cache silinir ve taze veri çekilir. Piyasa: 1sa cache · Hava:
+            2sa cache (tüm şehirler)
+          </p>
+        </div>
         <p className="text-[9px] text-stone-700 mt-3">
           Zamanlama: {cronSchedule} · Redis DB: {s.redis?.dbSize ?? "—"} key ·
           Şu an: {fmt(now)}

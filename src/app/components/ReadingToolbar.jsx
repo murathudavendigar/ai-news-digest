@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 function IconButton({ onClick, title, active = false, children }) {
   return (
@@ -77,7 +77,7 @@ export default function ReadingToolbar({ title, articleUrl }) {
   return (
     <>
       {/* Progress bar — en üstte ince amber çizgi */}
-      <div className="fixed top-0 left-0 right-0 z-[200] h-0.5 bg-stone-200 dark:bg-stone-800 pointer-events-none">
+      <div className="fixed top-0 left-0 right-0 z-200 h-0.5 bg-stone-200 dark:bg-stone-800 pointer-events-none">
         <div
           className="h-full bg-amber-400 transition-[width] duration-100 ease-linear"
           style={{ width: `${progress}%` }}
@@ -86,7 +86,7 @@ export default function ReadingToolbar({ title, articleUrl }) {
 
       {/* Floating toolbar */}
       <div
-        className={`fixed z-[199] right-4 md:right-6 transition-all duration-300 ${
+        className={`fixed z-199 right-4 md:right-6 transition-all duration-300 ${
           visible
             ? "opacity-100 translate-y-0"
             : "opacity-0 translate-y-2 pointer-events-none"
@@ -99,7 +99,7 @@ export default function ReadingToolbar({ title, articleUrl }) {
                         shadow-xl shadow-stone-900/10 dark:shadow-stone-950/40">
           {/* İlerleme yüzdesi */}
           <div className="flex items-center justify-center h-8 px-2">
-            <span className="text-[11px] font-black tabular-nums text-amber-500 min-w-[26px] text-center">
+            <span className="text-[11px] font-black tabular-nums text-amber-500 min-w-6.5 text-center">
               {progress}%
             </span>
           </div>

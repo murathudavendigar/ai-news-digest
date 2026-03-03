@@ -1,3 +1,7 @@
+import {
+  WeatherStrip,
+  WeatherWidget,
+} from "@/app/components/CityWeatherWidget";
 import SpeechButton from "@/app/components/SpeechButton";
 import SubscribeForm from "@/app/components/SubscribeForm";
 import {
@@ -5,7 +9,9 @@ import {
   getDailySummary,
   getSummaryByDate,
 } from "@/app/lib/dailySummary";
+import { fetchMarketData, fetchWeatherData } from "@/app/lib/realTimeData";
 import { siteConfig } from "@/app/lib/siteConfig";
+import Image from "next/image";
 import Link from "next/link";
 
 export const revalidate = 3600;
@@ -49,27 +55,6 @@ const CAT_ICONS = {
   technology: "💻",
   other: "📰",
 };
-
-const WEATHER_ICONS = {
-  açık: "☀️",
-  güneşli: "☀️",
-  bulutlu: "☁️",
-  parçalı: "⛅",
-  yağmurlu: "🌧️",
-  yağmur: "🌧️",
-  karlı: "❄️",
-  fırtınalı: "⛈️",
-  sisli: "🌫️",
-  rüzgarlı: "💨",
-};
-
-function weatherIcon(condition = "") {
-  const lower = (condition ?? "").toLowerCase();
-  for (const [key, icon] of Object.entries(WEATHER_ICONS)) {
-    if (lower.includes(key)) return icon;
-  }
-  return "🌤️";
-}
 
 // ── Yardımcı bileşenler ────────────────────────────────────────────────────
 
@@ -133,6 +118,18 @@ export default async function SummaryPage({ searchParams }) {
     ? await getSummaryByDate(requestedDate)
     : await getDailySummary();
   if (!data && isToday) data = await generateDailySummary();
+
+  // Bugünün sayfasında piyasa ve hava durumunu her zaman taze cek.
+  // fetchMarketData() → 15dk Redis cache, fetchWeatherData() → 30dk Redis cache per sehir.
+  // Arşiv sayfalarında mevcut kayıtlı değerleri kullan.
+  if (data && !data.error && isToday) {
+    const [freshMarkets, freshWeather] = await Promise.all([
+      fetchMarketData().catch(() => null),
+      fetchWeatherData("Istanbul").catch(() => null),
+    ]);
+    if (freshMarkets) data = { ...data, markets: freshMarkets };
+    if (freshWeather) data = { ...data, weather: freshWeather };
+  }
 
   if (!data || data.error) {
     return (
@@ -206,14 +203,13 @@ export default async function SummaryPage({ searchParams }) {
             ● {mood.label} — Günün Havası
           </p>
           <div className="flex items-center gap-4 text-[9px] text-stone-500 uppercase tracking-widest">
-            {data.weather && (
-              <span>
-                {weatherIcon(data.weather.condition)} İstanbul:{" "}
-                {data.weather.tempRange}
-              </span>
+            {data.weather && <WeatherStrip defaultWeather={data.weather} />}
+            {data.markets?.usdTry && data.markets.usdTry !== "—" && (
+              <span>$ {data.markets.usdTry}</span>
             )}
-            {data.markets?.usdTry && <span>$ {data.markets.usdTry}</span>}
-            {data.markets?.bist100 && <span>BIST {data.markets.bist100}</span>}
+            {data.markets?.bist100 && data.markets.bist100 !== "—" && (
+              <span>BIST {data.markets.bist100}</span>
+            )}
           </div>
         </div>
       </div>
@@ -230,7 +226,7 @@ export default async function SummaryPage({ searchParams }) {
               <Link
                 href={`/summary?date=${prevDateStr}`}
                 title={fmtDate(prevDateStr)}
-                className="text-stone-600 hover:text-stone-300 transition-colors">
+                className="transition-colors text-stone-600 hover:text-stone-300">
                 ←
               </Link>
               <span className="text-stone-400 whitespace-nowrap">
@@ -240,7 +236,7 @@ export default async function SummaryPage({ searchParams }) {
                 <Link
                   href={`/summary?date=${nextDateStr}`}
                   title={fmtDate(nextDateStr)}
-                  className="text-stone-600 hover:text-stone-300 transition-colors">
+                  className="transition-colors text-stone-600 hover:text-stone-300">
                   →
                 </Link>
               ) : (
@@ -289,7 +285,7 @@ export default async function SummaryPage({ searchParams }) {
         </div>
 
         {/* İçindekiler navigasyonu */}
-        <div className="sticky top-0 z-20 bg-white dark:bg-stone-950 flex items-center gap-0 overflow-x-auto border-b border-stone-200 dark:border-stone-700">
+        <div className="sticky top-0 z-20 flex items-center gap-0 overflow-x-auto bg-white border-b dark:bg-stone-950 border-stone-200 dark:border-stone-700">
           {sections.slice(0, 7).map((s, i) => (
             <a
               key={i}
@@ -326,10 +322,13 @@ export default async function SummaryPage({ searchParams }) {
               {/* Ana haber görseli */}
               {mainStory?.imageUrl && (
                 <div className="mb-5 overflow-hidden">
-                  <img
+                  <Image
                     src={mainStory.imageUrl}
                     alt={mainStory.title}
-                    className="w-full h-64 object-cover grayscale-20 hover:grayscale-0 transition-all duration-500"
+                    width={800}
+                    height={256}
+                    className="object-cover w-full h-64 transition-all duration-500 grayscale-20 hover:grayscale-0"
+                    unoptimized
                   />
                   <p className="text-[9px] text-stone-600 mt-1 uppercase tracking-wider">
                     {mainStory.title}
@@ -369,7 +368,7 @@ export default async function SummaryPage({ searchParams }) {
             </div>
 
             {/* SAĞ SÜTUN: İkincil haberler + widget'lar */}
-            <div className="space-y-0 divide-y lg:col-span-5 divide-stone-200 dark:divide-stone-200 dark:divide-stone-700">
+            <div className="space-y-0 divide-y lg:col-span-5 divide-stone-200 dark:divide-stone-700">
               {/* İkincil haberler */}
               {secondaryStories.map((story, i) => (
                 <div key={i} className="py-5 first:pt-0">
@@ -385,10 +384,13 @@ export default async function SummaryPage({ searchParams }) {
                         </span>
                       </div>
                       {story.imageUrl && (
-                        <img
+                        <Image
                           src={story.imageUrl}
                           alt={story.title}
-                          className="w-full h-28 object-cover mb-2 grayscale-30"
+                          width={400}
+                          height={112}
+                          className="object-cover w-full mb-2 h-28 grayscale-30"
+                          unoptimized
                         />
                       )}
                       <h3 className="text-sm font-black text-stone-900 dark:text-white mb-1.5 leading-snug">
@@ -410,12 +412,23 @@ export default async function SummaryPage({ searchParams }) {
                   </p>
                   <div className="grid grid-cols-3 gap-2">
                     {[
-                      { label: "BIST-100", value: data.markets.bist100 },
+                      {
+                        label: "BIST-100",
+                        value: data.markets.bist100,
+                        sub: data.markets.bist100Change,
+                      },
                       { label: "USD/TRY", value: data.markets.usdTry },
                       { label: "EUR/TRY", value: data.markets.eurTry },
+                      {
+                        label: "Altın (gr)",
+                        value: data.markets.goldGram
+                          ? `₺${data.markets.goldGram}`
+                          : null,
+                      },
                     ].map(
                       (item) =>
-                        item.value && (
+                        item.value &&
+                        item.value !== "—" && (
                           <div
                             key={item.label}
                             className="p-2 text-center border bg-stone-50 dark:bg-stone-900 border-stone-200 dark:border-stone-700">
@@ -425,6 +438,12 @@ export default async function SummaryPage({ searchParams }) {
                             <p className="text-sm font-black text-stone-900 dark:text-white">
                               {item.value}
                             </p>
+                            {item.sub && (
+                              <p
+                                className={`text-[9px] font-bold ${item.sub.startsWith("+") ? "text-green-600" : item.sub.startsWith("-") ? "text-red-500" : "text-stone-500"}`}>
+                                {item.sub}
+                              </p>
+                            )}
                           </div>
                         ),
                     )}
@@ -438,31 +457,7 @@ export default async function SummaryPage({ searchParams }) {
               )}
 
               {/* Hava durumu */}
-              {data.weather && (
-                <div className="py-5">
-                  <p className="text-[9px] font-black text-stone-600 uppercase tracking-widest mb-2">
-                    🏙️ İstanbul Hava
-                  </p>
-                  <div className="flex items-center gap-3">
-                    <span className="text-4xl">
-                      {weatherIcon(data.weather.condition)}
-                    </span>
-                    <div>
-                      <p className="text-lg font-black text-stone-900 dark:text-white">
-                        {data.weather.tempRange}
-                      </p>
-                      <p className="text-xs text-stone-500">
-                        {data.weather.condition}
-                      </p>
-                      {data.weather.note && (
-                        <p className="text-[10px] text-stone-600 italic mt-0.5">
-                          {data.weather.note}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
+              {data.weather && <WeatherWidget defaultWeather={data.weather} />}
             </div>
           </div>
         </section>
@@ -471,7 +466,7 @@ export default async function SummaryPage({ searchParams }) {
             GÜNÜN SAYISI + KAVRAMI + ALINTI — yatay bant
         ════════════════════════════════════════════════ */}
         <section className="py-6 border-b border-stone-200 dark:border-stone-700">
-          <div className="grid grid-cols-1 divide-y md:grid-cols-3 md:divide-y-0 md:divide-x divide-stone-200 dark:divide-stone-200 dark:divide-stone-700">
+          <div className="grid grid-cols-1 divide-y md:grid-cols-3 md:divide-y-0 md:divide-x divide-stone-200 dark:divide-stone-700">
             {/* Günün sayısı */}
             {data.numberofDay && (
               <div className="py-4 md:py-0 md:pr-8">
@@ -550,10 +545,13 @@ export default async function SummaryPage({ searchParams }) {
                     </span>
                   </div>
                   {story.imageUrl && (
-                    <img
+                    <Image
                       src={story.imageUrl}
                       alt={story.title}
-                      className="w-full h-24 object-cover mb-2 grayscale-40"
+                      width={400}
+                      height={96}
+                      className="object-cover w-full h-24 mb-2 grayscale-40"
+                      unoptimized
                     />
                   )}
                   <h3 className="mb-1 text-sm font-black leading-snug text-stone-900 dark:text-white">
@@ -574,7 +572,7 @@ export default async function SummaryPage({ searchParams }) {
         {sections.length > 0 && (
           <section className="py-8 border-b border-stone-200 dark:border-stone-700">
             <Divider title="Kategoriler" />
-            <div className="grid grid-cols-1 gap-0 divide-x-0 divide-y md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 md:divide-y-0 md:divide-x divide-stone-200 dark:divide-stone-200 dark:divide-stone-700">
+            <div className="grid grid-cols-1 gap-0 divide-x-0 divide-y md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 md:divide-y-0 md:divide-x divide-stone-200 dark:divide-stone-700">
               {sections.map((section, i) => (
                 <div
                   key={i}
@@ -584,7 +582,7 @@ export default async function SummaryPage({ searchParams }) {
                   <div className="flex items-center gap-2 pb-3 mb-3 border-b border-stone-200 dark:border-stone-700">
                     <span className="text-xl">{section.emoji}</span>
                     <div>
-                      <p className="text-xs font-black tracking-widest text-stone-900 dark:text-white uppercase">
+                      <p className="text-xs font-black tracking-widest uppercase text-stone-900 dark:text-white">
                         {section.title}
                       </p>
                       {section.headline && (
@@ -644,14 +642,14 @@ export default async function SummaryPage({ searchParams }) {
         <section
           className="py-8 border-b border-stone-200 dark:border-stone-700"
           id="world">
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:divide-x divide-stone-200 dark:divide-stone-200 dark:divide-stone-700">
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:divide-x divide-stone-200 dark:divide-stone-700">
             {/* Dünya başlıkları */}
             {data.worldHeadlines?.length > 0 && (
               <div className="lg:pr-8">
                 <p className="text-[9px] font-black text-stone-600 uppercase tracking-widest mb-5">
                   🌍 Dünyadan
                 </p>
-                <div className="space-y-0 divide-y divide-stone-100 dark:divide-stone-100 dark:divide-stone-800">
+                <div className="space-y-0 divide-y divide-stone-100 dark:divide-stone-800">
                   {data.worldHeadlines.map((item, i) => (
                     <div key={i} className="py-4 first:pt-0">
                       <div className="flex items-start gap-3">

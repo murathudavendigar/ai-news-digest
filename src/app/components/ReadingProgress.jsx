@@ -42,7 +42,7 @@ export default function ReadingProgress({ title }) {
   return (
     <>
       {/* Amber progress bar — tema rengiyle */}
-      <div className="fixed top-0 left-0 right-0 z-[200] h-0.5 bg-stone-200 dark:bg-stone-800">
+      <div className="fixed top-0 left-0 right-0 z-200 h-0.5 bg-stone-200 dark:bg-stone-800">
         <div
           className="h-full bg-amber-400"
           style={{ width: `${progress}%`, transition: "width 0.1s linear" }}
@@ -51,7 +51,7 @@ export default function ReadingProgress({ title }) {
 
       {/* Floating toolbar — scroll başlayınca */}
       <div
-        className={`fixed z-[199] transition-all duration-300 ${
+        className={`fixed z-199 transition-all duration-300 ${
           visible
             ? "opacity-100 translate-y-0"
             : "opacity-0 -translate-y-2 pointer-events-none"
@@ -66,7 +66,7 @@ export default function ReadingProgress({ title }) {
                         border border-stone-200 dark:border-stone-700 rounded-full
                         px-3 py-1.5 shadow-xl shadow-stone-200/50 dark:shadow-stone-950/50">
           {/* Yüzde */}
-          <span className="text-[10px] font-black tabular-nums text-amber-500 dark:text-amber-400 min-w-[28px] text-center">
+          <span className="text-[10px] font-black tabular-nums text-amber-500 dark:text-amber-400 min-w-7 text-center">
             %{progress}
           </span>
           <div className="w-px h-3 bg-stone-200 dark:bg-stone-700" />
