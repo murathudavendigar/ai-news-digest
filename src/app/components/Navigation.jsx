@@ -1,23 +1,10 @@
 "use client";
 
 import { hapticLight } from "@/app/lib/haptic";
+import { CATEGORIES as categories } from "@/app/lib/siteConfig";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-
-const categories = [
-  { slug: "technology", title: "Teknoloji", icon: "💻" },
-  { slug: "science", title: "Bilim", icon: "🔬" },
-  { slug: "sports", title: "Spor", icon: "⚽" },
-  { slug: "business", title: "Ekonomi", icon: "📈" },
-  { slug: "health", title: "Sağlık", icon: "🏥" },
-  { slug: "entertainment", title: "Magazin", icon: "🎬" },
-  { slug: "culture", title: "Kültür", icon: "🎨" },
-  { slug: "defense", title: "Savunma", icon: "🛡️" },
-  { slug: "lifestyle", title: "Yaşam", icon: "🌿" },
-  { slug: "politics", title: "Politika", icon: "🏛️" },
-  { slug: "world", title: "Dünya", icon: "🌍" },
-];
 
 /* ─── İkonlar ─────────────────────────────────────────────────────────── */
 function HomeIcon({ active }) {

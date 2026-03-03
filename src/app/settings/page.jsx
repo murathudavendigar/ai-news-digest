@@ -1,20 +1,10 @@
 "use client";
 
 import PushNotificationToggle from "@/app/components/PushNotificationToggle";
-import { CRON, formatCronTimeLocal } from "@/app/lib/siteConfig";
+import { CATEGORIES, CRON, formatCronTimeLocal } from "@/app/lib/siteConfig";
 import { useUserPreferences } from "@/app/lib/useUserPreferences";
 import { useTheme } from "next-themes";
 import Link from "next/link";
-
-const CATEGORIES = [
-  { slug: "technology", title: "Teknoloji", icon: "💻" },
-  { slug: "sports", title: "Spor", icon: "⚽" },
-  { slug: "business", title: "Ekonomi", icon: "📈" },
-  { slug: "health", title: "Sağlık", icon: "🏥" },
-  { slug: "entertainment", title: "Magazin", icon: "🎬" },
-  { slug: "politics", title: "Politika", icon: "🏛️" },
-  { slug: "world", title: "Dünya", icon: "🌍" },
-];
 
 function Section({ title, children }) {
   return (

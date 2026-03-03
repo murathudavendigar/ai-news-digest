@@ -70,6 +70,24 @@ export const siteConfig = {
 };
 
 /**
+ * Uygulama genelinde kullanılan kategori listesi.
+ * Navigation, Settings ve diğer bileşenler buradan import eder.
+ */
+export const CATEGORIES = [
+  { slug: "technology", title: "Teknoloji", icon: "💻" },
+  { slug: "science", title: "Bilim", icon: "🔬" },
+  { slug: "sports", title: "Spor", icon: "⚽" },
+  { slug: "business", title: "Ekonomi", icon: "📈" },
+  { slug: "health", title: "Sağlık", icon: "🏥" },
+  { slug: "entertainment", title: "Magazin", icon: "🎦" },
+  { slug: "culture", title: "Kültür", icon: "🎨" },
+  { slug: "defense", title: "Savunma", icon: "🛡️" },
+  { slug: "lifestyle", title: "Yaşam", icon: "🌿" },
+  { slug: "politics", title: "Politika", icon: "🏙️" },
+  { slug: "world", title: "Dünya", icon: "🌍" },
+];
+
+/**
  * Cron zamanlamaları — vercel.json ile senkronize tutun.
  * Değiştirilecekse sadece bu dosyayı düzenlemek yeterlidir.
  */
