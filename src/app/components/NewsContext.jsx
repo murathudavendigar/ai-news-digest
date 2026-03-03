@@ -247,24 +247,26 @@ export default function NewsContext({ context }) {
                 </p>
               </div>
             )}
-            {context.relatedStories?.length > 0 && (
+            {(context.relatedTopics ?? context.relatedStories)?.length > 0 && (
               <div>
                 <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest mb-2.5">
                   🔗 Takip Edilmeli
                 </p>
                 <div className="space-y-1.5">
-                  {context.relatedStories.map((s, i) => (
-                    <div
-                      key={i}
-                      className="p-3 border rounded-xl bg-stone-50 dark:bg-stone-800 border-stone-100 dark:border-stone-700">
-                      <p className="text-xs font-bold text-stone-800 dark:text-stone-200 mb-0.5">
-                        {s.title}
-                      </p>
-                      <p className="text-[11px] text-stone-400 dark:text-stone-500 italic">
-                        {s.connection}
-                      </p>
-                    </div>
-                  ))}
+                  {(context.relatedTopics ?? context.relatedStories).map(
+                    (s, i) => (
+                      <div
+                        key={i}
+                        className="p-3 border rounded-xl bg-stone-50 dark:bg-stone-800 border-stone-100 dark:border-stone-700">
+                        <p className="text-xs font-bold text-stone-800 dark:text-stone-200 mb-0.5">
+                          {s.topic ?? s.title}
+                        </p>
+                        <p className="text-[11px] text-stone-400 dark:text-stone-500 italic">
+                          {s.whyFollow ?? s.connection}
+                        </p>
+                      </div>
+                    ),
+                  )}
                 </div>
               </div>
             )}

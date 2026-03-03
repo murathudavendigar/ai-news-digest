@@ -267,6 +267,22 @@ export async function POST(request) {
     return NextResponse.json({ cleared: true });
   }
 
+  if (action === "clear-analysis-cache") {
+    let cursor = 0;
+    let deleted = 0;
+    do {
+      const [nextCursor, keys] = await redis
+        .scan(cursor, { match: "analyze:*", count: 100 })
+        .catch(() => ["0", []]);
+      cursor = Number(nextCursor);
+      if (keys.length > 0) {
+        await redis.del(...keys).catch(() => {});
+        deleted += keys.length;
+      }
+    } while (cursor !== 0);
+    return NextResponse.json({ cleared: true, deleted });
+  }
+
   if (action === "clear-logs") {
     await Promise.all(
       [redis.del("cron:log"), redis.del("cron:lastSuccess")].map((p) =>

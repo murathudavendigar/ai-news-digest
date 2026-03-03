@@ -119,27 +119,51 @@ export async function analyzeArticle(article, forceRefresh = false) {
   const langName = resolveLanguage(article.language);
   const modelTier = resolveModelTier(article); // adaptive: kısa haberde 8B yeterli
 
-  // Score uses FAST (8B) always — structured JSON scoring doesn't need 70B.
+  // Score uses BALANCED (70B) — calibrated numerical scoring needs a capable model.
   // Context uses adaptive tier — BALANCED for long articles, FAST for short.
   const scorePrompt = buildScorePrompt(article, langName);
   const contextPrompt = buildContextPrompt(article, langName);
 
   const scoreResult = await generateCompletion(scorePrompt.userPrompt, {
-    model: GROQ_MODELS.FAST,
-    temperature: 0.2,
-    maxTokens: 1800, // score JSON: redFlags + greenFlags + tactics + missingContext arrays in Turkish
+    model: GROQ_MODELS.BALANCED,
+    temperature: 0.1, // near-deterministic: same article → same score
+    maxTokens: 900, // score JSON is compact; 900 is ample
     systemPrompt: scorePrompt.systemPrompt,
   });
 
   const contextResult = await generateCompletion(contextPrompt.userPrompt, {
     model: GROQ_MODELS[modelTier],
-    temperature: 0.3,
-    maxTokens: modelTier === "FAST" ? 2500 : 4000, // context: timeline+actors+scenarios+terminology in Turkish
+    temperature: 0.35, // slightly richer analytical depth
+    maxTokens: modelTier === "FAST" ? 2500 : 4000,
     systemPrompt: contextPrompt.systemPrompt,
   });
 
   const score = safeParseJSON(scoreResult.text, "score");
   const context = safeParseJSON(contextResult.text, "context");
+
+  // Compute overallScore and verdict in JS — keeps AI from reverse-engineering
+  // its target score by knowing the formula.
+  if (score?.scores) {
+    const {
+      reliability = 55,
+      neutrality = 60,
+      emotionalLanguage = 50,
+      sourceReputation = 65,
+    } = score.scores;
+    const overall = Math.round(
+      reliability * 0.35 +
+        neutrality * 0.3 +
+        (100 - emotionalLanguage) * 0.2 +
+        sourceReputation * 0.15,
+    );
+    score.overallScore = overall;
+    score.verdict =
+      overall >= 60
+        ? "reliable"
+        : overall >= 35
+          ? "questionable"
+          : "unreliable";
+  }
 
   if (!score && !context) {
     return {

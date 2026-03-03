@@ -123,7 +123,7 @@ export default function NewsScore({ score }) {
   const v = VERDICT[score.verdict] ?? VERDICT.questionable;
   const hasDeep =
     score.manipulationTactics?.length ||
-    score.missingContext?.length ||
+    (score.checkThis ?? score.missingContext)?.length ||
     score.factCheckSuggestions?.length;
   const visibleTabs = TABS.filter((t) => t.id !== "deep" || hasDeep);
 
@@ -265,18 +265,18 @@ export default function NewsScore({ score }) {
                 </div>
               </div>
             )}
-            {score.missingContext?.length > 0 && (
+            {(score.checkThis ?? score.missingContext)?.length > 0 && (
               <div>
                 <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest mb-2.5">
-                  🕳 Eksik Bağlam
+                  🔍 Kontrol Et
                 </p>
                 <div className="space-y-1.5">
-                  {score.missingContext.map((m, i) => (
+                  {(score.checkThis ?? score.missingContext).map((m, i) => (
                     <div
                       key={i}
                       className="flex gap-2.5 p-3 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700">
                       <span className="text-xs font-black text-stone-400 shrink-0">
-                        ?
+                        →
                       </span>
                       <p className="text-xs leading-relaxed text-stone-700 dark:text-stone-300">
                         {m}

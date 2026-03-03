@@ -547,6 +547,13 @@ export default function AdminDashboard() {
             🧹 Logları Temizle
           </ActionBtn>
           <ActionBtn
+            onClick={() =>
+              act("clear-analysis-cache", "Analiz önbelleği temizlendi")
+            }
+            loading={working === "clear-analysis-cache"}>
+            🔄 Skor Önbelleğini Temizle
+          </ActionBtn>
+          <ActionBtn
             variant="danger"
             onClick={() => act("reset-stats", "Stats sıfırlandı")}
             loading={working === "reset-stats"}>
