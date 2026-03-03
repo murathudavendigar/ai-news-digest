@@ -1,5 +1,6 @@
 "use client";
 
+import { hapticBookmarkAdd, hapticBookmarkRemove } from "@/app/lib/haptic";
 import { useBookmarks } from "@/app/lib/useBookmarks";
 
 export default function BookmarkButton({
@@ -18,6 +19,8 @@ export default function BookmarkButton({
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
+        if (saved) hapticBookmarkRemove();
+        else hapticBookmarkAdd();
         toggle(article);
       }}
       title={saved ? "Kaydedilenlerden çıkar" : "Kaydet"}

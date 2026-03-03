@@ -1,5 +1,6 @@
 "use client";
 
+import { hapticLight } from "@/app/lib/haptic";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -259,6 +260,7 @@ export default function Navigation() {
         <div className="flex items-center justify-around h-16 px-0.5">
           <Link
             href="/"
+            onClick={hapticLight}
             className={`flex flex-col items-center justify-center gap-0.5 w-14 h-12 rounded-xl transition-all ${
               isActive("/")
                 ? "text-amber-600 dark:text-amber-400"
@@ -269,7 +271,10 @@ export default function Navigation() {
           </Link>
 
           <button
-            onClick={() => setCatOpen(true)}
+            onClick={() => {
+              hapticLight();
+              setCatOpen(true);
+            }}
             className={`flex flex-col items-center justify-center gap-0.5 w-14 h-12 rounded-xl transition-all ${
               isCatActive
                 ? "text-amber-600 dark:text-amber-400"
@@ -281,6 +286,7 @@ export default function Navigation() {
 
           <Link
             href="/summary"
+            onClick={hapticLight}
             className={`flex flex-col items-center justify-center gap-0.5 w-14 h-12 rounded-xl transition-all ${
               isActive("/summary")
                 ? "text-amber-600 dark:text-amber-400"
@@ -292,6 +298,7 @@ export default function Navigation() {
 
           <Link
             href="/saved"
+            onClick={hapticLight}
             className={`flex flex-col items-center justify-center gap-0.5 w-14 h-12 rounded-xl transition-all ${
               isActive("/saved")
                 ? "text-amber-600 dark:text-amber-400"
@@ -303,6 +310,7 @@ export default function Navigation() {
 
           <Link
             href="/settings"
+            onClick={hapticLight}
             className={`flex flex-col items-center justify-center gap-0.5 w-14 h-12 rounded-xl transition-all ${
               isActive("/settings")
                 ? "text-amber-600 dark:text-amber-400"
@@ -358,6 +366,7 @@ export default function Navigation() {
             <div className="grid grid-cols-2 gap-2.5 px-4 pb-3 pt-1">
               <Link
                 href="/"
+                onClick={hapticLight}
                 className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl border transition-all ${
                   isActive("/")
                     ? "bg-amber-400/10 border-amber-400/40 text-amber-600 dark:text-amber-400"
@@ -373,6 +382,7 @@ export default function Navigation() {
                   <Link
                     key={cat.slug}
                     href={href}
+                    onClick={hapticLight}
                     className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl border transition-all ${
                       isActive(href)
                         ? "bg-amber-400/10 border-amber-400/40 text-amber-600 dark:text-amber-400"
