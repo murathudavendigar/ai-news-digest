@@ -6,8 +6,16 @@
   },
   "crons": [
     {
+      "path": "/api/cron/midnight-reset",
+      "schedule": "0 0 * * *"
+    },
+    {
       "path": "/api/cron/daily-summary",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/push-notify",
+      "schedule": "0 17 * * *"
     }
   ]
 }

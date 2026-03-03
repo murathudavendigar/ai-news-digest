@@ -1,5 +1,7 @@
 "use client";
 
+import PushNotificationToggle from "@/app/components/PushNotificationToggle";
+import { CRON, formatCronTimeLocal } from "@/app/lib/siteConfig";
 import { useUserPreferences } from "@/app/lib/useUserPreferences";
 import { useTheme } from "next-themes";
 import Link from "next/link";
@@ -142,6 +144,15 @@ export default function SettingsPage() {
               kategoriler Ana Sayfa&apos;da önce gösterilir.
             </p>
           )}
+        </Section>
+
+        {/* ─── Bildirimler ──────────────────────────────────────────── */}
+        <Section title="🔔 Bildirimler">
+          <OptionRow
+            label={`Günlük haber özeti (her akşam ${formatCronTimeLocal(CRON.PUSH_NOTIFY_UTC_HOUR)})`}
+            description="Manşetler ve en önemli 3 haber başlığı sana gelsin">
+            <PushNotificationToggle compact />
+          </OptionRow>
         </Section>
 
         {/* ─── Görüntüleme ──────────────────────────────────────────── */}

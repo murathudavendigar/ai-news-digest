@@ -22,8 +22,24 @@ function getKeyPool() {
   return single ? [single] : [];
 }
 
-const EXHAUSTED_PREFIX = "newsdata:exhausted:"; // key → "1" w/ 24h TTL
-const EXHAUSTED_TTL = 24 * 60 * 60; // 24 saat (günlük limit sıfırlanır)
+const EXHAUSTED_PREFIX = "newsdata:exhausted:"; // key → "1", gelecek UTC gece yarısına kadar
+
+// NewsData limitleri UTC gece yarısında sıfırlanır.
+// TTL'yi bir sonraki 00:00 UTC'ye hesaplayız ki key tam zaманında açılsın.
+function ttlUntilUtcMidnight() {
+  const now = new Date();
+  const midnight = new Date(
+    Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate() + 1,
+      0,
+      0,
+      0,
+    ),
+  );
+  return Math.max(60, Math.floor((midnight - now) / 1000)); // en az 60s
+}
 
 async function getActiveKey() {
   const pool = getKeyPool();
@@ -45,7 +61,7 @@ async function getActiveKey() {
 async function markKeyExhausted(key) {
   try {
     await redis.set(`${EXHAUSTED_PREFIX}${key.slice(-6)}`, "1", {
-      ex: EXHAUSTED_TTL,
+      ex: ttlUntilUtcMidnight(),
     });
     console.warn(
       `[news] API key (…${key.slice(-6)}) tükendi, 24 saat devre dışı.`,

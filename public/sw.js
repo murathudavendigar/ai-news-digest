@@ -137,3 +137,52 @@ function offlineFallback() {
     )
   );
 }
+
+// ─── Push ─────────────────────────────────────────────────────────────────────
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data?.json() ?? {};
+  } catch {
+    data = { title: event.data?.text() ?? "HaberAI" };
+  }
+
+  const title = data.title ?? "HaberAI";
+  const body = data.body ?? "Yeni haberler seni bekliyor.";
+  const url = data.url ?? "/summary";
+  const icon = data.icon ?? "/icon-192.png";
+  const badge = data.badge ?? "/icon-192.png";
+
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon,
+      badge,
+      data: { url },
+      vibrate: [200, 100, 200],
+      tag: "haberai-daily", // aynı tag → yeni bildirim eskisinin yerine geçer
+      renotify: true,
+    }),
+  );
+});
+
+// ─── Notification Click ───────────────────────────────────────────────────────
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url ?? "/summary";
+  event.waitUntil(
+    clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((clientList) => {
+        // Zaten açık sekme varsa ona odaklan
+        for (const client of clientList) {
+          if (client.url.includes(self.location.origin) && "focus" in client) {
+            client.navigate(url);
+            return client.focus();
+          }
+        }
+        // Yoksa yeni sekme aç
+        return clients.openWindow(url);
+      }),
+  );
+});

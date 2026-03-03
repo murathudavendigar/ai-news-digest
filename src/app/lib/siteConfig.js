@@ -68,3 +68,37 @@ export const siteConfig = {
     "son dakika",
   ],
 };
+
+/**
+ * Cron zamanlamaları — vercel.json ile senkronize tutun.
+ * Değiştirilecekse sadece bu dosyayı düzenlemek yeterlidir.
+ */
+export const CRON = {
+  /** Push bildirimi UTC saati (vercel.json: "0 17 * * *") */
+  PUSH_NOTIFY_UTC_HOUR: 17,
+
+  /** Günlük özet üretim UTC saati (vercel.json: "0 4 * * *") */
+  DAILY_SUMMARY_UTC_HOUR: 4,
+};
+
+/**
+ * Verilen UTC saatini kullanıcının yerel saat dilimine çevirir.
+ * Tarayıcı Intl API'si yoksa UTC saatini döndürür.
+ *
+ * @param {number} utcHour  - 0-23 arası UTC saati
+ * @param {string} [locale] - BCP 47 locale, örn. "tr-TR". Varsayılan: tarayıcı locale'i.
+ * @returns {string}  örn. "20:00"
+ */
+export function formatCronTimeLocal(utcHour, locale) {
+  try {
+    const date = new Date();
+    date.setUTCHours(utcHour, 0, 0, 0);
+    return date.toLocaleTimeString(locale ?? undefined, {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+  } catch {
+    return `${String(utcHour).padStart(2, "0")}:00 UTC`;
+  }
+}

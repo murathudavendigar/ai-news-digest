@@ -1,20 +1,24 @@
-import { generateDailySummary, getDailySummary } from "@/app/lib/dailySummary";
+import { getDailySummary } from "@/app/lib/dailySummary";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
+// Bu route SADECE cache'i okur.
+// Üretim yalnızca /api/cron/daily-summary (Vercel Cron) tarafından tetiklenir.
+// Gece 12'den sonra ilk ziyarette otomatik üretim devreye girecek olmasını önluyoruz.
 export async function GET() {
   try {
-    let summary = await getDailySummary();
+    const summary = await getDailySummary();
 
     if (!summary) {
-      summary = await generateDailySummary();
-    }
-
-    if (summary?.error) {
+      // Henüz cron çalışmadı — istemciye "henüz hazır değil" sinyali gönder
       return NextResponse.json(
-        { error: "Özet oluşturulamadı." },
-        { status: 500 },
+        {
+          pending: true,
+          message:
+            "Günlük özet henüz hazırlanmadı. Sabah 07:00'de güncellenecek.",
+        },
+        { status: 202 },
       );
     }
 

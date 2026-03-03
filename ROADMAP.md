@@ -82,14 +82,17 @@
 
 ---
 
-#### 5. Web Push Bildirimleri
+#### ✅ 5. Web Push Bildirimleri
 **Neden:** E-posta aboneliğinden çok daha yüksek açılma oranı (%50+). Günlük özet hazır olunca bildirim.  
-**Ne yapılacak:**
-- `public/sw.js` — Service Worker (push event listener)
-- `push-manager` ile kullanıcı izni al
-- Abonelik token'ını Redis'e kaydet
-- Cron job: günlük özet üretildikten sonra tüm token'lara push gönder
-- Vercel Edge Function veya `/api/push` route
+**Yapılanlar:**
+- `public/sw.js`'e `push` event listener + `notificationclick` handler eklendi
+- VAPID anahtar çifti üretildi, `NEXT_PUBLIC_VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_MAILTO` env'e eklendi
+- `/api/push/subscribe` — POST (abone ol) / DELETE (aboneliği sil), abonelik JSON'ı Redis'e `push:sub:<hash>` key'iyle kaydediliyor
+- `/api/cron/push-notify` — her gün **17:00 UTC (20:00 İstanbul)**, günlük özetin manşeti + ilk 3 haber başlığı gönderiliyor; 404/410 dönen süresi dolmuş abonelikler otomatik temizleniyor
+- `PushNotificationToggle.jsx` — `compact` mode (settings'te toggle) ve tam boy buton
+- `PushPrompt.jsx` — sayfa açıldıktan 4 saniye sonra beliren bildirim izin banner'ı; "hayır" seçilince bir daha çıkmaz (localStorage)
+- `/settings` sayfasına "🔔 Bildirimler" section'ı eklendi
+- `vercel.json`'a `0 17 * * *` cron'u eklendi
 
 ---
 

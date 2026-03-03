@@ -34,22 +34,6 @@ export async function runDailySummaryCron(triggeredBy = "vercel-cron") {
   const t0 = Date.now();
   devLog(`[cron] ▶ ${triggeredBy} — ${triggeredAt}`);
 
-  /* ── 0. Günlük stats sıfırlama ── */
-  try {
-    const todayKeys = [
-      "stats:api:calls:today",
-      "stats:cache:hits:today",
-      "stats:cache:misses:today",
-      ...["groq", "sambanova", "cerebras", "openrouter"].map(
-        (k) => `stats:ai:${k}:calls:today`,
-      ),
-    ];
-    await Promise.all(todayKeys.map((k) => redis.del(k).catch(() => {})));
-    devLog("[cron] ♻ Günlük stats sıfırlandı");
-  } catch (e) {
-    devWarn("[cron] Stats sıfırlama hatası (devam):", e.message);
-  }
-
   /* ── 1. Cache kontrolü (sadece otomatik cron için) ── */
   if (triggeredBy === "vercel-cron") {
     try {

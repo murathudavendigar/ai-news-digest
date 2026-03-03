@@ -2,6 +2,7 @@ import ConditionalFooter from "@/app/components/ConditionalFooter";
 import Navigation from "@/app/components/Navigation";
 import OfflineBanner from "@/app/components/OfflineBanner";
 import PWAInstallPrompt from "@/app/components/PWAInstallPrompt";
+import PushPrompt from "@/app/components/PushPrompt";
 import ScrollToTop from "@/app/components/ScrollToTop";
 import SearchBar from "@/app/components/SearchBar";
 import ServiceWorkerRegistration from "@/app/components/ServiceWorkerRegistration";
@@ -194,6 +195,9 @@ export default function RootLayout({ children }) {
 
           {/* ── Scroll-to-Top ── */}
           <ScrollToTop />
+
+          {/* ── Push Bildirim İsteği ── */}
+          <PushPrompt />
 
           {/* ── PWA Install Prompt ── */}
           <PWAInstallPrompt />
