@@ -1,6 +1,7 @@
 "use client";
 
 import PushNotificationToggle from "@/app/components/PushNotificationToggle";
+import ReadingStats from "@/app/components/ReadingStats";
 import { CATEGORIES, CRON, formatCronTimeLocal } from "@/app/lib/siteConfig";
 import { useUserPreferences } from "@/app/lib/useUserPreferences";
 import { useTheme } from "next-themes";
@@ -145,7 +146,12 @@ export default function SettingsPage() {
           </OptionRow>
         </Section>
 
-        {/* ─── Görüntüleme ──────────────────────────────────────────── */}
+        {/* Okuma İstatistikleri */}
+        <Section title="📊 Okuma İstatistiklerin">
+          <ReadingStats />
+        </Section>
+
+        {/* Görüntüleme */}
         <Section title="Görüntüleme">
           <OptionRow
             label="Okunmuş haberleri soluk göster"

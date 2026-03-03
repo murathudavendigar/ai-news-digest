@@ -3,17 +3,44 @@
 import { usePullToRefresh } from "@/app/hooks/usePullToRefresh";
 import { sortByHistory } from "@/app/hooks/useReadingHistory";
 import { sortByPreferredCategories } from "@/app/lib/useUserPreferences";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import NewsCard from "./NewsCard";
 import NewsCardSkeleton from "./NewsCardSkeleton";
+
+const TIME_FILTERS = [
+  { key: "all", label: "Tümü" },
+  { key: "1h", label: "Son 1 Saat" },
+  { key: "today", label: "Bugün" },
+  { key: "week", label: "Bu Hafta" },
+];
+
+function articleAge(pubDate) {
+  if (!pubDate) return Infinity;
+  const d = new Date(pubDate);
+  if (isNaN(d)) return Infinity;
+  return Date.now() - d.getTime();
+}
 
 export default function NewsFeed({ initialArticles, initialNextPage }) {
   const [articles, setArticles] = useState(initialArticles);
   const [nextPage, setNextPage] = useState(initialNextPage);
   const [loading, setLoading] = useState(false);
   const [exhausted, setExhausted] = useState(!initialNextPage);
+  const [timeFilter, setTimeFilter] = useState("all");
 
   const { pullY, refreshing, threshold } = usePullToRefresh();
+
+  // Zaman filtresine göre görünen makaleler
+  const filteredArticles = useMemo(() => {
+    if (timeFilter === "all") return articles;
+    const limits = {
+      "1h": 60 * 60 * 1000,
+      today: 24 * 60 * 60 * 1000,
+      week: 7 * 24 * 60 * 60 * 1000,
+    };
+    const limit = limits[timeFilter];
+    return articles.filter((a) => articleAge(a.pubDate) <= limit);
+  }, [articles, timeFilter]);
 
   // Client mount'ta localStorage geçmişine + tercihli kategorilere göre sırala
   useEffect(() => {
@@ -127,15 +154,50 @@ export default function NewsFeed({ initialArticles, initialNextPage }) {
         </div>
       )}
 
+      {/* ── Zaman Filtresi ── */}
+      <div className="flex items-center gap-2 mb-5 flex-wrap">
+        {TIME_FILTERS.map((f) => (
+          <button
+            key={f.key}
+            onClick={() => setTimeFilter(f.key)}
+            className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+              timeFilter === f.key
+                ? "bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900"
+                : "bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-700"
+            }`}>
+            {f.label}
+          </button>
+        ))}
+        {timeFilter !== "all" && (
+          <span className="ml-auto text-xs text-stone-400 dark:text-stone-500">
+            {filteredArticles.length} haber
+          </span>
+        )}
+      </div>
+
       {/* Haber grid */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {articles.map((article, index) => (
-          <NewsCard
-            key={article.article_id}
-            article={article}
-            priority={index < 3}
-          />
-        ))}
+        {filteredArticles.length === 0 ? (
+          <div className="col-span-full py-16 text-center">
+            <p className="text-3xl mb-3">🕐</p>
+            <p className="text-sm text-stone-500 dark:text-stone-400">
+              Bu zaman aralığında haber bulunamadı
+            </p>
+            <button
+              onClick={() => setTimeFilter("all")}
+              className="mt-3 text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline">
+              Tüm haberlere bak →
+            </button>
+          </div>
+        ) : (
+          filteredArticles.map((article, index) => (
+            <NewsCard
+              key={article.article_id}
+              article={article}
+              priority={index < 3}
+            />
+          ))
+        )}
         {/* Load-more sırasında grid'in sonuna skeleton ekle */}
         {loading &&
           [0, 1, 2].map((i) => <NewsCardSkeleton key={`sk-${i}`} index={i} />)}
@@ -170,7 +232,10 @@ export default function NewsFeed({ initialArticles, initialNextPage }) {
           </button>
         ) : (
           <p className="text-sm text-gray-400 dark:text-gray-500">
-            Tüm haberler yüklendi — {articles.length} haber gösteriliyor
+            Tüm haberler yüklendi — {articles.length} haber
+            {timeFilter !== "all"
+              ? `, ${filteredArticles.length} gösteriliyor`
+              : " gösteriliyor"}
           </p>
         )}
       </div>
