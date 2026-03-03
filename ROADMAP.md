@@ -1,441 +1,701 @@
-# HaberAI — Geliştirme Yol Haritası
+# HaberAI — Sürüm Yol Haritası
 
-> Son güncelleme: 2 Mart 2026 (v2)  
-> Durum: aktif geliştirme
-
----
-
-## Öncelik Sistemi
-
-- 🔴 **Kritik** — UX veya SEO'yu doğrudan etkiliyor
-- 🟠 **Yüksek** — Kullanıcı değeri yüksek, implementasyon orta
-- 🟡 **Orta** — Güzel-olsa-iyi özellikler
-- 🟢 **Düşük** — Uzun vadeli / nice-to-have
+> Son güncelleme: 3 Mart 2026  
+> Aktif sürüm: **v1.6.2**  
+> Versiyon kuralı: `MAJOR.MINOR.PATCH`  
+> — MAJOR: tam yeniden tasarım veya kırıcı değişiklik  
+> — MINOR: yeni özellik veya önemli iyileştirme  
+> — PATCH: hata düzeltme, prompt tweaki, küçük UX iyileştirmesi
 
 ---
 
-## ✅ Tamamlananlar
-
-- [x] Mobil bottom tab bar navigation
-- [x] PWA manifest + meta tags
-- [x] PWA install prompt modal (Android native + iOS talimat)
-- [x] App ikonları — icon.jsx + apple-icon.jsx (ImageResponse)
-- [x] SEO: generateMetadata, JSON-LD NewsArticle, robots.js, sitemap.js
-- [x] Dinamik OG image (opengraph-image.jsx)
-- [x] siteConfig.js — merkezi uygulama konfigürasyonu
-- [x] devLog/devWarn — prod'da sessiz logging
-- [x] Prod-safe cache badge'leri (AISummary, ArticleAnalysis, NewsComparison)
-- [x] Prod-safe hata mesajları (error.jsx dosyaları)
-- [x] Footer versiyon numarası
-- [x] **Skeleton Loading** — `NewsCardSkeleton.jsx` + `NewsFeed.jsx` load-more entegrasyonu
-- [x] **Paylaş Butonu** — `NewsCard.jsx`'e native Share API (clipboard fallback + ✓ animasyonu)
-- [x] **Streaming AI (analyze)** — `/api/stream-analyze` SSE + `ArticleAnalysis.jsx` aşamalı render (score önce, context sonra)
-- [x] **Haber Arşivi** — `/summary?date=YYYY-MM-DD` + `getSummaryByDate()` + ← → tarih navigasyonu
+## ✅ Yayınlanan Sürümler
 
 ---
 
-## 🚀 Yapılacaklar
+### v1.0.0 — İlk Kararlı Yayın
+**Durum:** Tamamlandı
 
-### 🔴 Kritik
+Temel haberveri akışı ve PWA altyapısı.
 
-#### ✅ 1. `next/image` Migrasyonu
-**Neden:** `<img>` tag'i layout shift yaratıyor, Lighthouse CLS skorunu düşürüyor.  
-**Yapılanlar:**
-- `NewsCard.jsx` içindeki tüm `<img>` → `<Image>` (next/image)
-- `sizes` prop ile responsive breakpoint'ler
-- `next.config.mjs`'e wildcard `remotePatterns` eklendi: `hostname: "**"` (http + https)
-
----
-
-#### 2. Skeleton Loading (Shimmer) ✅
-**Neden:** Spinner + boş ekran yerine içerik boyutunda placeholder kullanıcı algısını iyileştirir.  
-**Ne yapılacak:**
-- `NewsCardSkeleton.jsx` bileşeni — kart boyutunda shimmer animasyonu
-- `NewsFeed.jsx` içinde `isLoading` durumunda 6x skeleton render
-- `DailySummary.jsx` içinde uzun metin bloğu için paragraph skeleton
-
-```jsx
-// Tailwind shimmer sınıfı
-"animate-pulse bg-stone-800 rounded"
-```
+- Next.js App Router + Vercel Hobby deployment
+- NewsData.io + RSS kaynaklarından haber çekme
+- AI destekli haber özeti (Groq Llama)
+- Güvenilirlik analizi ve bağlamsal analiz (`analyzeArticle`)
+- Kategori sayfaları (`/category/[slug]`)
+- Bookmark sistemi (`useBookmarks` + `/saved`)
+- PWA manifest, service worker, offline sayfası
+- Dark/light mod (`next-themes`)
+- Admin paneli temel görünüm
+- `siteConfig.js` merkezi yapılandırma
 
 ---
 
-#### 3. Paylaş Butonu (Native Share API) ✅
-**Neden:** Viral büyüme için en basit mekanizma. Tıklama → native paylaşım menüsü.  
-**Ne yapılacak:**
-- `NewsCard.jsx`'e küçük paylaşım ikonu ekle
-- `navigator.share({ title, url })` — desteklemiyorsa URL clipboard'a kopyala
-- Toast: "Bağlantı kopyalandı!"
+### v1.1.0 — Navigasyon Yeniden Tasarımı
+**Durum:** Tamamlandı
+
+11 kategorinin navbar'ı bozması sorunu çözüldü.
+
+- Desktop'ta kompakt 3-öğeli nav: `Anasayfa | Kategoriler ▾ | Günün Özeti`
+- `Kategoriler` dropdown: `useRef` + dışarı tıklayınca kapanma, 2 sütunlu grid
+- Mobil alt tab bar korundu, kategori sheet güncellendi
+- `--header-height` CSS değişkeni 88px sabitlendi
 
 ---
 
-### 🟠 Yüksek
+### v1.2.0 — İçerik Kalitesi
+**Durum:** Tamamlandı
 
-#### 4. Streaming AI Responses (SSE) ✅
-**Neden:** AI yanıtı gelene kadar kullanıcı boş ekran görüyor. Token token akıtmak çok daha iyi hissettirir.  
-**Ne yapılacak:**
-- `/api/summarize` → `ReadableStream` + `text/event-stream`
-- `/api/analyze` → aynı pattern
-- Frontend'de `useStreamSummary` hook — `fetch` + `response.body.getReader()`
-- Cursor animasyonu ile yazma efekti
+Ham veri kalitesi ve haber akışı düzeni iyileştirmeleri.
 
----
-
-#### ✅ 5. Web Push Bildirimleri
-**Neden:** E-posta aboneliğinden çok daha yüksek açılma oranı (%50+). Günlük özet hazır olunca bildirim.  
-**Yapılanlar:**
-- `public/sw.js`'e `push` event listener + `notificationclick` handler eklendi
-- VAPID anahtar çifti üretildi, `NEXT_PUBLIC_VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_MAILTO` env'e eklendi
-- `/api/push/subscribe` — POST (abone ol) / DELETE (aboneliği sil), abonelik JSON'ı Redis'e `push:sub:<hash>` key'iyle kaydediliyor
-- `/api/cron/push-notify` — her gün **17:00 UTC (20:00 İstanbul)**, günlük özetin manşeti + ilk 3 haber başlığı gönderiliyor; 404/410 dönen süresi dolmuş abonelikler otomatik temizleniyor
-- `PushNotificationToggle.jsx` — `compact` mode (settings'te toggle) ve tam boy buton
-- `PushPrompt.jsx` — sayfa açıldıktan 4 saniye sonra beliren bildirim izin banner'ı; "hayır" seçilince bir daha çıkmaz (localStorage)
-- `/settings` sayfasına "🔔 Bildirimler" section'ı eklendi
-- `vercel.json`'a `0 17 * * *` cron'u eklendi
+- `rssParser.js`'te `decodeHtmlEntities()` — tüm `&#x27;`, `&amp;` vb. HTML entity'leri çözüldü
+- `newsSource.js`'te `interleaveBySource()` — aynı kaynak art arda gelmesin, round-robin karıştırma
+- Feed ilk yüklemede kaynak tekilleştirme düzeltildi
 
 ---
 
-#### 6. Haber Arşivi (Tarih Navigasyonu) ✅
-**Neden:** Redis'te birden fazla günün özeti zaten cachleniyor — bu değer kullanılmıyor.  
-**Ne yapılacak:**
-- `/summary?date=2026-03-01` query param desteği
-- `summary/page.jsx`'e tarih seçici component (önceki gün / sonraki gün okları)
-- Admin panelde kaç günlük cache var göster
+### v1.3.0 — Push Bildirimleri
+**Durum:** Tamamlandı
+
+Web Push altyapısı ve cron entegrasyonu.
+
+- VAPID anahtar çifti + `web-push` paketi
+- `/api/push/subscribe` (POST abone ol / DELETE aboneliği sil)
+- `public/sw.js` push event + notificationclick handler
+- `PushNotificationToggle.jsx` (compact toggle + tam boy buton)
+- `PushPrompt.jsx` — 4 saniye sonra beliren izin banner'ı, localStorage'a reddetme kaydı
+- `/api/cron/push-notify` — günlük 17:00 UTC, günün özeti + 3 haber başlığı
+- `vercel.json` cron: `0 17 * * *`
 
 ---
 
-#### ✅ 7. Okuma Geçmişi
-**Neden:** Kullanıcı hangi haberleri okuduğunu bilmek ister. Bookmark'ı tamamlar.  
-**Yapılanlar:**
-- `useArticleHistory` hook — localStorage `haberai:article-history`, max 100 haber, çapraz sekme senkronizasyonu
-- `NewsCard`'da `onClick` ile history'e ekle, `useEffect` ile okunma durumunu kontrol et
-- Okunmuş kartlar `opacity-60` + mobilde "✓ okundu" göstergesi
-- `/saved` sayfasına "📖 Geçmiş" sekmesi eklendi (sekme sayısı gösteriyor, temizle butonu)  
+### v1.4.0 — Admin Paneli Genişletme
+**Durum:** Tamamlandı
+
+Operasyonel kontrol araçları ve analitik.
+
+- Vercel Analytics entegrasyonu (`/api/admin/analytics`)
+- Admin dashboard'a 📊 Analytics section: ziyaretçi, sayfa görüntüleme, cihaz dağılımı
+- Manuel push bildirim gönderme bölümü (title/body/url + 120 karakter sayacı)
+- Animasyonlu sayı sayaçları (`useCountUp` hook, 700ms ease-out)
+- Duplicate `loadAnalytics` identifier hatası düzeltildi
 
 ---
 
-#### 8. Infinite Scroll / Load More
-**Neden:** Tüm haberler tek seferde yükleniyor → gereksiz API çağrısı + yavaş ilk render.  
-**Ne yapılacak:**
-- `NewsFeed.jsx`'e `IntersectionObserver` ile "Daha Fazla Göster" mekanizması
-- İlk yükleme: 10 haber, her scroll sonunda +10
-- Sayfa sonunda spinner yerine skeleton kart
+### v1.5.0 — Mobil Deneyim & Cron Sabitleme
+**Durum:** Tamamlandı
+
+Mobil UX iyileştirmeleri ve altyapı düzeltmeleri.
+
+- Versiyon `0.1.0 → 1.5.0`
+- Footer mobilde alt navigasyon arkasında gizleniyordu → `pb-[calc(4rem+env(safe-area-inset-bottom))]` düzeltmesi
+- `haptic.js` — Web Vibration API sarmalayıcı (`hapticLight`, `hapticMedium`, `hapticBookmarkAdd/Remove`, `hapticStrong`)
+- `BookmarkButton.jsx` ve `Navigation.jsx` mobil sekme butonlarına haptic eklendi
+- **Cron düzeltmesi:** Vercel Hobby `*/30 * * * *` geçersiz → `0 9 * * *` (günlük)
+- `breaking-news` cron penceresi 25 saate, günlük limit 1'e güncellendi
+- Mevcut 3 cron Hobby planıyla uyumlu: `0 4`, `0 9`, `0 17`
 
 ---
 
-#### 9. Arama Geliştirme — Otomatik Tamamlama
-**Neden:** Arama var ama autocomplete/öneri yok.  
-**Ne yapılacak:**
-- `SearchBar.jsx`'e debounced input + mini dropdown
-- Son aramalar localStorage'dan (max 5)
-- Popüler kategoriler hızlı erişim önerileri
-- `Esc` ile kapat, `↑↓` ile navigasyon
+### v1.6.0 — AI Kalite Atlaması
+**Durum:** Tamamlandı
+
+Güvenilirlik skorlaması ve bağlamsal analiz köklü iyileştirildi.
+
+**Prompt yeniden yazımları:**
+- `scorePrompt.js`: eşikler yeniden dengelendi (`reliable ≥60`, `unreliable <35`), bilinen Türk yayın organlarına varsayılan `sourceReputation ≥65`, yalnızca başlık mevcut olduğunda ceza verilmez
+- `contextPrompt.js`: kanıta dayalı yöntem — yalnızca doğrulanmış olgular, spekülatif iddialar `"iddia edildiğine göre"` ile etiketlenir, tüm aktörlere eşit şüpheyle yaklaşılır, hafif muhalif ton
+- `scorePrompt.js` + `contextPrompt.js`'e 4 eksik kategori eklendi: `economy`, `sports`, `entertainment`, `environment`
+
+**Skor motoru yeniden mimarisi:**
+- Skor modeli `FAST (8B) → BALANCED (70B)` — kalibreli sayısal puanlama için daha güçlü model
+- `overallScore` formülü prompttan kaldırıldı → JS'de hesaplanıyor (AI artık formülü bilerek hedef skor oluşturamaz)
+- `verdict` de JS'de belirleniyor: `≥60 reliable | 35-59 questionable | <35 unreliable`
+- Score temperature `0.2 → 0.1` (deterministik), context temperature `0.3 → 0.35` (daha derin analiz)
+- Score maxTokens `1800 → 900` (JSON kompakttır, gereksiz token israfı önlendi)
+
+**Yeni alanlar:**
+- `missingContext` → `checkThis`: "eksik bilgi" yerine "bunu doğrulamak için şuraya bak" — halüsinasyon azaltıldı
+- `relatedStories` (uydurma başlıklar) → `relatedTopics` (konu tavsiyeleri) — halüsinasyon azaltıldı
+- UI geriye dönük uyumlu: eski cache değerleri `?? fallback` ile destekleniyor
+
+**Admin:**
+- "🔄 Skor Önbelleğini Temizle" butonu eklendi — `analyze:*` Redis key'lerini Redis SCAN ile toplu siler
+- `/api/admin` route'a `clear-analysis-cache` action eklendi
 
 ---
 
-#### ✅ 26. Tahmini Okuma Süresi
-**Neden:** Her haber kartında "2 dk okuma" gibi bir gösterge kullanıcının beklentisini yönetir, profesyonel his verir.  
-**Yapılanlar:**
-- `readingTime(article)` util `NewsCard.jsx` içinde — başlık + açıklama kelime sayısı, 200k/dk hesabı, min 1 dk
-- Footer satırında tarih yanına `· X dk` eklendi, her iki tema ve mobil/desktop'ta görünür
+### v1.6.1 — Push Modal UX
+**Durum:** Tamamlandı
+
+- `PushNotificationToggle`'a `onSubscribed` callback prop eklendi
+- İzin verilince modal ✅ tebrik durumuna geçiyor: "Bildirimler aktif! 👌"
+- 2.5 saniye sonra modal otomatik kapanıyor ve bir daha gösterilmiyor
+- Kullanıcı reddettiğinde veya modal kapatıldığında eski davranış korunuyor
 
 ---
 
-#### 27. Sesli Okuma (TTS)
-**Neden:** Sabah haberleri, araç kullanımı, erişilebilirlik. Rakip uygulamalarda yok.  
-**Ne yapılacak:**
-- `ReadingToolbar.jsx`'e 🎧 butonu ekle
-- `window.speechSynthesis` API — Türkçe `tr-TR` voice seç
-- Oynat / Duraklat / Durdur kontrolü, mevcut cümleyi highlight et
-- Ayarlar'a TTS hız seçeneği (0.75× / 1× / 1.25× / 1.5×)
+### v1.6.2 — Kategori Tekil Kaynak ← GÜNCEL
+**Durum:** Tamamlandı
+
+- `CATEGORIES` dizisi `siteConfig.js`'e taşındı — tek kaynak (single source of truth)
+- `Navigation.jsx` ve `settings/page.jsx` artık oradan import ediyor
+- Settings sayfasına eksik kategoriler eklendi: Bilim, Kültür, Savunma, Yaşam (7 → 11)
+- Yeni kategori eklemek için artık yalnızca `siteConfig.js` düzenlenmesi yeterli
 
 ---
 
-#### 28. Günün Haber Quiz'i 🎮
-**Neden:** Gamification = retention. Kullanıcı günlük özeti okuduktan sonra 3 soruluk mini quiz yapıyor.  
-**Ne yapılacak:**
-- `/api/quiz` — günlük özet içeriğinden Gemini ile 3 çoktan seçmeli soru üret, Redis'e cache'le
-- `/quiz` sayfası — kart flip animasyonuyla sorular, skor gösterimi
-- Günlük özet sayfasının altında "Bugünü ne kadar takip ettin? 🎯" CTA butonu
-- LocalStorage'da streak sayacı (kaç gün arka arkaya katıldın)
-- Implementasyon süresi: ~3 saat
+## 🔜 Planlanan Sürümler
 
 ---
 
-### 🟡 Orta
+### v1.7.0 — Feed Keşif İyileştirmeleri
+**Öncelik:** 🟠 Yüksek | **Tahmini süre:** 3-4 saat
 
-#### ✅ 10. Pull-to-Refresh (Mobil)
-**Neden:** Native uygulama hissi. Mobil kullanıcıların beklediği gesture.  
-**Yapılanlar:**
-- `hooks/usePullToRefresh.js` — `touchstart`/`touchmove`/`touchend`, rubber-band direnç, 64px eşiği
-- `NewsFeed.jsx`'e entegre: çekiş sırasında ok animasyonu (ilerlemeyle döner), bırakınca `router.refresh()`
-- "Yenilemek için çek" → "Bırak, yenile!" → "Yenileniyor…" durumları
-- 5 dakikalık ISR cache sayesinde gereksiz API isteği atılmaz
-- Sadece mobilde görünür (`md:hidden`)
+- **Infinite scroll:** `NewsFeed.jsx`'te `IntersectionObserver` — "Daha fazla" butonu kaldırılıyor, ilk 10 haber, her geçişte +10, liste sonunda skeleton
+- **Arama otomatik tamamlama:** `SearchBar.jsx`'te debounced dropdown, son 5 arama (localStorage), popüler kategori kısayolları, `Esc` kapat / `↑↓` navigasyon
+- **Makale içi ilgili haberler:** Haber detay sayfası altında aynı kategoriden 3 kart (yatay scroll mobil, grid desktop)
+- **Teknik borç:** `next/image` migrasyonu (`<img>` → `<Image>`), `analyzeArticle` paralel çağrı (`Promise.all`)
 
 ---
 
-#### ✅ 11. Kategori Swipe (Mobil)
-**Neden:** Kategoriler arasında swipe ile geçiş native uygulama deneyimi verir.  
-**Yapılanlar:**
-- `CategorySwipe.jsx` bileşeni — `touchstart`/`touchend` X delta takibi (eşik 60px)
-- Sağa swipe → önceki kategori, sola swipe → sonraki
-- Mobilde swipe yönünde kenar göstergesi (yarı-şeffaf pill)
-- Desktopda sayfa altına ‹ prev | next › butonları
-- `category/[slug]/page.jsx`'e entegre edildi, CATEGORY_KEYS sırasını kullanıyor  
+### v1.7.1 — Teknik Borç Patch
+**Öncelik:** 🟠 Yüksek | **Tahmini süre:** 1-2 saat
+
+- `api/compare/route.js`: `console.error` → `devWarn`
+- `category/[slug]/page.jsx`: `CATEGORIES` tekrar `categoryConfig.js`'te — tekilleştir
+- `lib/news.js`: tutarsız error handling — tüm `catch` aynı pattern
 
 ---
 
-#### ✅ 12. Scroll-to-Top Butonu
-**Neden:** Uzun haber listelerinde ihtiyaç var.  
-**Yapılanlar:**
-- `ScrollToTop.jsx` — 400px+ scroll'da sag alt koşede amber floating buton
-- CSS `opacity`/`translateY` geçişi ile görünür/kaybolur
-- Mobilde bottom bar'ın üzerinde: `bottom-[calc(4.5rem+env(safe-area-inset-bottom))]`
-- `layout.js`'e eklendi, tüm sayfalarda çalışır
+### v1.8.0 — İçerik Zenginleştirme
+**Öncelik:** 🟠 Yüksek | **Tahmini süre:** 4-5 saat
+
+- **Trending Topics:** Son 50 haberin başlıklarından stop-word filtreli kelime frekansı, ana sayfada büyüklüğü frekansa göre pill'ler, Redis 30dk cache, tıklayınca arama
+- **Haber Kartı Görünüm Modu:** `▦ Kart / ☰ Liste / ▤ Kompakt` seçici, tercih localStorage'a kaydedilir
+- **Klavye kısayolları:** `j/k` → sonraki/önceki haber, `b` → bookmark, `s` → paylaş, `?` → yardım modalı
 
 ---
 
-#### ✅ 13. Haber Puanlama / Önem Skoru Görseli
-**Neden:** `NewsScore` bileşeni var ama görünürlüğü düşük.  
-**Yapılanlar:**
-- Kart üzerinde skor badge her zaman görünür (hover gerekmez), hem mobil hem desktop
-- `overallScore >= 80` → 🔥 alev badge
-- Score badge'i hem mobilde hem desktopda score yüklenince kalıcı göster  
+### v1.9.0 — Ses & Erişilebilirlik
+**Öncelik:** 🟡 Orta | **Tahmini süre:** 3-4 saat
+
+- **Sesli okuma (TTS):** `ReadingToolbar.jsx`'e 🎧 butonu, `window.speechSynthesis` Türkçe `tr-TR`, oynat/duraklat/durdur, mevcut cümle highlight
+- **Metin boyutu ayarı:** Settings'te `A- / A / A+ / A++`, CSS `--reading-size` değişkeni, haber ve özet sayfalarında etkin
+- **Baskı / Okuyucu Modu:** `@media print` kuralları, `window.print()` butonu, dekoratif öğeler gizlenir
 
 ---
 
-#### ✅ 14. Karanlık / Aydınlık Mod Geçiş Animasyonu
-**Neden:** Şu anki mod geçişi anlık — yumuşatma kullanıcı deneyimini iyileştirir.  
-**Yapılanlar:**
-- `globals.css`'e `*, *::before, *::after` için `transition-property: background-color, border-color, color` (200ms ease)
-- `ThemeToggle.jsx`'e `key` prop trick ile spin animasyonu (tema değişiminde ikon döner)
+### v1.10.0 — Günlük E-posta Digest
+**Öncelik:** 🟡 Orta | **Tahmini süre:** 4-5 saat
+
+- Resend veya Brevo ile HTML email şablonu — günün manşeti + 5 önemli haber
+- `/api/digest/send` — push-notify cron'dan tetiklenir
+- Settings'te e-posta abonelik yönetimi (`digest:subscribers` Redis key'i zaten var)
+- Unsubscribe linki: HMAC token
 
 ---
 
-#### 15. Makale İçi İlgili Haberler
-**Neden:** Kullanıcıyı sitede tutmak için en etkili yöntem.  
-**Ne yapılacak:**
-- Haber detay sayfasının altında "Benzer Haberler" bölümü
-- `/api/news?related=<article_id>` veya aynı kategori + benzer anahtar kelimeler
-- 3 kart horizontal scroll (mobil) veya grid (desktop)
+### v2.0.0 — Kullanıcı Hesapları & Kişiselleştirme
+**Öncelik:** 🟡 Orta (büyük sprint) | **Tahmini süre:** 3-5 gün
+
+MAJOR versiyon — veritabanı şeması ve auth altyapısı.
+
+- `NextAuth.js` veya `Clerk` entegrasyonu (Google + e-posta magic link)
+- Bookmark'lar, okuma geçmişi ve tercihler hesaba bağlı (artık yalnızca localStorage değil)
+- Kişiselleştirilmiş feed: hesaba bağlı kategori ağırlıkları ve okuma kalıpları
+- Admin panelinde kullanıcı yönetimi
+- Redis → Upstash per-user key namespace
 
 ---
 
-#### 29. AI Ton & Taraflılık Analizi
-**Neden:** En güçlü differentiator. Haberin duygusal tonu ve olası taraflılığı görmek kullanıcıya güç verir.  
-**Ne yapılacak:**
+### v2.1.0 — Gamification
+**Öncelik:** 🟡 Orta | **Tahmini süre:** 4-5 saat
+
+- **Günün Haber Quizi:** Günlük özetten AI ile 3 çoktan seçmeli soru üretilir, Redis cache, `/quiz` sayfası, kart flip animasyonu, skor gösterimi
+- **Streak sayacı:** Kaç gün arka arkaya okuma/quiz yaptın (localStorage → hesap bağlandıktan sonra Redis)
+- Günlük özet sayfasına "Bugünü ne kadar takip ettin? 🎯" CTA
+
+---
+
+### v2.2.0 — AI Ton & Taraflılık Katmanı
+**Öncelik:** 🟠 Yüksek (güçlü differentiator) | **Tahmini süre:** 3-4 saat
+
 - `ArticleAnalysis.jsx`'e yeni sekme: "🎭 Ton Analizi"
-- Gemini prompt: haberin tonu (nötr/olumsuz/olumlu/alarm), anlatı çerçevesi, eksik perspektifler
-- Renk kodlu ton göstergesi — kırmızı (alarm) → sarı (nötr) → yeşil (olumlu) yatay bar
-- `scorePrompt.js`'e `toneScore` ve `biasIndicators` alanları ekle
+- Prompt: haberin duygusal tonu (nötr/olumsuz/olumlu/alarm), anlatı çerçevesi, eksik perspektifler
+- Renk kodlu ton göstergesi: kırmızı (alarm) → sarı (nötr) → yeşil (yapıcı) yatay bar
+- `scorePrompt.js`'e `toneScore` ve `biasIndicators` alanları
 
 ---
 
-#### 30. Trending Topics (Kelime Skoru)
-**Neden:** Hangi konular gündemde? Tek bakışta anlamak için görsel bir ısı haritası.  
-**Ne yapılacak:**
-- `/api/trending` — son 50 haberin başlıklarından stop-word filtreli kelime frekansı 
-- Ana sayfaya "📈 Günün Trendleri" bölümü: büyüklüğü frekansa göre değişen pill'ler
-- Her pill tıklanınca o kelimeyle arama sayfasına yönlendir
-- Redis'te 30 dk cache
+### v2.3.0 — RSS Feed & SEO Tamamlama
+**Öncelik:** 🟢 Düşük | **Tahmini süre:** 2-3 saat
+
+- `/feed.xml` — günlük özet + son 20 haber, App Router `Response` ile XML
+- `layout.js`'e `<link rel="alternate" type="application/rss+xml">` meta
+- Makale sayfaları için dinamik `generateMetadata` — `og:image`, `og:description` her haber için farklı
+- JSON-LD `NewsArticle` şemasını haber detay sayfasına taşı
 
 ---
 
-#### 31. Klavye Kısayolları
-**Neden:** Power user'lar ve masaüstü kullanıcıları için productivity boost.  
-**Ne yapılacak:**
-- `useKeyboardShortcuts.js` hook — `document.addEventListener("keydown")`
-- `j` / `k` → sonraki/önceki haber odağı, `Enter` → haberi aç, `b` → bookmark toggle, `s` → paylaş, `?` → kısayol listesi modalı
-- Kısayol listesi `Cmd+K` / `Ctrl+K` ile açılan command palette (`cmdk` paketi veya custom)
-- Settings sayfasında kısayolları göster / devre dışı bırak seçeneği
+### v2.4.0 — Çoklu Dil (i18n)
+**Öncelik:** 🟢 Düşük | **Tahmini süre:** 1-2 gün
 
----
-
-#### 32. Haber Kartı Görünüm Modu
-**Neden:** Kimi kullanıcı yoğun içerik, kimi sadece başlık listesi ister.  
-**Ne yapılacak:**
-- Navigation veya NewsFeed başlığında 3 görünüm seçici: `▦ Kart` / `☰ Liste` / `▤ Kompakt`
-- **Kart:** mevcut tasarım
-- **Liste:** resim yok, başlık + kaynak + süre tek satır
-- **Kompakt:** resim küçük thumbnail, 2 satır başlık, çok daha fazla haber aynı ekranda
-- Tercih localStorage'a kaydedilir
-
----
-
-#### ✅ 16. Offline Desteği (Service Worker Cache)
-**Neden:** PWA tamamlanması için kritik. Bağlantı kesilince son okunan haberler gösterilmeli.  
-**Yapılanlar:**
-- `public/sw.js` — cacheFirst (statik), networkFirst (API, 1500ms timeout), staleWhileRevalidate (sayfalar)
-- `ServiceWorkerRegistration.jsx` — window load sonrası kayıt
-- `OfflineBanner.jsx` — çevrimdışı/yeniden bağlandı durumu (fixed top banner)
-- `offline/page.jsx` — offline fallback sayfası
-
----
-
-#### ✅ 17. Kullanıcı Tercih Ayarları
-**Neden:** Kişiselleştirme retention artırır.  
-**Yapılanlar:**
-- `useUserPreferences.js` hook — localStorage + cross-tab sync
-- `/settings` sayfası — tercihli kategoriler, dimReadArticles, AI özet uzunluğu
-- `NewsFeed.jsx`'te tercihli kategoriler önce gösterilir
-- Navigation'a Ayarlar sekmesi eklendi
-
----
-
-### 🟢 Düşük / Uzun Vadeli
-
-#### 18. Edge Runtime Migrasyonu
-**Ne yapılacak:**
-- `/api/news`, `/api/summary`, `/api/daily-summary` → `export const runtime = "edge"`
-- Vercel Edge'de global dağıtım, cold start 0ms
-- Not: Upstash Redis edge runtime'ı destekler, node:crypto gerektiren route'lar taşınamaz
-
----
-
-#### 19. `React.memo` Optimizasyonu
-**Ne yapılacak:**
-- `export default React.memo(NewsCard)` 
-- `NewsFeed.jsx`'te `useCallback` ile handler'lar
-- `useMemo` ile kategori filtresi hesaplamaları
-
----
-
-#### 20. Error Tracking (Sentry veya Axiom)
-**Neden:** Prod hatalarını gerçek zamanlı görmek için.  
-**Ne yapılacak:**
-- `@sentry/nextjs` paketi + Vercel integration
-- `error.jsx` dosyalarında `Sentry.captureException(error)`
-- Admin dashboardda son hata sayısı
-
----
-
-#### ✅ 21. Analytics (Privacy-First)
-**Neden:** Hangi haberler, kategoriler, özellikler kullanılıyor?  
-**Yapılanlar:**
-- Vercel Analytics aktif (Vercel dashboard'dan enable edildi)
-- `/api/admin/analytics` route — Vercel Analytics REST API'sinden son 7 günlük veri çeker
-- Admin dashboard'a "📊 Vercel Analytics" section eklendi: tekil ziyaretçi, sayfa görüntüleme, ort. süre, hemen çıkma oranı, en çok ziyaret edilen sayfalar, cihaz dağılımı
-- `VERCEL_TOKEN` + `VERCEL_PROJECT_ID` env var gerekli
-
----
-
-#### ✅ 22. Haber Kaynağı Güvenilirlik Skoru
-**Neden:** AI destekli haber uygulamasının güçlü differentiator'ı.  
-**Yapılanlar:**
-- `sourceCredibility.js` — 60+ kaynak eşlemesi (high/medium/low), `getSourceTier()` + `CREDIBILITY_CONFIG`
-- `NewsCard.jsx`'te kaynak adı yanına 🟢 (güvenilir) / 🔴 (dikkatli) badge eklendi
-- Orta tier kaynaklar badge almaz (siyasi etiketlemeden kaçınmak için)
-
----
-
-#### 23. Çoklu Dil Desteği (i18n)
-**Neden:** Türkçe-İngilizce haber karışımı var ama UI tamamen Türkçe.  
-**Ne yapılacak:**
 - `next-intl` paketi
 - `/en` prefix ile İngilizce UI
-- Haber dilini auto-detect et, UI diline göre özet dili ayarla
+- AI özet dili kullanıcı diline göre otomatik ayarlanır
+- İngilizce haberler için İngilizce analiz, Türkçe haberler için Türkçe
 
 ---
 
-#### 24. RSS Feed
-**Neden:** Power user'lar RSS ile takip etmek ister.  
-**Ne yapılacak:**
-- `/feed.xml` route — App Router'da `Response` ile XML dön
-- Günlük özet + son haberler
-- `sitemap.js`'e ekle, layout.js `<head>`'ine `<link rel="alternate">` meta
+### v3.0.0 — Platform
+**Öncelik:** 🟢 Uzun vadeli | **Tahmini süre:** 1-2 hafta
 
----
+MAJOR versiyon — uygulamadan platforma geçiş.
 
-#### 25. A/B Test Altyapısı
-**Neden:** NewsCard layout, AI özet uzunluğu gibi kararları veriye dayandırmak için.  
-**Ne yapılacak:**
-- Vercel Edge Config veya basit cookie bazlı varyant atama
-- Admin dashboardda varyant conversion metrikleri
-
----
-
-#### 33. Günlük E-posta Digest
-**Neden:** Push bildirimini kabul etmeyen kullanıcıları geri getirmenin en klassik yolu.  
-**Ne yapılacak:**
-- `/api/digest/send` — günlük özet oluştuktan sonra cron tetikler
-- Resend veya Brevo ile HTML email şablonu — günün manşeti + 5 önemli haber
-- `/settings`'te e-posta abonelik yönetimi (zaten `digest:subscribers` Redis key'i var)
-- Unsubscribe linki: HMAC token (zaten `CRON_SECRET` ile `api/unsubscribe` var)
-
----
-
-#### 34. Metin Boyutu & Okunabilirlik Ayarları
-**Neden:** Erişilebilirlik. Yaşlı kullanıcılar veya düşük görme yetisi olanlar için kritik.  
-**Ne yapılacak:**
-- `/settings`'e font boyutu seçici: `A-` / `A` / `A+` / `A++`
-- `document.documentElement.style.setProperty("--reading-size", "18px")` CSS var
-- Article/summary sayfalarında `reading-size` CSS değişkeni kullanılır
-- Satır aralığı ve paragraf genişliği de ayarlanabilir (Orta / Geniş / Tam)
-
----
-
-#### ✅ 35. Animasyonlu Sayıçlar (Admin Dashboard)
-**Neden:** Admin paneli daha canlı ve görsel olur, özellikle stats ilk yüklenince.  
-**Yapılanlar:**
-- `useCountUp(target, duration)` hook `AdminDashboard.jsx` içinde — `requestAnimationFrame` + ease-out cubic
-- Tüm sayısal `Stat` kartları yüklenince 700ms'de 0'dan hedefe animate oluyor
-- String değerler ("az önce", "%75" vb.) animasyonsuz doğrudan gösterilir
-
----
-
-#### 36. Baskı / Okuyucu Modu
-**Neden:** Reklamlar, navigasyon ve görseller olmadan temiz baskı. `Ctrl+P` ile otomatik devreye girer.  
-**Ne yapılacak:**
-- `globals.css`'e `@media print` kuralları: navigasyon gizle, renkler siyah/beyaz, font optimize
-- Haber detay sayfasına 🖨️ ikonu — tıklayınca `window.print()`
-- Okuyucu modu: tam genişlik, serif font, beyaz arka plan, tüm dekoratif öğeler gizli
+- Kullanıcıların kendi RSS kaynaklarını ekleyebilmesi
+- Özel bildirim kuralları: "X anahtar kelimesi geçince bildir"
+- Haber paylaşım / yorum katmanı
+- API erişimi (developer tier)
+- Ücretli plan altyapısı (Stripe)
 
 ---
 
 ## Teknik Borç
 
-| Dosya                      | Sorun                                                     | Çözüm                        |
-| -------------------------- | --------------------------------------------------------- | ---------------------------- |
-| `api/compare/route.js`     | `console.error` devLog'a geçirilmemiş                     | `devLog` kullan              |
-| `NewsCard.jsx`             | `<img>` tag                                               | `next/image` migrasyonu      |
-| `siteConfig.js`            | Kategori listesi hem burada hem `sitemap.js`'te           | Tek kaynak: siteConfig       |
-| `category/[slug]/page.jsx` | `CATEGORIES` objesi hem burada hem `categoryConfig.js`'te | `categoryConfig.js`'i kullan |
-| `lib/news.js`              | Error handling tutarsız                                   | Tüm catch'ler aynı pattern   |
+| Dosya                      | Sorun                                                                     | Hedef Sürüm |
+| -------------------------- | ------------------------------------------------------------------------- | ----------- |
+| `api/compare/route.js`     | `console.error` → `devWarn`'a taşınmamış                                  | v1.7.1      |
+| `NewsCard.jsx`             | `<img>` tag → `next/image`                                                | v1.7.0      |
+| `category/[slug]/page.jsx` | `CATEGORIES` objesi `categoryConfig.js`'te tekrarlıyor                    | v1.7.1      |
+| `lib/news.js`              | Error handling tutarsız, `catch` blokları farklı pattern                  | v1.7.1      |
+| `analyzeArticle.js`        | Score ve context sıralı çalışıyor → `Promise.all` ile paralel yapılabilir | v1.7.0      |
 
 ---
 
 ## Performans Hedefleri
 
-| Metrik                         | Şimdiki Durum | Hedef  |
-| ------------------------------ | ------------- | ------ |
-| Lighthouse Performance         | ~75           | 90+    |
-| LCP (Largest Contentful Paint) | ~2.5s         | <1.5s  |
-| CLS (Cumulative Layout Shift)  | ~0.15         | <0.05  |
-| FID / INP                      | —             | <100ms |
-| TTI (Time to Interactive)      | ~3s           | <2s    |
-
-> `next/image` migrasyonu + skeleton loading tek başına bu hedeflerin büyük kısmını karşılar.
+| Metrik                 | Şimdiki | Hedef    | Sürüm             |
+| ---------------------- | ------- | -------- | ----------------- |
+| Lighthouse Performance | ~78     | 90+      | v2.0              |
+| LCP                    | ~2.2s   | <1.5s    | v1.7 (next/image) |
+| CLS                    | ~0.10   | <0.05    | v1.7 (next/image) |
+| INP                    | ~120ms  | <100ms   | v2.0              |
+| Redis key sayısı       | ~800+   | optimize | v1.8              |
 
 ---
 
-## Öneri Sıralaması (Hızlı Başlangıç)
+## Versiyon Kuralları
 
-```
-1. next/image migrasyonu      ✅ tamamlandı
-2. Skeleton loading            ✅ tamamlandı
-3. Native Share butonu         ✅ tamamlandı
-4. Scroll-to-top butonu        → 15 dakika, UX +
-5. Okuma geçmişi               ✅ tamamlandı
-6. Streaming AI responses      ✅ tamamlandı
-7. Pull-to-Refresh             ✅ tamamlandı
-8. Tahmini okuma süresi        → 20 dakika, profesyonel his +
-9. Haber kartı görünüm modu    → 2 saat, kişiselleştirme ++
-10. Trending Topics            → 2 saat, görsellik +++
-11. Günün Quiz'i               → 3 saat, gamification +++
-12. AI Ton & Taraflılık        → 2 saat, differentiator +++
-13. Klavye kısayolları         → 1 saat, power users +
-14. Sesli okuma (TTS)          → 2 saat, erişilebilirlik ++
-15. Web Push bildirimleri      → 1 gün, engagement +++
-```
+| Değişiklik Türü                            | Sürüm             | Örnek                        |
+| ------------------------------------------ | ----------------- | ---------------------------- |
+| Yeni büyük özellik (auth, platform)        | **MAJOR** `x.0.0` | `2.0.0` Kullanıcı hesapları  |
+| Yeni özellik, yeni API route, yeni bileşen | **MINOR** `x.y.0` | `1.7.0` Infinite scroll      |
+| Prompt tweaki, hata düzeltme, küçük UX     | **PATCH** `x.y.z` | `1.6.2` Kategori tek kaynak  |
+| Cron/config/altyapı düzeltmesi             | **PATCH** `x.y.z` | `1.5.1` Cron limit sabitleme |
+ROADMAP_EOF`, and this is the output of running that command instead:
+
+
+[... PREVIOUS OUTPUT TRUNCATED ...]
+
+rver usage: Route /category/[slug] couldn't be re
+ndered statically because it used no-store fetch https://www.hurriyet.com.tr/rss
+/anasayfa /category/[slug]. See more info here: https://nextjs.org/docs/messages
+/dynamic-server-error
+[rss] Hata Sabah: Dynamic server usage: Route /category/[slug] couldn't be rende
+red statically because it used no-store fetch https://www.sabah.com.tr/rss/anasa
+yfa.xml /category/[slug]. See more info here: https://nextjs.org/docs/messages/d
+ynamic-server-error
+[rss] Hata Dünya Gazetesi: Dynamic server usage: Route /category/[slug] couldn't
+ be rendered statically because it used no-store fetch https://www.dunya.com/rss
+ /category/[slug]. See more info here: https://nextjs.org/docs/messages/dynamic-
+server-error
+[rss] Hata Bloomberg HT: Dynamic server usage: Route /category/[slug] couldn't b
+e rendered statically because it used no-store fetch https://www.bloomberght.com
+/rss /category/[slug]. See more info here: https://nextjs.org/docs/messages/dyna
+mic-server-error
+[rss] Hata Haberturk: Dynamic server usage: Route /category/[slug] couldn't be r
+endered statically because it used no-store fetch https://www.haberturk.com/rss 
+/category/[slug]. See more info here: https://nextjs.org/docs/messages/dynamic-s
+erver-error
+[rss] Hata Ekonomim: Dynamic server usage: Route /category/[slug] couldn't be re
+ndered statically because it used no-store fetch https://www.ekonomim.com/rss /c
+ategory/[slug]. See more info here: https://nextjs.org/docs/messages/dynamic-ser
+ver-error
+[rss] Hata Hürriyet Ekonomi: Dynamic server usage: Route /category/[slug] couldn
+'t be rendered statically because it used no-store fetch https://www.hurriyet.co
+m.tr/rss/ekonomi /category/[slug]. See more info here: https://nextjs.org/docs/m
+essages/dynamic-server-error
+[rss] Hata Sözcü Ekonomi: Dynamic server usage: Route /category/[slug] couldn't 
+be rendered statically because it used no-store fetch https://www.sozcu.com.tr/f
+eeds-rss-category-ekonomi /category/[slug]. See more info here: https://nextjs.o
+rg/docs/messages/dynamic-server-error
+[rss] Hata Fanatik: Dynamic server usage: Route /category/[slug] couldn't be ren
+dered statically because it used no-store fetch https://www.fanatik.com.tr/rss.x
+ml /category/[slug]. See more info here: https://nextjs.org/docs/messages/dynami
+c-server-error
+[rss] Hata Fotomaç: Dynamic server usage: Route /category/[slug] couldn't be ren
+dered statically because it used no-store fetch https://www.fotomac.com.tr/rss/a
+nasayfa.xml /category/[slug]. See more info here: https://nextjs.org/docs/messag
+es/dynamic-server-error
+[rss] Hata Sözcü Spor: Dynamic server usage: Route /category/[slug] couldn't be 
+rendered statically because it used no-store fetch https://www.sozcu.com.tr/feed
+s-rss-category-spor /category/[slug]. See more info here: https://nextjs.org/doc
+s/messages/dynamic-server-error
+[rss] Hata Hürriyet Spor: Dynamic server usage: Route /category/[slug] couldn't 
+be rendered statically because it used no-store fetch https://www.hurriyet.com.t
+r/rss/spor /category/[slug]. See more info here: https://nextjs.org/docs/message
+s/dynamic-server-error
+[rss] Hata Sağlık Haberleri: Dynamic server usage: Route /category/[slug] couldn
+'t be rendered statically because it used no-store fetch https://www.haberler.co
+m/saglik/rss/ /category/[slug]. See more info here: https://nextjs.org/docs/mess
+ages/dynamic-server-error
+[rss] Hata ShiftDelete: Dynamic server usage: Route /category/[slug] couldn't be
+ rendered statically because it used no-store fetch https://shiftdelete.net/feed
+ /category/[slug]. See more info here: https://nextjs.org/docs/messages/dynamic-
+server-error
+➜  ai-news-digest git:(main) ✗  npx next build 2>&1 | tail -20
+├ ƒ /api/summarize
+├ ƒ /api/summary
+├ ƒ /api/unsubscribe
+├ ƒ /apple-icon
+├ ƒ /category/[slug]
+├ ƒ /icon
+├ ƒ /news/[slug]
+├ ○ /offline
+├ ƒ /opengraph-image
+├ ○ /robots.txt
+├ ○ /saved
+├ ƒ /search
+├ ○ /settings
+├ ○ /sitemap.xml
+└ ƒ /summary
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+➜  ai-news-digest git:(main) ✗  npx next build 2>&1 | grep -E "Error|error|✓ Com
+piled|Failed|Type error" | grep -v "node_modules\|Dynamic server\|\[rss\]" | hea
+d -20
+> Build error occurred
+Error: Turbopack build failed with 1 errors:
+➜  ai-news-digest git:(main) ✗  npx next build 2>&1 | grep -A 20 "Build error\|e
+rror TS\|SyntaxError\|Cannot find\|is not defined\|Unexpected" | grep -v node_mo
+dules | head -40
+> Build error occurred
+Error: Turbopack build failed with 1 errors:
+./src/app/lib/rssSources.js:692:9
+Parsing ecmascript source code failed
+  690 |   {
+  691 |     id: "hurriyet",
+> 692 |     name: "Hürriyet",
+      |         ^
+  693 |     url: "https://www.hurriyet.com.tr/rss/anasayfa",
+  694 |     categories: ["politics", "world", "business"],
+  695 |     lang: "tr",
+
+Expected ';', '}' or <eof>
+
+Import traces:
+  App Route:
+    ./src/app/lib/rssSources.js
+    ./src/app/api/admin/rss-test/route.js
+
+  Server Component:
+    ./src/app/lib/rssSources.js
+➜  ai-news-digest git:(main) ✗  head -687 src/app/lib/rssSources.js > /tmp/rssSo
+urces_clean.js && mv /tmp/rssSources_clean.js src/app/lib/rssSources.js && wc -l
+ src/app/lib/rssSources.js
+     687 src/app/lib/rssSources.js
+➜  ai-news-digest git:(main) ✗  tail -10 src/app/lib/rssSources.js && echo "---"
+ && npx next build 2>&1 | grep -E "✓ Compiled|Build error|error TS|Parsing" | gr
+ep -v "node_modules\|Dynamic server\|\[rss\]" | head -5
+export function getSourcesByCategory(category) {
+  return RSS_SOURCES.filter((s) => s.categories.includes(category)).sort(
+    (a, b) => a.priority - b.priority,
+  );
+}
+
+// Tüm unique URL'leri al (tekrar etmeden)
+export function getAllSources() {
+  return RSS_SOURCES.sort((a, b) => a.priority - b.priority);
+}
+---
+✓ Compiled successfully in 16.9s
+➜  ai-news-digest git:(main) ✗  npx next build 2>&1 | grep -E "✓ Compiled|Build 
+error|Parsing ecma|error TS|SyntaxError" | head -10
+✓ Compiled successfully in 8.4s
+➜  ai-news-digest git:(main) ✗  npx next build 2>&1 | grep -E "✓ Compiled|Build 
+error|SyntaxError|Parsing ecma" | head -5
+✓ Compiled successfully in 9.4s
+➜  ai-news-digest git:(main) ✗  npx next build 2>&1 | grep -E "✓ Compiled|Build 
+error|SyntaxError|Parsing ecma|error TS" | head -5
+> Build error occurred
+Parsing ecmascript source code failed
+➜  ai-news-digest git:(main) ✗  npx next build 2>&1 | grep -E "error|Error" | gr
+ep -v "node_modules" | head -10
+> Build error occurred
+Error: Turbopack build failed with 1 errors:
+➜  ai-news-digest git:(main) ✗  npx next build 2>&1 | grep -A5 "Parsing ecma"
+Parsing ecmascript source code failed
+  207 |           {/* ── Service Worker ── */}
+  208 |           <ServiceWorkerRegistration />
+> 209 |         </ThemeProvider>
+      |                         ^
+> 210 |       </body>
+➜  ai-news-digest git:(main) ✗  npx next build 2>&1 | grep -E "✓ Compiled|Build 
+error|SyntaxError|Parsing ecma|error TS" | head -5
+✓ Compiled successfully in 10.4s
+➜  ai-news-digest git:(main) ✗  npx next build 2>&1 | grep -E "✓ Compiled|Build 
+error|SyntaxError|Parsing ecma" | head -5
+✓ Compiled successfully in 10.7s
+➜  ai-news-digest git:(main) ✗  npx next build 2>&1 | grep -E "✓ Compiled|Build 
+error|SyntaxError|Parsing ecma|error TS" | head -5
+> Build error occurred
+➜  ai-news-digest git:(main) ✗  npx next build 2>&1 | grep -A5 "Parsing ecma\|Sy
+ntaxError\|error TS" | head -20
+➜  ai-news-digest git:(main) ✗  npx next build 2>&1 | grep -v "node_modules" | t
+ail -20
+  277 |     setToast(null);
+  278 |     try {
+
+the name `loadAnalytics` is defined multiple times
+
+Import traces:
+  Client Component Browser:
+    ./src/app/components/AdminDashboard.jsx [Client Component Browser]
+    ./src/app/components/AdminShell.jsx [Client Component Browser]
+    ./src/app/components/AdminShell.jsx [Server Component]
+    ./src/app/admin/page.jsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/components/AdminDashboard.jsx [Client Component SSR]
+    ./src/app/components/AdminShell.jsx [Client Component SSR]
+    ./src/app/components/AdminShell.jsx [Server Component]
+    ./src/app/admin/page.jsx [Server Component]
+
+
+    at <unknown> (./src/app/components/AdminDashboard.jsx:275:9)
+➜  ai-news-digest git:(main) ✗  npx next build 2>&1 | grep -E "✓ Compiled|Build 
+error|SyntaxError|Parsing ecma" | head -5
+✓ Compiled successfully in 10.3s
+➜  ai-news-digest git:(main) ✗  npx next build 2>&1 | grep -E "✓ Compiled|Build 
+error|SyntaxError|Parsing ecma" | head -5
+✓ Compiled successfully in 10.9s
+➜  ai-news-digest git:(main) ✗  grep -n "push\|vibrate\|notification" /Users/mur
+athudavendigaroncu/Desktop/ai-news-digest/public/sw.js | head -20
+142:self.addEventListener("push", (event) => {
+162:      vibrate: [200, 100, 200],
+170:self.addEventListener("notificationclick", (event) => {
+171:  event.notification.close();
+172:  const url = event.notification.data?.url ?? "/summary";
+➜  ai-news-digest git:(main)  npx next build 2>&1 | grep -E "✓ Compiled|Build er
+ror|SyntaxError|Parsing ecma|error TS" | head -5
+✓ Compiled successfully in 12.4s
+➜  ai-news-digest git:(main) ✗ 
+➜  ai-news-digest git:(main) ✗  ls /Users/murathudavendigaroncu/Desktop/ai-news-
+digest/src/app/api/cron/
+ breaking-news   daily-summary   midnight-reset   push-notify
+➜  ai-news-digest git:(main)  find /Users/murathudavendigaroncu/Desktop/ai-news-
+digest/src/app/api/cron -name "route.js" 2>/dev/null
+/Users/murathudavendigaroncu/Desktop/ai-news-digest/src/app/api/cron/midnight-re
+set/route.js
+/Users/murathudavendigaroncu/Desktop/ai-news-digest/src/app/api/cron/daily-summa
+ry/route.js
+/Users/murathudavendigaroncu/Desktop/ai-news-digest/src/app/api/cron/push-notify
+/route.js
+/Users/murathudavendigaroncu/Desktop/ai-news-digest/src/app/api/cron/breaking-ne
+ws/route.js
+➜  ai-news-digest git:(main)  npx next build 2>&1 | grep -E "✓ Compiled|Build er
+ror|SyntaxError|Parsing ecma|error TS" | head -5
+✓ Compiled successfully in 9.0s
+➜  ai-news-digest git:(main) ✗ 
+ npx next build 2>&1 | grep -E "✓ Compiled|Build error|SyntaxError|Parsing ecma|
+error TS" | head -5
+➜  ai-news-digest git:(main) ✗  npx next build 2>&1 | grep -E "✓ Compiled|Build 
+error|SyntaxError|Parsing ecma|error TS" | head -5
+^C
+ npx next build 2>&1 | tail -5                                                  
+➜  ai-news-digest git:(main) ✗  npx next build 2>&1 | tail -5
+^C
+ npx next build 2>&1 | grep -E "Compiled|Build error|error" | grep -v node_modul
+es | head -5
+➜  ai-news-digest git:(main) ✗  npx next build 2>&1 | grep -E "Compiled|Build er
+ror|error" | grep -v node_modules | head -5
+^C
+ node --input-type=module < /Users/murathudavendigaroncu/Desktop/ai-news-digest/
+src/app/lib/newsSource.js 2>&1 | head -5
+➜  ai-news-digest git:(main) ✗  node --input-type=module < /Users/murathudavendi
+garoncu/Desktop/ai-news-digest/src/app/lib/newsSource.js 2>&1 | head -5
+node:internal/modules/esm/resolve:275
+    throw new ERR_MODULE_NOT_FOUND(
+          ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/Users/murathudavendigaroncu/D
+esktop/ai-news-digest/news' imported from /Users/murathudavendigaroncu/Desktop/a
+i-news-digest/[eval1]
+➜  ai-news-digest git:(main) ✗  cat > /Users/murathudavendigaroncu/Desktop/ai-ne
+ws-digest/ROADMAP.md << 'ROADMAP_EOF'
+heredoc> # HaberAI — Sürüm Yol Haritası
+heredoc> 
+heredoc> > Son güncelleme: 3 Mart 2026  
+heredoc> > Aktif sürüm: **v1.6.2**  
+heredoc> > Versiyon kuralı: `MAJOR.MINOR.PATCH`  
+heredoc> > — MAJOR: tam yeniden tasarım veya kırıcı değişiklik  
+heredoc> > — MINOR: yeni özellik veya önemli iyileştirme  
+heredoc> > — PATCH: hata düzeltme, prompt tweaki, küçük UX iyileştirmesi
+heredoc> 
+heredoc> ---
+heredoc> 
+heredoc> ## ✅ Yayınlanan Sürümler
+heredoc> 
+heredoc> ---
+heredoc> 
+heredoc> ### v1.0.0 — İlk Kararlı Yayın
+heredoc> **Durum:** Tamamlandı
+heredoc> 
+heredoc> Temel haberveri akışı ve PWA altyapısı.
+heredoc> 
+heredoc> - Next.js App Router + Vercel Hobby deployment
+heredoc> - NewsData.io + RSS kaynaklarından haber çekme
+heredoc> - AI destekli haber özeti (Groq Llama)
+heredoc> - Güvenilirlik analizi ve bağlamsal analiz (`analyzeArticle`)
+heredoc> - Kategori sayfaları (`/category/[slug]`)
+heredoc> - Bookmark sistemi (`useBookmarks` + `/saved`)
+heredoc> - PWA manifest, service worker, offline sayfası
+heredoc> - Dark/light mod (`next-themes`)
+heredoc> - Admin paneli temel görünüm
+heredoc> - `siteConfig.js` merkezi yapılandırma
+heredoc> 
+heredoc> ---
+heredoc> 
+heredoc> ### v1# HaberAI — Sürüm Yol Haritası
+heredoc> 
+heredoc> > Son güncelleme: 3 Mart 2026  
+heredoc> > Aktif sürümı
+heredoc> > Son güncelleme: 3 Mart 2026  
+heredoc> esk> Aktif sürüm: **v1.6.2**  
+heredoc> >An> Versiyon kuralı: `MAJOR.Mü> — MAJOR: tam yeniden tasarım veya kus>
+ — MINOR: yeni özellik veya önemli iyileştirme  
+heredoc> > — Pl > — PATCH: hata düzeltme, prompt tweaki, küçük -h
+heredoc> ---
+heredoc> 
+heredoc> ## ✅ Yayınlanan Sürümler
+heredoc> 
+heredoc> ---
+heredoc> 
+heredoc> ### v1.0.0 — İlk Kararl<ffffffff><ffffffff>e
+heredoc> #k K
+heredoc> ---
+heredoc> 
+heredoc> ### v1.0.0 — İlk Kaı
+heredoc> 
+heredoc> #am **Durum:** Tamamlandı
+heredoc> 
+heredoc> Temel habe<ffffffff>z
+heredoc> Temel haberveri akı
+heredoc> 
+heredoc> -
+heredoc> - Next.js App Router + Vercel Hobby deploy?? - NewsData.io + RSS kaynak
+larından haber çe?? AI destekli haber özeti (Groq Llama)
+heredoc> - Güvece- Güvenilirlik analizi ve bağlamsal , - Kategori sayfaları (`/c
+ategory/[slug]`)
+heredoc> - Bookmark sistemi ş- Bookmark sistemi (`useBookmarks` + `/sash- PWA ma
+nifest, service worker, offline sayfah - Dark/light mod (`next-themes`)
+heredoc> - Admin panelita- Admin paneli temel görünüm`/- `siteConfig.js` merkezi
+ yap?         
+heredoc> ---
+heredoc> 
+heredoc> ### v1# HaberAI — Sürüm Yol Hw.j
+heredoc> # pu
+heredoc> > Son güncelleme: 3 Mart 2026  
+heredoc> > AktiPus> Aktif sürümı
+heredoc> > Son güncelct> Son güncellemy esk> Aktif sürüm: **v1.6.2**  s>An> Vers
+iyon kuralı: `MAJOR.M'? — Pl > — PATCH: hata düzeltme, prompt tweaki, küçük -h
+heredoc> ---
+heredoc> 
+heredoc> ## ✅ Yayınlanan Sürümler
+heredoc> 
+heredoc> ---
+heredoc> 
+heredoc> ### v1.0.0 — İlk rcel---
+heredoc> 
+heredoc> ## ✅ Yayınlanan Sürümler
+heredoc> 
+heredoc> ---
+heredoc> 
+heredoc> ### v1.0.0 — İlk Kai<ffffffff>#etm
+heredoc> ---
+heredoc> 
+heredoc> ### v1.0.0 — İlk Kaera
+heredoc> #one#k K
+heredoc> ---
+heredoc> 
+heredoc> ### v1.0.0 — İlkti---
+heredoc> -
+heredoc> #erc
+heredoc> #am **Durum:** Tamamlanu 
+heredoc> Temel habe<ffffffff>z
+heredoc> Temel habe
+heredoc> - ATemel haberar
+heredoc> -
+heredoc> - Next.js App Rosecti- Güvece- Güvenilirlik analizi ve bağlamsal , - Ka
+tegori sayfaları (`/category/[slug]`)
+heredoc> - Bookmark sistemi ş- Bookmark sistem s- Bookmark sistemi ş- Bookmark s
+istemi (`useBookmarks` + `/sash- PWA manifest, service wooa- Admin panelita- Adm
+in paneli temel görünüm`/- `siteConfig.js` merkezi yap?         
+heredoc> ---
+heredoc> 
+heredoc> ### v1# HaberAI — Sürüm Yol Hw.j
+heredoc> # pu
+heredoc> > Son güncelri---
+heredoc> 
+heredoc> ### v1# HaberAI — Sürüm Yol Hw.j
+heredoc> # pu
+heredoc> > Son güncelleme: 3 Mart 2026  nav
+heredoc> #asy# pu
+heredoc> > Son güncelleme: 3 Mart 2026[c> S(4> AktiPus> Aktif sürümı
+heredoc> > So)]> Son güncelct> Son güns`---
+heredoc> 
+heredoc> ## ✅ Yayınlanan Sürümler
+heredoc> 
+heredoc> ---
+heredoc> 
+heredoc> ### v1.0.0 — İlk rcel---
+heredoc> 
+heredoc> ## ✅ Yayınlanan Sürümler
+heredoc> 
+heredoc> ---
+heredoc> 
+heredoc> ### v1.0.0 — İlk Kai<ffffffff>#etm
+heredoc> ---
+heredoc> 
+heredoc> ### v1.0.0 — İlk Kse
+heredoc> #e b
+heredoc> ---
+heredoc> 
+heredoc> ### v1.0.0 — İndi
+heredoc> - **
+heredoc> #on 
+heredoc> ## ✅ Yayınlanan Sürüy `
+heredoc> ---
+heredoc> 
+heredoc> ### v1.0.0 — İlk Ka`0 
+heredoc> #* *---
+heredoc> 
+heredoc> ### v1.0.0 — İlk Kaeew
+heredoc> # cr#one#k K
+heredoc> ---
+heredoc> 
+heredoc> ### v1.0.0ü---
+heredoc> 
+heredoc> ##imit 1'-
+heredoc> #erc
+heredoc> #am **Durum:**ut 3 c#am HTemel habe<ffffffff>z
+heredoc> Temel habe
+heredoc> 0 Temel habe
+heredoc> `0- ATemel 
+heredoc> 
+heredoc> -
+heredoc> - Next.js App

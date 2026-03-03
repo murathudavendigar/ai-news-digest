@@ -21,7 +21,7 @@ export const siteConfig = {
   nameShort: "HaberAI",
 
   /** Versiyon — package.json ile senkronize tutun */
-  version: "1.5.0",
+  version: "1.6.2",
 
   /** Ana slogan */
   tagline: "Yapay Zeka Destekli Haber Analizi",
@@ -40,7 +40,7 @@ export const siteConfig = {
   /** Canonical domain — env'den okunur, yoksa fallback */
   url:
     process.env.NEXT_PUBLIC_BASE_URL ||
-    "https://ai-news-digest-fawn.vercel.app",
+    "https://haberaii.vercel.app",
 
   /** Default OG görseli (Next.js opengraph-image route) */
   ogImage: "/opengraph-image",
