@@ -21,7 +21,7 @@ export const siteConfig = {
   nameShort: "HaberAI",
 
   /** Versiyon — package.json ile senkronize tutun */
-  version: "0.1.0",
+  version: "1.5.0",
 
   /** Ana slogan */
   tagline: "Yapay Zeka Destekli Haber Analizi",

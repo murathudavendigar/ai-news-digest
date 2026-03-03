@@ -3,7 +3,9 @@ import Link from "next/link";
 
 export default function Footer() {
   return (
-    <footer className="mt-20 border-t bg-stone-50 dark:bg-stone-950 border-stone-200 dark:border-stone-800">
+    <footer
+      className="mt-20 border-t bg-stone-50 dark:bg-stone-950 border-stone-200 dark:border-stone-800
+                   pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
       <div className="px-4 py-10 mx-auto max-w-7xl sm:px-6">
         <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
           <div>

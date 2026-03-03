@@ -3,7 +3,7 @@ import ArticleAnalysis from "@/app/components/ArticleAnalysis";
 import NewsComparison from "@/app/components/NewsComparison";
 import ReadingToolbar from "@/app/components/ReadingToolbar";
 import RelatedArticles from "@/app/components/RelatedArticles";
-import { getNewsByArticleID } from "@/app/lib/news";
+import { getArticleForDetail } from "@/app/lib/newsSource";
 import { siteConfig } from "@/app/lib/siteConfig";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -23,8 +23,7 @@ function extractId(slug) {
 export async function generateMetadata({ params }) {
   const { slug } = await params;
   const id = extractId(slug);
-  const data = await getNewsByArticleID(id);
-  const article = data.results?.[0];
+  const article = await getArticleForDetail(id);
   if (!article) return {};
 
   const title = article.title
@@ -61,20 +60,29 @@ export async function generateMetadata({ params }) {
 export default async function NewsDetailPage({ params }) {
   const { slug } = await params;
   const id = extractId(slug);
-  const data = await getNewsByArticleID(id);
-  const article = data.results ? data.results[0] : null;
+  const article = await getArticleForDetail(id);
   if (!article) notFound();
+
+  // RSS makalelerinde keywords alanı yoktur; başlıktan türetiriz
+  const derivedKeywords =
+    article.keywords ??
+    article.title
+      .split(/\s+/)
+      .filter((w) => w.length > 4)
+      .slice(0, 6);
 
   const articleContext = {
     articleId: article.article_id,
     title: article.title,
     description: article.description ?? undefined,
+    content: article.content ?? undefined, // RSS tam metin
     sourceUrl: article.link,
     sourceName: article.source_name ?? undefined,
     publishedAt: article.pubDate ?? undefined,
     category: article.category ?? undefined,
-    keywords: article.keywords ?? undefined,
-    language: article.language ?? undefined,
+    keywords: derivedKeywords,
+    language: article.language ?? "tr",
+    fromRSS: article._fromRSS ?? false,
   };
 
   const jsonLd = {
@@ -191,10 +199,10 @@ export default async function NewsDetailPage({ params }) {
                 )}
               </div>
 
-              {/* Keywords */}
-              {article.keywords?.length > 0 && (
+              {/* Keywords — NewsData'dan gelir veya başlıktan türetilir */}
+              {derivedKeywords.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mb-6">
-                  {article.keywords.map((kw, i) => (
+                  {derivedKeywords.slice(0, 8).map((kw, i) => (
                     <span
                       key={i}
                       className="px-2.5 py-0.5 bg-stone-50 dark:bg-stone-800/50 text-stone-500 dark:text-stone-400 rounded-full text-xs border border-stone-200 dark:border-stone-700">
@@ -204,13 +212,39 @@ export default async function NewsDetailPage({ params }) {
                 </div>
               )}
 
-              {/* Açıklama */}
-              {article.description && (
+              {/* ─── Makale Metni ─────────────────────────────────────────
+                   RSS makalelerinde `content` = tam metin (HTML soy.)
+                   NewsData makalelerinde `description` = özet/giriş
+              ─────────────────────────────────────────────────────────── */}
+              {(article.content || article.description) && (
                 <div className="pb-8 mb-8 border-b border-stone-100 dark:border-stone-800">
+                  {/* RSS tam metin rozeti */}
+                  {article._hasFullContent && (
+                    <div className="flex items-center gap-1.5 mb-4">
+                      <span
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold
+                                   bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400
+                                   border border-emerald-200 dark:border-emerald-800">
+                        <svg
+                          className="w-3 h-3"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"
+                          />
+                        </svg>
+                        RSS — tam metin
+                      </span>
+                    </div>
+                  )}
                   <p
-                    className="text-lg leading-relaxed text-stone-700 dark:text-stone-300"
+                    className="text-base leading-relaxed whitespace-pre-line text-stone-700 dark:text-stone-300"
                     style={{ fontFamily: "var(--font-body), Georgia, serif" }}>
-                    {article.description}
+                    {article.content || article.description}
                   </p>
                 </div>
               )}
@@ -225,7 +259,7 @@ export default async function NewsDetailPage({ params }) {
 
               {/* Bu konudaki haberler */}
               <RelatedArticles
-                keywords={article.keywords || []}
+                keywords={derivedKeywords}
                 currentId={article.article_id}
                 title={article.title}
               />

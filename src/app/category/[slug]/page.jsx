@@ -1,17 +1,23 @@
 import CategorySwipe from "@/app/components/CategorySwipe";
 import NewsFeed from "@/app/components/NewsFeed";
-import { getNewsByCategory } from "@/app/lib/news";
+import { getNewsFeed } from "@/app/lib/newsSource";
 import { siteConfig } from "@/app/lib/siteConfig";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
 export const revalidate = 300; // 5 dakikada bir ISR revalidate — ana sayfa ile aynı
+export const dynamic = "force-dynamic"; // RSS cache: no-store fetches → build zamanı static değil
 
 const CATEGORIES = {
   technology: {
     title: "Teknoloji",
     icon: "💻",
     desc: "Yapay zeka, yazılım, donanım ve dijital dönüşüm",
+  },
+  science: {
+    title: "Bilim",
+    icon: "🔬",
+    desc: "Fen, uzay, biyoloji, fizik ve bilimsel keşifler",
   },
   sports: {
     title: "Spor",
@@ -32,6 +38,21 @@ const CATEGORIES = {
     title: "Magazin",
     icon: "🎬",
     desc: "Sinema, müzik, sanat ve kültür dünyası",
+  },
+  culture: {
+    title: "Kültür & Sanat",
+    icon: "🎨",
+    desc: "Edebiyat, güzel sanatlar, mimari ve kültürel haberler",
+  },
+  defense: {
+    title: "Savunma",
+    icon: "🛡️",
+    desc: "Savunma sanayi, askeri teknoloji ve güvenlik haberleri",
+  },
+  lifestyle: {
+    title: "Yaşam",
+    icon: "🌿",
+    desc: "Sağlıklı yaşam, gastronomi, moda ve gezi haberleri",
   },
   politics: {
     title: "Politika",
@@ -66,7 +87,7 @@ export default async function CategoryPage({ params }) {
   const cat = CATEGORIES[slug];
   if (!cat) notFound();
 
-  const newsData = await getNewsByCategory(slug, "tr");
+  const newsData = await getNewsFeed({ category: slug });
 
   return (
     <CategorySwipe currentSlug={slug} categoryKeys={CATEGORY_KEYS}>
@@ -102,13 +123,13 @@ export default async function CategoryPage({ params }) {
             </div>
 
             {/* Haber sayısı */}
-            {newsData.totalResults > 0 && (
+            {newsData.totalCount > 0 && (
               <div className="flex items-center gap-2 mt-4">
                 <span
                   className="inline-flex items-center gap-1.5 text-xs font-bold text-stone-500 dark:text-stone-400
                                bg-stone-100 dark:bg-stone-800 px-3 py-1.5 rounded-full">
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                  {newsData.totalResults} haber
+                  {newsData.totalCount} haber
                 </span>
                 <span className="text-xs text-stone-400 dark:text-stone-500">
                   · Canlı güncelleniyor

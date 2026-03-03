@@ -163,6 +163,13 @@ export default function AdminDashboard() {
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [analyticsError, setAnalyticsError] = useState(null);
 
+  // Manuel push bildirimi
+  const [pushTitle, setPushTitle] = useState("");
+  const [pushBody, setPushBody] = useState("");
+  const [pushUrl, setPushUrl] = useState("/");
+  const [pushSending, setPushSending] = useState(false);
+  const [pushResult, setPushResult] = useState(null);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -224,6 +231,29 @@ export default function AdminDashboard() {
     } catch {
     } finally {
       setRemovingEmail(null);
+    }
+  };
+
+  const sendPush = async () => {
+    if (!pushTitle.trim() || !pushBody.trim()) return;
+    setPushSending(true);
+    setPushResult(null);
+    try {
+      const r = await fetch("/api/admin/push-send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: pushTitle.trim(),
+          body: pushBody.trim(),
+          url: pushUrl.trim() || "/",
+        }),
+      });
+      const res = await r.json();
+      setPushResult({ ok: r.ok, ...res });
+    } catch (e) {
+      setPushResult({ ok: false, error: e.message });
+    } finally {
+      setPushSending(false);
     }
   };
 
@@ -398,8 +428,8 @@ export default function AdminDashboard() {
 
             {/* Abone listesi paneli */}
             {subscriberList !== null && (
-              <div className="border border-stone-800 rounded-xl overflow-hidden">
-                <div className="px-3 py-2 bg-stone-950 border-b border-stone-800 flex items-center gap-2">
+              <div className="overflow-hidden border border-stone-800 rounded-xl">
+                <div className="flex items-center gap-2 px-3 py-2 border-b bg-stone-950 border-stone-800">
                   <input
                     type="text"
                     placeholder="Filtrele…"
@@ -417,17 +447,17 @@ export default function AdminDashboard() {
                   </span>
                 </div>
                 {subscriberList.length === 0 ? (
-                  <p className="px-4 py-6 text-center text-xs text-stone-600">
+                  <p className="px-4 py-6 text-xs text-center text-stone-600">
                     Henüz abone yok.
                   </p>
                 ) : (
-                  <div className="max-h-60 overflow-y-auto divide-y divide-stone-800/60">
+                  <div className="overflow-y-auto divide-y max-h-60 divide-stone-800/60">
                     {subscriberList
                       .filter((e) => e.includes(subFilter.toLowerCase()))
                       .map((email, i) => (
                         <div
                           key={email}
-                          className="flex items-center gap-3 px-3 py-2 hover:bg-stone-800/40 transition-colors group">
+                          className="flex items-center gap-3 px-3 py-2 transition-colors hover:bg-stone-800/40 group">
                           <span className="text-[9px] text-stone-700 tabular-nums w-5 shrink-0">
                             {i + 1}
                           </span>
@@ -527,6 +557,75 @@ export default function AdminDashboard() {
           Zamanlama: {cronSchedule} · Redis DB: {s.redis?.dbSize ?? "—"} key ·
           Şu an: {fmt(now)}
         </p>
+      </Section>
+
+      {/* Manuel Push Bildirimi */}
+      <Section title="📲 Manuel Bildirim Gönder">
+        <div className="space-y-3">
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+            <div>
+              <label className="block text-[9px] font-black text-stone-500 uppercase tracking-widest mb-1">
+                Başlık <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={pushTitle}
+                onChange={(e) => setPushTitle(e.target.value)}
+                maxLength={60}
+                placeholder="📰 HaberAI — Son Dakika"
+                className="w-full px-3 py-2 text-xs transition-colors border rounded-lg outline-none bg-stone-950 border-stone-700 text-stone-200 placeholder-stone-700 focus:border-amber-500"
+              />
+            </div>
+            <div>
+              <label className="block text-[9px] font-black text-stone-500 uppercase tracking-widest mb-1">
+                URL
+              </label>
+              <input
+                type="text"
+                value={pushUrl}
+                onChange={(e) => setPushUrl(e.target.value)}
+                placeholder="/summary"
+                className="w-full px-3 py-2 text-xs transition-colors border rounded-lg outline-none bg-stone-950 border-stone-700 text-stone-200 placeholder-stone-700 focus:border-amber-500"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-[9px] font-black text-stone-500 uppercase tracking-widest mb-1">
+              Mesaj <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              value={pushBody}
+              onChange={(e) => setPushBody(e.target.value)}
+              maxLength={120}
+              rows={2}
+              placeholder="Bugünün en önemli haberleri hazır..."
+              className="w-full px-3 py-2 text-xs transition-colors border rounded-lg outline-none resize-none bg-stone-950 border-stone-700 text-stone-200 placeholder-stone-700 focus:border-amber-500"
+            />
+            <p className="text-[9px] text-stone-700 mt-0.5 text-right">
+              {pushBody.length}/120
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <ActionBtn
+              variant="primary"
+              onClick={sendPush}
+              loading={pushSending}
+              disabled={!pushTitle.trim() || !pushBody.trim()}>
+              📣 Gönder
+            </ActionBtn>
+            {pushResult && (
+              <p
+                className={`text-xs font-semibold ${
+                  pushResult.ok ? "text-emerald-400" : "text-red-400"
+                }`}>
+                {pushResult.ok
+                  ? `✓ ${pushResult.sent ?? 0} aboneye gönderildi`
+                  : `✕ ${pushResult.error || "Hata oluştu"}`}
+              </p>
+            )}
+          </div>
+        </div>
       </Section>
 
       {/* Bugünkü özet */}
@@ -737,7 +836,7 @@ export default function AdminDashboard() {
                 }`}>
                 <span className="text-lg">{k.exhausted ? "🔴" : "🟢"}</span>
                 <div>
-                  <p className="text-xs font-black text-stone-200 font-mono">
+                  <p className="font-mono text-xs font-black text-stone-200">
                     {k.suffix}
                   </p>
                   <p
@@ -749,13 +848,16 @@ export default function AdminDashboard() {
             ))}
           </div>
           <p className="text-[9px] text-stone-600 mt-3">
-            Tükenen key'ler 24 saat sonra otomatik olarak yeniden aktif olur.
-            Yeni key eklemek için{" "}
+            Tükenen key&apos;ler 24 saat sonra otomatik olarak yeniden aktif
+            olur. Yeni key eklemek için{" "}
             <code className="text-stone-500">NEWSDATA_API_KEYS</code> env
             değişkenine virgülle ekleyin.
           </p>
         </Section>
       )}
+
+      {/* RSS Kaynak Durumu */}
+      <RSSMonitor />
 
       {/* Cron log tablosu */}
       <Section title={`Cron Geçmişi — Son ${logs.length} Çalışma`}>
@@ -874,7 +976,7 @@ export default function AdminDashboard() {
           </ActionBtn>
         }>
         {!analytics && !analyticsLoading && !analyticsError && (
-          <p className="text-xs text-stone-500 py-2">
+          <p className="py-2 text-xs text-stone-500">
             Vercel Analytics verilerini görmek için &quot;Yükle&quot; butonuna
             basın.
           </p>
@@ -885,7 +987,7 @@ export default function AdminDashboard() {
           </div>
         )}
         {analyticsError && (
-          <div className="px-4 py-3 rounded-xl bg-red-950/30 border border-red-900/40 text-xs text-red-400">
+          <div className="px-4 py-3 text-xs text-red-400 border rounded-xl bg-red-950/30 border-red-900/40">
             {analyticsError === "VERCEL_TOKEN veya VERCEL_PROJECT_ID eksik"
               ? "⚠️ VERCEL_TOKEN ve VERCEL_PROJECT_ID ortam değişkenleri gerekli. Vercel → Settings → Environment Variables."
               : `Hata: ${analyticsError}`}
@@ -989,7 +1091,7 @@ export default function AdminDashboard() {
                   {analytics.devices.data.map((d, i) => (
                     <div
                       key={i}
-                      className="px-3 py-2 rounded-xl bg-stone-950 border border-stone-800 text-center">
+                      className="px-3 py-2 text-center border rounded-xl bg-stone-950 border-stone-800">
                       <p className="text-xs font-black text-white">
                         {d.device || d.type || "—"}
                       </p>
@@ -1022,5 +1124,154 @@ export default function AdminDashboard() {
         çalışmaları görebilirsiniz.
       </div>
     </div>
+  );
+}
+
+/* ── RSS Monitor bileşeni ── */
+function RSSMonitor() {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [tested, setTested] = useState(false);
+
+  const runTest = async () => {
+    setLoading(true);
+    try {
+      const r = await fetch("/api/admin/rss-test");
+      if (r.ok) {
+        setData(await r.json());
+        setTested(true);
+      }
+    } catch {
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Section
+      title="RSS Kaynak Durumu"
+      right={
+        <button
+          onClick={runTest}
+          disabled={loading}
+          className="flex items-center gap-1.5 text-[10px] font-bold text-amber-400
+                     hover:text-amber-300 transition-colors disabled:opacity-50">
+          {loading ? <Spinner sm /> : "▶"}
+          {tested ? "Yeniden Test Et" : "Tüm Kaynakları Test Et"}
+        </button>
+      }>
+      {!tested && !loading && (
+        <div className="py-8 text-center">
+          <p className="mb-2 text-3xl">📡</p>
+          <p className="text-sm text-stone-500">
+            RSS kaynaklarını test etmek için butona tıklayın.
+          </p>
+          <p className="mt-1 text-xs text-stone-600">{`Her kaynağa istek atılır, ~10-20 sn sürebilir.`}</p>
+        </div>
+      )}
+
+      {loading && (
+        <div className="flex items-center justify-center gap-2 py-10 text-stone-500">
+          <Spinner />{" "}
+          <span className="text-sm">Kaynaklar test ediliyor...</span>
+        </div>
+      )}
+
+      {tested && data && (
+        <div className="space-y-4">
+          {/* Özet */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="p-3 text-center border bg-stone-950 border-stone-800 rounded-xl">
+              <p className="text-[9px] text-stone-500 uppercase tracking-wider mb-1">
+                Çalışan
+              </p>
+              <p className="text-xl font-black text-emerald-400">
+                {data.summary.ok}
+              </p>
+            </div>
+            <div className="p-3 text-center border bg-stone-950 border-stone-800 rounded-xl">
+              <p className="text-[9px] text-stone-500 uppercase tracking-wider mb-1">
+                Hatalı
+              </p>
+              <p
+                className={`text-xl font-black ${data.summary.error > 0 ? "text-red-400" : "text-stone-500"}`}>
+                {data.summary.error}
+              </p>
+            </div>
+            <div className="p-3 text-center border bg-stone-950 border-stone-800 rounded-xl">
+              <p className="text-[9px] text-stone-500 uppercase tracking-wider mb-1">
+                Toplam Haber
+              </p>
+              <p className="text-xl font-black text-white">
+                {data.summary.totalArticles}
+              </p>
+            </div>
+            <div className="p-3 text-center border bg-stone-950 border-stone-800 rounded-xl">
+              <p className="text-[9px] text-stone-500 uppercase tracking-wider mb-1">
+                Tam İçerik
+              </p>
+              <p className="text-xl font-black text-amber-400">
+                {data.summary.withFullContent}
+              </p>
+            </div>
+          </div>
+
+          {/* Kaynak listesi */}
+          <div className="space-y-1.5 max-h-96 overflow-y-auto">
+            {data.results.map((r) => (
+              <div
+                key={r.id}
+                className={`flex items-center justify-between px-4 py-2.5 rounded-xl border ${
+                  r.status === "ok"
+                    ? "bg-stone-900 border-stone-800"
+                    : r.status === "empty"
+                      ? "bg-stone-900/50 border-stone-800/50"
+                      : "bg-red-950/20 border-red-900/40"
+                }`}>
+                <div className="flex items-center gap-2.5">
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                      r.status === "ok"
+                        ? "bg-emerald-500"
+                        : r.status === "empty"
+                          ? "bg-stone-600"
+                          : "bg-red-500"
+                    }`}
+                  />
+                  <span className="text-xs font-bold text-stone-300">
+                    {r.name}
+                  </span>
+                  {r.fullContent > 0 && (
+                    <span className="text-[9px] px-1.5 py-0.5 bg-amber-950/40 border border-amber-800/40 text-amber-400 rounded font-bold">
+                      TAM İÇERİK
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-4 text-[10px] text-stone-500">
+                  {r.status === "error" ? (
+                    <span className="text-red-400">
+                      {r.error?.slice(0, 40)}
+                    </span>
+                  ) : (
+                    <>
+                      <span>{r.count} haber</span>
+                      <span
+                        className={r.durationMs > 3000 ? "text-amber-400" : ""}>
+                        {ms2s(r.durationMs)}
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <p className="text-[10px] text-stone-700 text-right">
+            Test süresi: {ms2s(data.summary.durationMs)} · {data.results.length}{" "}
+            kaynak
+          </p>
+        </div>
+      )}
+    </Section>
   );
 }

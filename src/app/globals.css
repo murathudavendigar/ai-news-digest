@@ -8,6 +8,15 @@
   Bu blok @layer dışında — @layer utilities'ten ÖNCE geldiği için
   Tailwind dark: class'larını ezmez; geçiş efekti doğru çalışır.
 */
+/* ── Scrollbar gizleme ─────────────────────────────────────────────────── */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 @layer base {
   *,
   *::before,

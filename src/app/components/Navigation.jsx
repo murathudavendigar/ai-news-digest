@@ -2,14 +2,18 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const categories = [
   { slug: "technology", title: "Teknoloji", icon: "💻" },
+  { slug: "science", title: "Bilim", icon: "🔬" },
   { slug: "sports", title: "Spor", icon: "⚽" },
   { slug: "business", title: "Ekonomi", icon: "📈" },
   { slug: "health", title: "Sağlık", icon: "🏥" },
   { slug: "entertainment", title: "Magazin", icon: "🎬" },
+  { slug: "culture", title: "Kültür", icon: "🎨" },
+  { slug: "defense", title: "Savunma", icon: "🛡️" },
+  { slug: "lifestyle", title: "Yaşam", icon: "🌿" },
   { slug: "politics", title: "Politika", icon: "🏛️" },
   { slug: "world", title: "Dünya", icon: "🌍" },
 ];
@@ -122,13 +126,18 @@ function SettingsIcon({ active }) {
 }
 
 export default function Navigation() {
-  const [catOpen, setCatOpen] = useState(false);
+  const [catOpen, setCatOpen] = useState(false); // mobil sheet
+  const [dropOpen, setDropOpen] = useState(false); // desktop dropdown
+  const dropRef = useRef(null);
   const pathname = usePathname();
 
+  // Sayfa değişince her şeyi kapat
   useEffect(() => {
     setCatOpen(false);
+    setDropOpen(false);
   }, [pathname]);
 
+  // Mobil sheet açıkken scroll kilitle
   useEffect(() => {
     if (catOpen) document.body.style.overflow = "hidden";
     else document.body.style.overflow = "";
@@ -136,6 +145,17 @@ export default function Navigation() {
       document.body.style.overflow = "";
     };
   }, [catOpen]);
+
+  // Desktop dropdown dışına tıklayınca kapat
+  useEffect(() => {
+    if (!dropOpen) return;
+    function handleClick(e) {
+      if (dropRef.current && !dropRef.current.contains(e.target))
+        setDropOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [dropOpen]);
 
   if (pathname === "/ozet") return null;
 
@@ -145,12 +165,13 @@ export default function Navigation() {
   return (
     <>
       {/* ═══════════════════════════════════
-          DESKTOP NAV
+          DESKTOP KOMPAKT NAV
       ═══════════════════════════════════ */}
       <nav className="hidden md:flex items-center gap-0.5">
+        {/* Anasayfa */}
         <Link
           href="/"
-          className={`px-3 py-1.5 rounded text-sm font-semibold transition-all ${
+          className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
             isActive("/")
               ? "bg-stone-900 dark:bg-white text-white dark:text-stone-900"
               : "text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white hover:bg-stone-100 dark:hover:bg-white/10"
@@ -160,31 +181,70 @@ export default function Navigation() {
 
         <div className="w-px h-4 mx-1 bg-stone-200 dark:bg-white/10" />
 
-        {categories.map((cat) => {
-          const href = `/category/${cat.slug}`;
-          return (
-            <Link
-              key={cat.slug}
-              href={href}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-sm transition-all ${
-                isActive(href)
-                  ? "bg-stone-900 dark:bg-white text-white dark:text-stone-900 font-semibold"
+        {/* Kategoriler dropdown */}
+        <div className="relative" ref={dropRef}>
+          <button
+            onClick={() => setDropOpen((v) => !v)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+              isCatActive
+                ? "bg-stone-900 dark:bg-white text-white dark:text-stone-900"
+                : dropOpen
+                  ? "bg-stone-100 dark:bg-white/10 text-stone-900 dark:text-white"
                   : "text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white hover:bg-stone-100 dark:hover:bg-white/10"
-              }`}>
-              <span className="text-xs">{cat.icon}</span>
-              <span>{cat.title}</span>
-            </Link>
-          );
-        })}
+            }`}>
+            <GridIcon />
+            <span>Kategoriler</span>
+            <svg
+              className={`w-3 h-3 transition-transform duration-200 ${
+                dropOpen ? "rotate-180" : ""
+              }`}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2.5}
+              viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          </button>
+
+          {/* Dropdown panel */}
+          {dropOpen && (
+            <div className="absolute top-full left-0 mt-1.5 w-64 bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-white/10 shadow-2xl z-[70] overflow-hidden">
+              <div className="grid grid-cols-2 gap-0.5 p-1.5">
+                {categories.map((cat) => {
+                  const href = `/category/${cat.slug}`;
+                  return (
+                    <Link
+                      key={cat.slug}
+                      href={href}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
+                        isActive(href)
+                          ? "bg-amber-50 dark:bg-amber-900/25 text-amber-700 dark:text-amber-400 font-semibold"
+                          : "text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-white/[0.06] hover:text-stone-900 dark:hover:text-white"
+                      }`}>
+                      <span className="text-base leading-none">{cat.icon}</span>
+                      <span>{cat.title}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
 
         <div className="w-px h-4 mx-1 bg-stone-200 dark:bg-white/10" />
 
+        {/* Günün Özeti */}
         <Link
           href="/summary"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-semibold
-                     bg-stone-100 dark:bg-white/10 border border-stone-200 dark:border-white/20
-                     text-stone-700 dark:text-white
-                     hover:bg-stone-900 dark:hover:bg-white hover:text-white dark:hover:text-stone-900 transition-all">
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+            isActive("/summary")
+              ? "bg-amber-500 text-white"
+              : "bg-stone-100 dark:bg-white/10 border border-stone-200 dark:border-white/20 text-stone-700 dark:text-white hover:bg-amber-500 hover:text-white hover:border-amber-500 dark:hover:bg-amber-500 dark:hover:border-amber-500"
+          }`}>
           ☀️ Günün Özeti
         </Link>
       </nav>

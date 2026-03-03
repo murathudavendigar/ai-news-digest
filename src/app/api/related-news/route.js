@@ -1,18 +1,12 @@
 // api/related-news/route.js
 // Mevcut haberin keyword'leriyle alakalı haberleri bul.
-// Yeni API çağrısı yapmadan Redis'te cached olan son haberleri tarar.
-// Cache miss ise NewsData arama API'sini kullanır.
+// Öncelik: RSS feed cache (API tüketimi yok) → NewsData search fallback
 
 import { searchNews } from "@/app/lib/news";
-import { Redis } from "@upstash/redis";
+import { findRelatedInFeed } from "@/app/lib/newsSource";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
-
-const redis = new Redis({
-  url: process.env.STORAGE_KV_REST_API_URL,
-  token: process.env.STORAGE_KV_REST_API_TOKEN,
-});
 
 export async function POST(req) {
   try {
@@ -22,22 +16,46 @@ export async function POST(req) {
       return NextResponse.json({ articles: [] });
     }
 
-    // Arama terimi: ilk 2 keyword, yoksa başlığın ilk 4 kelimesi
+    // Arama terimi: ilk 2 keyword, yoksa başlığın ilk 5 kelimesi
     const query =
       keywords.slice(0, 2).join(" ") ||
-      (title || "").split(" ").slice(0, 4).join(" ");
+      (title || "").split(" ").slice(0, 5).join(" ");
 
     if (!query.trim()) return NextResponse.json({ articles: [] });
 
-    redis.incr("stats:api:related-news:calls").catch(() => {});
-    const data = await searchNews(query);
+    // ── 1. RSS feed cache'inden tara (API çağrısı yok) ────────────────────
+    const rssArticles = await findRelatedInFeed(query, currentId, 4);
+    if (rssArticles.length >= 2) {
+      return NextResponse.json({
+        articles: rssArticles,
+        query,
+        source: "rss-cache",
+      });
+    }
 
-    // Mevcut haberi çıkar, en fazla 4 tane döndür
-    const related = (data.results || [])
-      .filter((a) => a.article_id !== currentId)
-      .slice(0, 4);
+    // ── 2. NewsData search fallback (RSS yetmezse) ─────────────────────────
+    try {
+      const data = await searchNews(query);
+      const related = (data.results || [])
+        .filter((a) => a.article_id !== currentId)
+        .slice(0, 4);
 
-    return NextResponse.json({ articles: related, query });
+      // RSS'den bulunanlarla birleştir (tekrar etmeden)
+      const existingIds = new Set(rssArticles.map((a) => a.article_id));
+      const merged = [
+        ...rssArticles,
+        ...related.filter((a) => !existingIds.has(a.article_id)),
+      ].slice(0, 4);
+
+      return NextResponse.json({ articles: merged, query, source: "newsdata" });
+    } catch {
+      // NewsData de başarısız olursa az da olsa RSS sonuçlarını döndür
+      return NextResponse.json({
+        articles: rssArticles,
+        query,
+        source: "rss-cache",
+      });
+    }
   } catch (error) {
     console.error("[POST /api/related-news] Error:", error);
     return NextResponse.json({ articles: [] });
