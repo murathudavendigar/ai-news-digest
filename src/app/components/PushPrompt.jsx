@@ -8,6 +8,7 @@ const DISMISSED_KEY = "haberai:push-prompt-dismissed";
 
 export default function PushPrompt() {
   const [show, setShow] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   useEffect(() => {
     // Bildirim desteği yok veya zaten izin verilmiş/reddedilmişse gösterme
@@ -34,6 +35,14 @@ export default function PushPrompt() {
     setShow(false);
   };
 
+  const handleSubscribed = () => {
+    setSuccess(true);
+    setTimeout(() => {
+      localStorage.setItem(DISMISSED_KEY, "1");
+      setShow(false);
+    }, 2500);
+  };
+
   if (!show) return null;
 
   const pushTime = formatCronTimeLocal(CRON.PUSH_NOTIFY_UTC_HOUR);
@@ -50,41 +59,57 @@ export default function PushPrompt() {
                   p-4
                   animate-in slide-in-from-bottom-4 duration-300`}>
       <div className="flex items-start gap-3">
-        <div className="text-2xl mt-0.5 shrink-0">🔔</div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-stone-900 dark:text-stone-100">
-            Günlük özetleri kaçırma
-          </p>
-          <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
-            Her akşam {pushTime}&apos;da manşetler ve önemli haberler doğrudan
-            sana gelsin.
-          </p>
-          <div className="flex items-center gap-2 mt-3">
-            <PushNotificationToggle />
+        {success ? (
+          <>
+            <div className="text-2xl mt-0.5 shrink-0">✅</div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-stone-900 dark:text-stone-100">
+                Bildirimler aktif!
+              </p>
+              <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
+                Artık günlük özetleri ve önemli haberleri anında alacaksın. 👌
+              </p>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="text-2xl mt-0.5 shrink-0">🔔</div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-stone-900 dark:text-stone-100">
+                Günlük özetleri kaçırma
+              </p>
+              <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
+                Her akşam {pushTime}&apos;da manşetler ve önemli haberler
+                doğrudan sana gelsin.
+              </p>
+              <div className="flex items-center gap-2 mt-3">
+                <PushNotificationToggle onSubscribed={handleSubscribed} />
+                <button
+                  onClick={dismiss}
+                  className="px-2 py-1 text-xs transition-colors text-stone-400 hover:text-stone-600 dark:hover:text-stone-300">
+                  Hayır, istemiyorum
+                </button>
+              </div>
+            </div>
             <button
               onClick={dismiss}
-              className="px-2 py-1 text-xs transition-colors text-stone-400 hover:text-stone-600 dark:hover:text-stone-300">
-              Hayır, istemiyorum
+              aria-label="Kapat"
+              className="transition-colors shrink-0 text-stone-400 hover:text-stone-600 dark:hover:text-stone-300">
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
             </button>
-          </div>
-        </div>
-        <button
-          onClick={dismiss}
-          aria-label="Kapat"
-          className="transition-colors shrink-0 text-stone-400 hover:text-stone-600 dark:hover:text-stone-300">
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
-        </button>
+          </>
+        )}
       </div>
     </div>
   );

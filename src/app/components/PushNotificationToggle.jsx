@@ -24,7 +24,10 @@ function urlBase64ToUint8Array(base64String) {
   return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
 }
 
-export default function PushNotificationToggle({ compact = false }) {
+export default function PushNotificationToggle({
+  compact = false,
+  onSubscribed,
+}) {
   const [permission, setPermission] = useState("default"); // default | granted | denied
   const [subscribed, setSubscribed] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -69,6 +72,7 @@ export default function PushNotificationToggle({ compact = false }) {
       });
 
       setSubscribed(true);
+      onSubscribed?.();
     } catch (err) {
       console.error("[PushToggle] Abone olma hatası:", err);
     } finally {
