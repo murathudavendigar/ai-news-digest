@@ -11,6 +11,54 @@ const redis = new Redis({
   token: process.env.STORAGE_KV_REST_API_TOKEN,
 });
 
+// ── midnight-reset: günlük stats + exhausted keyler (daily-summary cron'una entegre) ──
+async function runDailyReset() {
+  try {
+    // NewsData exhausted key'leri temizle
+    let cursor = 0;
+    const exhaustedKeys = [];
+    do {
+      const [nextCursor, keys] = await redis.scan(cursor, {
+        match: "newsdata:exhausted:*",
+        count: 100,
+      });
+      cursor = Number(nextCursor);
+      exhaustedKeys.push(...keys);
+    } while (cursor !== 0);
+    if (exhaustedKeys.length) {
+      await Promise.all(exhaustedKeys.map((k) => redis.del(k)));
+    }
+
+    // Günlük stats sıfırla
+    const today = new Date().toISOString().slice(0, 10);
+    const dailyKeys = [
+      "stats:api:calls:today",
+      "stats:cache:hits:today",
+      "stats:cache:misses:today",
+      "stats:hits:summarize",
+      "stats:miss:summarize",
+      "stats:hits:analyze",
+      "stats:miss:analyze",
+      "stats:hits:compare",
+      "stats:miss:compare",
+      "stats:hits:stream-summary",
+      "stats:miss:stream-summary",
+      ...["groq", "sambanova", "cerebras", "openrouter"].map(
+        (k) => `stats:ai:${k}:calls:today`,
+      ),
+      `stats:subscribers:today:${today}`,
+    ];
+    await Promise.all(dailyKeys.map((k) => redis.del(k).catch(() => {})));
+    devLog(
+      "[daily-reset] Tamamlandı —",
+      exhaustedKeys.length,
+      "exhausted key temizlendi",
+    );
+  } catch (e) {
+    devWarn("[daily-reset] Hata:", e.message);
+  }
+}
+
 async function writeLog(entry) {
   try {
     await redis.lpush("cron:log", JSON.stringify({ ...entry, _v: 1 }));
@@ -33,6 +81,9 @@ export async function runDailySummaryCron(triggeredBy = "vercel-cron") {
   const triggeredAt = new Date().toISOString();
   const t0 = Date.now();
   devLog(`[cron] ▶ ${triggeredBy} — ${triggeredAt}`);
+
+  /* ── 0. Günlük reset (midnight-reset entegre) ── */
+  await runDailyReset();
 
   /* ── 1. Cache kontrolü (sadece otomatik cron için) ── */
   if (triggeredBy === "vercel-cron") {
