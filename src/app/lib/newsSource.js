@@ -134,6 +134,31 @@ export async function getNewsFeed({ category, page = 1, pageSize = 30 } = {}) {
   return getNewsFeedFresh({ category, page, pageSize, cacheKey });
 }
 
+// ── Kaynak round-robin dağıtımı ───────────────────────────────────────────
+// Aynı kaynaktan gelen haberler arka arkaya gelmesin.
+// Her kaynaktan birer haber alarak yeni bir liste oluşturur.
+function interleaveBySource(articles) {
+  // Kaynağa göre grupla
+  const groups = {};
+  for (const a of articles) {
+    const key = a.source_id || a.source_name || "unknown";
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(a);
+  }
+
+  // Her gruptan en fazla haber olan önce sıralanır (büyükten küçüğe)
+  const queues = Object.values(groups).sort((a, b) => b.length - a.length);
+  const result = [];
+
+  while (queues.some((q) => q.length > 0)) {
+    for (const q of queues) {
+      if (q.length > 0) result.push(q.shift());
+    }
+  }
+
+  return result;
+}
+
 async function getNewsFeedFresh({ category, page, pageSize, cacheKey }) {
   let articles = [];
   let source = "rss";
@@ -181,6 +206,9 @@ async function getNewsFeedFresh({ category, page, pageSize, cacheKey }) {
 
   // Makaleleri Redis'e kaydet (arka planda, await etme)
   cacheArticles(articles).catch(() => {});
+
+  // ── Kaynak karıştırma: aynı kaynağın haberleri arka arkaya gelmesin ──
+  articles = interleaveBySource(articles);
 
   // Sayfalama
   const start = (page - 1) * pageSize;
