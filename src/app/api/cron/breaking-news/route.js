@@ -125,7 +125,7 @@ export async function GET(request) {
   const todayCount = parseInt(
     (await redis.get(countKey).catch(() => "0")) || "0",
   );
-  if (todayCount >= 3) {
+  if (todayCount >= 1) {
     return NextResponse.json({
       skipped: true,
       reason: "daily-limit-reached",
@@ -139,8 +139,8 @@ export async function GET(request) {
     .slice(0, 10);
   const articles = await fetchMultipleRSS(sources, { maxConcurrent: 5 });
 
-  // Son 65 dakika içindeki haberleri filtrele (60dk cron + 5dk buffer)
-  const cutoff = Date.now() - 65 * 60 * 1000;
+  // Son 25 saat içindeki haberleri filtrele (günlük cron + 1 saat buffer)
+  const cutoff = Date.now() - 25 * 60 * 60 * 1000;
   const recentArticles = articles.filter(
     (a) => new Date(a.pubDate).getTime() > cutoff,
   );

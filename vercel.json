@@ -2,9 +2,6 @@
   "functions": {
     "src/app/api/cron/daily-summary/route.js": {
       "maxDuration": 60
-    },
-    "src/app/api/cron/breaking-news/route.js": {
-      "maxDuration": 30
     }
   },
   "crons": [
@@ -18,7 +15,7 @@
     },
     {
       "path": "/api/cron/breaking-news",
-      "schedule": "0 * * * *"
+      "schedule": "0 9 * * *"
     }
   ]
 }
