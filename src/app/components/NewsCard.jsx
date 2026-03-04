@@ -1,5 +1,6 @@
 "use client";
 
+import { CATEGORY_LABELS } from "@/app/lib/categoryConfig";
 import { formatDate } from "@/app/lib/news";
 import { CREDIBILITY_CONFIG, getSourceTier } from "@/app/lib/sourceCredibility";
 import { isArticleRead, trackArticle } from "@/app/lib/useArticleHistory";
@@ -33,7 +34,16 @@ function readingTime(article) {
   return Math.max(1, Math.round(words / 200));
 }
 
-export default function NewsCard({ article, priority = false }) {
+function categoryLabel(slug) {
+  if (!slug) return null;
+  return CATEGORY_LABELS[slug.toLowerCase()] ?? slug;
+}
+
+export default function NewsCard({
+  article,
+  priority = false,
+  featured = false,
+}) {
   const [scorePreview, setScorePreview] = useState(null);
   const [hovered, setHovered] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -135,13 +145,18 @@ export default function NewsCard({ article, priority = false }) {
           trackArticle(article);
           setIsRead(true);
         }}
-        className="flex md:block overflow-hidden transition-all duration-300
+        className={`overflow-hidden transition-all duration-300
                    bg-white border shadow-sm group dark:bg-stone-900
                    border-stone-200 dark:border-stone-800 rounded-2xl
                    hover:shadow-lg hover:border-stone-400 dark:hover:border-stone-600
-                   active:scale-[0.99]">
-        {/* Görsel — mobilde sabit genişlik, desktopda tam genişlik */}
-        <div className="relative self-stretch overflow-hidden w-28 shrink-0 md:w-full md:h-48 bg-stone-100 dark:bg-stone-800">
+                   active:scale-[0.99] ${featured ? "block" : "flex md:block"}`}>
+        {/* Görsel — featured/desktop: tam genişlik; normal mobil: sol thumbnail */}
+        <div
+          className={`relative overflow-hidden bg-stone-100 dark:bg-stone-800 ${
+            featured
+              ? "w-full h-44 md:h-52 shrink-0"
+              : "self-stretch w-28 shrink-0 md:w-full md:h-48"
+          }`}>
           {article.image_url ? (
             <Image
               src={article.image_url}
@@ -160,13 +175,15 @@ export default function NewsCard({ article, priority = false }) {
             </div>
           )}
 
-          {/* Gradient — sadece desktopda */}
-          <div className="absolute inset-0 hidden bg-linear-to-b from-black/30 via-transparent to-transparent md:block" />
-
-          {/* Kaynak badge — sadece desktop */}
+          {/* Gradient */}
           <div
-            className="absolute top-3 left-3 hidden md:flex items-center gap-1.5 px-2.5 py-1
-                          bg-black/60 backdrop-blur-sm rounded-full">
+            className={`absolute inset-0 bg-linear-to-b from-black/30 via-transparent to-transparent ${featured ? "block" : "hidden md:block"}`}
+          />
+
+          {/* Kaynak badge */}
+          <div
+            className={`absolute top-3 left-3 items-center gap-1.5 px-2.5 py-1
+                          bg-black/60 backdrop-blur-sm rounded-full ${featured ? "flex" : "hidden md:flex"}`}>
             {article.source_icon && (
               <Image
                 src={article.source_icon}
@@ -203,19 +220,21 @@ export default function NewsCard({ article, priority = false }) {
             </div>
           )}
 
-          {/* Kategori chip — sadece desktop */}
+          {/* Kategori chip */}
           {article.category?.[0] && (
-            <div className="absolute hidden bottom-3 left-3 md:block">
+            <div
+              className={`absolute bottom-3 left-3 ${featured ? "block" : "hidden md:block"}`}>
               <span
                 className="text-[9px] font-black uppercase tracking-widest
                                px-2 py-0.5 bg-stone-950/80 text-stone-300 rounded-sm">
-                {article.category[0]}
+                {categoryLabel(article.category[0])}
               </span>
             </div>
           )}
 
-          {/* Bookmark + Share — desktop hover */}
-          <div className="absolute transition-opacity opacity-0 bottom-3 right-3 group-hover:opacity-100 hidden md:flex items-center gap-1.5">
+          {/* Bookmark + Share — hover (featured + desktop) */}
+          <div
+            className={`absolute transition-opacity opacity-0 bottom-3 right-3 group-hover:opacity-100 items-center gap-1.5 ${featured ? "flex" : "hidden md:flex"}`}>
             <button
               onClick={handleShare}
               aria-label="Haberi paylaş"
@@ -257,8 +276,9 @@ export default function NewsCard({ article, priority = false }) {
 
         {/* İçerik */}
         <div className="flex flex-col justify-between flex-1 min-w-0 p-3 md:p-4">
-          {/* Mobil: kaynak satırı */}
-          <div className="flex items-center gap-1.5 mb-1.5 md:hidden">
+          {/* Mobil: kaynak satırı — featured modda gizli (üstte badge var) */}
+          <div
+            className={`flex items-center gap-1.5 mb-1.5 ${featured ? "hidden" : "md:hidden"}`}>
             {article.source_icon && (
               <Image
                 src={article.source_icon}
@@ -315,7 +335,8 @@ export default function NewsCard({ article, priority = false }) {
           </h3>
 
           {article.description && (
-            <p className="hidden mb-3 overflow-hidden text-xs leading-relaxed md:block text-stone-500 dark:text-stone-400 line-clamp-2">
+            <p
+              className={`mb-3 overflow-hidden text-xs leading-relaxed text-stone-500 dark:text-stone-400 line-clamp-2 ${featured ? "block" : "hidden md:block"}`}>
               {article.description.length > 120
                 ? article.description.slice(0, 120).trimEnd() + "…"
                 : article.description}
@@ -351,7 +372,7 @@ export default function NewsCard({ article, priority = false }) {
               <span
                 className="md:hidden text-[9px] font-black uppercase tracking-widest
                                px-2 py-0.5 bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400 rounded-sm">
-                {article.category[0]}
+                {categoryLabel(article.category[0])}
               </span>
             )}
             {/* Desktop: yazar */}
@@ -360,8 +381,9 @@ export default function NewsCard({ article, priority = false }) {
                 {article.creator[0]}
               </span>
             )}
-            {/* Mobil: bookmark + share her zaman görünür */}
-            <div className="md:hidden flex items-center gap-1.5">
+            {/* Mobil: bookmark + share her zaman görünür — featured modda gizli (üstte hover var) */}
+            <div
+              className={`flex items-center gap-1.5 ${featured ? "hidden" : "md:hidden"}`}>
               <button
                 onClick={handleShare}
                 aria-label="Haberi paylaş"

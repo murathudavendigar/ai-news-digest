@@ -158,6 +158,7 @@ export default async function CategoryPage({ params }) {
             <NewsFeed
               initialArticles={newsData.results}
               initialNextPage={newsData.nextPage || null}
+              showTabs={false}
             />
           )}
         </div>

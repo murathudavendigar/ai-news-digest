@@ -4,6 +4,30 @@ export const TIERS = {
   MINIMAL: "minimal",
 };
 
+// İngilizce kategori slug → Türkçe etiket
+export const CATEGORY_LABELS = {
+  politics: "Politika",
+  business: "Ekonomi",
+  crime: "Suç",
+  world: "Dünya",
+  defense: "Savunma",
+  technology: "Teknoloji",
+  science: "Bilim",
+  health: "Sağlık",
+  environment: "Çevre",
+  education: "Eğitim",
+  culture: "Kültür",
+  sports: "Spor",
+  entertainment: "Magazin",
+  lifestyle: "Yaşam",
+  food: "Yemek",
+  tourism: "Turizm",
+  other: "Diğer",
+  top: "Öne Çıkanlar",
+  domestic: "Gündem",
+  breaking: "Son Dakika",
+};
+
 export const CATEGORY_TIER_MAP = {
   politics: TIERS.DEEP,
   business: TIERS.DEEP,

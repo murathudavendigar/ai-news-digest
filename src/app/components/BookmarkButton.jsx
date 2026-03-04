@@ -7,6 +7,7 @@ export default function BookmarkButton({
   article,
   className = "",
   size = "sm",
+  showLabel = false,
 }) {
   const { toggle, isBookmarked, mounted } = useBookmarks();
   if (!mounted) return null;
@@ -24,11 +25,11 @@ export default function BookmarkButton({
         toggle(article);
       }}
       title={saved ? "Kaydedilenlerden çıkar" : "Kaydet"}
-      className={`flex items-center justify-center transition-all duration-200 ${
+      className={`inline-flex items-center gap-2 transition-all duration-200 ${
         saved
           ? "text-amber-400 hover:text-amber-300"
           : "text-stone-400 hover:text-amber-400"
-      } ${className}`}>
+      } ${showLabel ? "px-4 py-2 rounded-xl text-sm font-semibold bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 border border-stone-200 dark:border-stone-700" : "justify-center"} ${className}`}>
       <svg
         className={sz}
         viewBox="0 0 24 24"
@@ -41,6 +42,7 @@ export default function BookmarkButton({
           d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
         />
       </svg>
+      {showLabel && <span>{saved ? "Kaydedildi" : "Kaydet"}</span>}
     </button>
   );
 }

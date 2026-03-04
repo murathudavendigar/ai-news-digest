@@ -1,6 +1,7 @@
 import ConditionalFooter from "@/app/components/ConditionalFooter";
 import Navigation from "@/app/components/Navigation";
 import OfflineBanner from "@/app/components/OfflineBanner";
+import OnboardingProvider from "@/app/components/OnboardingProvider";
 import PWAInstallPrompt from "@/app/components/PWAInstallPrompt";
 import PushPrompt from "@/app/components/PushPrompt";
 import ScrollToTop from "@/app/components/ScrollToTop";
@@ -187,7 +188,7 @@ export default function RootLayout({ children }) {
 
           {/* ── İçerik ── */}
           <main className="pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
-            {children}
+            <OnboardingProvider>{children}</OnboardingProvider>
           </main>
 
           {/* ── Footer ── */}

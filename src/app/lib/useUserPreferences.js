@@ -7,6 +7,8 @@ const KEY = "haberai:user-preferences";
 export const DEFAULT_PREFERENCES = {
   /** Öncelikli gösterilecek kategoriler (slug dizisi, boşsa hepsi eşit) */
   preferredCategories: [],
+  /** Takip edilen konu/anahtar kelimeler (string dizisi) */
+  followedTopics: [],
   /** Haber arayüz dili */
   language: "tr", // "tr" | "en"
   /** AI özet uzunluğu */
@@ -82,4 +84,29 @@ export function sortByPreferredCategories(articles, preferredCategories) {
   );
   const rest = articles.filter((a) => !a.category?.some((c) => pref.has(c)));
   return [...preferred, ...rest];
+}
+
+/**
+ * Takip edilen konulara göre makale listesini sırala.
+ * Başlık veya açıklamasında takip edilen konu geçen makaleler başa gelir.
+ */
+export function sortByFollowedTopics(articles, followedTopics) {
+  if (!followedTopics?.length) return articles;
+  const lower = followedTopics.map((t) => t.toLowerCase());
+  const matches = articles.filter((a) =>
+    lower.some(
+      (t) =>
+        a.title?.toLowerCase().includes(t) ||
+        a.description?.toLowerCase().includes(t),
+    ),
+  );
+  const rest = articles.filter(
+    (a) =>
+      !lower.some(
+        (t) =>
+          a.title?.toLowerCase().includes(t) ||
+          a.description?.toLowerCase().includes(t),
+      ),
+  );
+  return [...matches, ...rest];
 }

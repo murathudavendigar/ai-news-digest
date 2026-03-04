@@ -1,10 +1,14 @@
 import AISummary from "@/app/components/AISummary";
 import ArticleAnalysis from "@/app/components/ArticleAnalysis";
+import BookmarkButton from "@/app/components/BookmarkButton";
 import NewsComparison from "@/app/components/NewsComparison";
 import ReadingToolbar from "@/app/components/ReadingToolbar";
 import RelatedArticles from "@/app/components/RelatedArticles";
+import ShareButton from "@/app/components/ShareButton";
+import { CATEGORY_LABELS } from "@/app/lib/categoryConfig";
 import { getArticleForDetail } from "@/app/lib/newsSource";
 import { siteConfig } from "@/app/lib/siteConfig";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -108,6 +112,9 @@ export default async function NewsDetailPage({ params }) {
     },
   };
 
+  // Mevcut sayfanin tam URL'si (paylas icin)
+  const articleUrl = `${SITE_URL}/news/${slug}`;
+
   return (
     <>
       <script
@@ -137,11 +144,14 @@ export default async function NewsDetailPage({ params }) {
             <div className="p-6 md:p-8">
               {/* Görsel */}
               {article.image_url && (
-                <div className="mb-6 -mx-6 -mt-6 overflow-hidden rounded-xl md:-mx-8 md:-mt-8">
-                  <img
+                <div className="relative mb-6 -mx-6 -mt-6 overflow-hidden rounded-xl md:-mx-8 md:-mt-8 h-64 md:h-80">
+                  <Image
                     src={article.image_url}
                     alt={article.title}
-                    className="object-cover w-full h-64 md:h-80"
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 896px) 100vw, 896px"
+                    priority
                   />
                 </div>
               )}
@@ -157,10 +167,12 @@ export default async function NewsDetailPage({ params }) {
               <div className="flex flex-wrap items-center justify-between gap-4 pb-5 mb-5 border-b border-stone-100 dark:border-stone-800">
                 <div className="flex items-center gap-3">
                   {article.source_icon && (
-                    <img
+                    <Image
                       src={article.source_icon}
-                      alt={article.source_name}
-                      className="w-8 h-8 border rounded-full border-stone-200 dark:border-stone-700"
+                      alt={article.source_name ?? ""}
+                      width={32}
+                      height={32}
+                      className="border rounded-full border-stone-200 dark:border-stone-700"
                     />
                   )}
                   <div>
@@ -189,7 +201,7 @@ export default async function NewsDetailPage({ params }) {
                   <span
                     key={cat}
                     className="px-3 py-1 text-xs font-bold tracking-wider uppercase rounded-md bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300">
-                    {cat}
+                    {CATEGORY_LABELS[cat?.toLowerCase()] ?? cat}
                   </span>
                 ))}
                 {article.country?.[0] && (
@@ -197,6 +209,25 @@ export default async function NewsDetailPage({ params }) {
                     📍 {article.country[0]}
                   </span>
                 )}
+              </div>
+
+              {/* ── Aksiyon çubuğu: Paylas + Kaydet ── */}
+              <div className="flex items-center gap-3 mb-6">
+                <ShareButton title={article.title} url={articleUrl} />
+                <BookmarkButton
+                  article={{
+                    article_id: article.article_id,
+                    title: article.title,
+                    description: article.description,
+                    image_url: article.image_url,
+                    source_name: article.source_name,
+                    pubDate: article.pubDate,
+                    link: article.link,
+                    category: article.category,
+                  }}
+                  showLabel
+                  size="lg"
+                />
               </div>
 
               {/* Keywords — NewsData'dan gelir veya başlıktan türetilir */}
@@ -268,9 +299,11 @@ export default async function NewsDetailPage({ params }) {
               <div className="flex items-center justify-between pt-6 mt-8 border-t border-stone-100 dark:border-stone-800">
                 <div className="flex items-center gap-2 text-sm text-stone-400">
                   {article.source_icon && (
-                    <img
+                    <Image
                       src={article.source_icon}
-                      className="w-4 h-4 rounded-full"
+                      width={16}
+                      height={16}
+                      className="rounded-full"
                       alt=""
                     />
                   )}

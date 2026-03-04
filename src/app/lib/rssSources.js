@@ -16,8 +16,34 @@ export const RSS_SOURCES = [
     categories: ["politics"],
     lang: "tr",
     priority: 1,
+  }, 
+  {
+    id: "onedio_gundem",
+    name: "Onedio Gündem",
+    url: "https://onedio.com/Publisher/publisher-gundem.rss",
+    icon: "https://onedio.com/favicon.ico",
+    categories: ["politics"],
+    lang: "tr",
+    priority: 2,
   },
-
+  {
+    id: "onedio_teknoloji",
+    name: "Onedio Teknoloji",
+    url: "https://onedio.com/Publisher/publisher-teknoloji.rss",
+    icon: "https://onedio.com/favicon.ico",
+    categories: ["technology"],
+    lang: "tr",
+    priority: 2,
+  },
+  {
+    id: "onedio_ekonomi",
+    name: "Onedio Ekonomi",
+    url: "https://onedio.com/Publisher/publisher-ekonomi.rss",
+    icon: "https://onedio.com/favicon.ico",
+    categories: ["business"],
+    lang: "tr",
+    priority: 2,
+  },
   {
     id: "hurriyet",
     name: "Hürriyet",
@@ -34,7 +60,7 @@ export const RSS_SOURCES = [
     icon: "https://www.sabah.com.tr/favicon.ico",
     categories: ["politics", "world", "business"],
     lang: "tr",
-    priority: 1,
+    priority: 3,
   },
   {
     id: "milliyet",
@@ -210,6 +236,24 @@ export const RSS_SOURCES = [
     priority: 1,
   },
   {
+    id: "onedio_ekonomi",
+    name: "Onedio Ekonomi",
+    url: "https://onedio.com/Publisher/publisher-ekonomi.rss",
+    icon: "https://onedio.com/favicon.ico",
+    categories: ["business"],
+    lang: "tr",
+    priority: 2,
+  },
+  {
+    id: "onedio_finans",
+    name: "Onedio Finans",
+    url: "https://onedio.com/Publisher/publisher-finans.rss",
+    icon: "https://onedio.com/favicon.ico",
+    categories: ["business"],
+    lang: "tr",
+    priority: 2,
+  },
+  {
     id: "bloomberght",
     name: "Bloomberg HT",
     url: "https://www.bloomberght.com/rss",
@@ -330,6 +374,15 @@ export const RSS_SOURCES = [
     priority: 1,
   },
   {
+    id: "onedio_teknoloji",
+    name: "Onedio Teknoloji",
+    url: "https://onedio.com/Publisher/publisher-teknoloji.rss",
+    icon: "https://onedio.com/favicon.ico",
+    categories: ["technology"],
+    lang: "tr",
+    priority: 2,
+  },
+  {
     id: "chip",
     name: "Chip Online",
     url: "https://www.chip.com.tr/rss",
@@ -395,10 +448,28 @@ export const RSS_SOURCES = [
     priority: 1,
   },
   {
+    id: "onedio_spor",
+    name: "Onedio Spor",
+    url: "https://onedio.com/Publisher/publisher-spor.rss",
+    icon: "https://onedio.com/favicon.ico",
+    categories: ["sports"],
+    lang: "tr",
+    priority: 2,
+  },
+  {
     id: "fotomac",
     name: "Fotomaç",
     url: "https://www.fotomac.com.tr/rss/anasayfa.xml",
     icon: "https://www.fotomac.com.tr/favicon.ico",
+    categories: ["sports"],
+    lang: "tr",
+    priority: 2,
+  },
+  {
+    id: "euronews_spor",
+    name: "Euronews Spor",
+    url: "https://tr.euronews.com/rss?format=mrss&level=theme&name=sport",
+    icon: "https://tr.euronews.com/favicon.ico",
     categories: ["sports"],
     lang: "tr",
     priority: 1,
@@ -428,7 +499,7 @@ export const RSS_SOURCES = [
     icon: "https://www.aspor.com.tr/favicon.ico",
     categories: ["sports"],
     lang: "tr",
-    priority: 1,
+    priority: 2,
   },
 
   {
@@ -479,6 +550,16 @@ export const RSS_SOURCES = [
   },
   // ── SAĞLIK ──────────────────────────────────────────────────────────────
   {
+    id: "onedio_saglik",
+    name: "Onedio Sağlık",
+    url: "https://onedio.com/Publisher/publisher-saglik.rss",
+    icon: "https://onedio.com/favicon.ico",
+    categories: ["health"],
+    lang: "tr",
+    priority: 2,
+  },
+  
+  {
     id: "saglik_haberler",
     name: "Sağlık Haberleri",
     url: "https://www.haberler.com/saglik/rss/",
@@ -503,6 +584,15 @@ export const RSS_SOURCES = [
     name: "AA Dünya",
     url: "https://www.aa.com.tr/tr/rss/default?cat=dunya",
     icon: "https://www.aa.com.tr/favicon.ico",
+    categories: ["world"],
+    lang: "tr",
+    priority: 1,
+  },
+  {
+    id: "euronews_dunya",
+    name: "Euronews Dünya",
+    url: "https://tr.euronews.com/rss?format=mrss&level=theme&name=news",
+    icon: "https://tr.euronews.com/favicon.ico",
     categories: ["world"],
     lang: "tr",
     priority: 1,
@@ -679,6 +769,24 @@ export const RSS_SOURCES = [
 
   // ── ENTERTAİNMENT ────────────────────────────────────────────────────────
   {
+    id: "onedio_dizifilm",
+    name: "Onedio",
+    url: "https://onedio.com/Publisher/publisher-dizi+%26+film.rss",
+    icon: "https://onedio.com/favicon.ico",
+    categories: ["entertainment"],
+    lang: "tr",
+    priority: 1,
+  },
+  {
+    id: "onedio_tv",
+    name: "Onedio TV",
+    url: "https://onedio.com/Publisher/publisher-tv.rss",
+    icon: "https://onedio.com/favicon.ico",
+    categories: ["entertainment"],
+    lang: "tr",
+    priority: 1,
+  },
+  {
     id: "beyazperde",
     name: "Beyaz Perde",
     url: "https://www.beyazperde.com/rss/haberler.xml",
@@ -717,13 +825,22 @@ export const RSS_SOURCES = [
 
   // ── YAŞAM / LİFESTYLE ─────────────────────────────────────────────────────
   {
+    id: "onedio_yasam",
+    name: "Onedio Yaşam",
+    url: "https://onedio.com/Publisher/publisher-yasam.rss",
+    icon: "https://onedio.com/favicon.ico",
+    categories: ["lifestyle"],
+    lang: "tr",
+    priority: 1,
+  },
+  {
     id: "isindetayi_yasam",
     name: "İşin Detayı Yaşam",
     url: "https://www.isindetayi.com/rss/yasam",
     icon: "https://www.isindetayi.com/favicon.ico",
     categories: ["lifestyle"],
     lang: "tr",
-    priority: 1,
+    priority: 2,
   },
   {
     id: "isindetayi_saglik",
