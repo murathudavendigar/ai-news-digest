@@ -258,6 +258,15 @@ export async function POST(request) {
     );
   }
 
+  if (action === "trigger-column") {
+    const { generateColumn } = await import("@/app/lib/generateColumn");
+    const result = await generateColumn();
+    return NextResponse.json(
+      { triggered: true, result },
+      { status: result.success || result.skipped ? 200 : 500 },
+    );
+  }
+
   if (action === "refresh-markets") {
     await redis.del("realtime:markets").catch(() => {});
     const result = await fetchMarketData().catch((e) => ({ error: e.message }));

@@ -660,6 +660,9 @@ export default function AdminDashboard() {
         </div>
       </Section>
 
+      {/* ─── Köşe Yazıları ─────────────────────────────────────────── */}
+      <KoseYazilariSection />
+
       {/* Bugünkü özet */}
       {cache?.todayMeta && (
         <Section title="Bugünkü Özet — Önizleme">
@@ -1156,6 +1159,158 @@ export default function AdminDashboard() {
         çalışmaları görebilirsiniz.
       </div>
     </div>
+  );
+}
+
+/* ── Köşe Yazıları admin section ── */
+function KoseYazilariSection() {
+  const [generating, setGenerating] = useState(false);
+  const [result, setResult] = useState(null);
+  const [columns, setColumns] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [todayColumnist, setTodayColumnist] = useState(null);
+
+  const loadColumns = async () => {
+    setLoading(true);
+    try {
+      const r = await fetch("/api/columns?limit=7");
+      if (r.ok) {
+        const data = await r.json();
+        setColumns(data);
+      }
+    } catch {
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadColumns();
+    // Import columnistConfig dynamically to get today's slug
+    import("@/app/lib/columnistConfig").then(({ getTodaysColumnistSlug }) => {
+      setTodayColumnist(getTodaysColumnistSlug());
+    });
+  }, []);
+
+  const triggerGenerate = async () => {
+    setGenerating(true);
+    setResult(null);
+    try {
+      const r = await fetch("/api/admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "trigger-column" }),
+      });
+      const res = await r.json();
+      setResult({ ok: r.ok, ...(res.result || res) });
+      if (r.ok) loadColumns();
+    } catch (e) {
+      setResult({ ok: false, error: e.message });
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const wordCount = (content) => {
+    if (!content) return 0;
+    return content.split(/\s+/).filter(Boolean).length;
+  };
+
+  return (
+    <Section title="✍️ Köşe Yazıları">
+      <div className="space-y-4">
+        {/* Bugünün yazarı */}
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-[9px] font-black text-stone-500 uppercase tracking-widest mb-1">
+              Bugünün Yazarı
+            </p>
+            <p className="text-sm font-bold text-stone-200">
+              {todayColumnist
+                ? todayColumnist
+                    .replace(/-/g, " ")
+                    .replace(/\b\w/g, (c) => c.toUpperCase())
+                : "—"}
+            </p>
+          </div>
+          <ActionBtn
+            variant="primary"
+            onClick={triggerGenerate}
+            loading={generating}>
+            ✍️ Yazıyı Şimdi Üret
+          </ActionBtn>
+        </div>
+
+        {/* Result toast */}
+        {result && (
+          <div
+            className={`px-4 py-2.5 rounded-xl border text-xs font-semibold ${
+              result.success
+                ? "bg-emerald-950/40 border-emerald-800 text-emerald-300"
+                : result.skipped
+                  ? "bg-blue-950/40 border-blue-800 text-blue-300"
+                  : "bg-red-950/40 border-red-800 text-red-300"
+            }`}>
+            {result.success
+              ? `✅ ${result.columnist} yazısı yayınlandı!`
+              : result.skipped
+                ? `ℹ️ Bugünün yazısı zaten mevcut`
+                : `❌ Üretim başarısız: ${result.error || "Bilinmeyen hata"}`}
+          </div>
+        )}
+
+        {/* Son 7 yazı */}
+        <div>
+          <div className="flex items-center justify-between mb-2.5">
+            <p className="text-[9px] font-black text-stone-500 uppercase tracking-widest">
+              Son 7 Yazı
+            </p>
+            <button
+              onClick={loadColumns}
+              disabled={loading}
+              className="text-[10px] font-bold text-stone-500 hover:text-stone-300 transition-colors flex items-center gap-1">
+              {loading ? <Spinner sm /> : "↻"} Yenile
+            </button>
+          </div>
+
+          {!columns ? (
+            <div className="py-4 text-center">
+              <Spinner />
+            </div>
+          ) : columns.length === 0 ? (
+            <p className="py-4 text-xs text-center text-stone-600">
+              Henüz köşe yazısı üretilmemiş.
+            </p>
+          ) : (
+            <div className="space-y-1.5">
+              {columns.map((col) => (
+                <div
+                  key={col.id}
+                  className="flex items-center justify-between px-3 py-2.5 rounded-xl border bg-stone-900 border-stone-800">
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    <span className="text-[9px] text-stone-600 shrink-0">
+                      {new Date(col.published_at).toLocaleDateString("tr-TR", {
+                        day: "2-digit",
+                        month: "short",
+                      })}
+                    </span>
+                    <span className="text-[10px] font-bold text-amber-400 shrink-0">
+                      {col.columnist?.name || "—"}
+                    </span>
+                    <span className="text-[11px] text-stone-300 truncate">
+                      {col.title}
+                    </span>
+                  </div>
+                  <span className="text-[9px] text-stone-600 shrink-0 ml-2 tabular-nums">
+                    {wordCount(col.content)} kelime
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </Section>
   );
 }
 

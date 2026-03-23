@@ -1,18 +1,25 @@
 import { devLog, devWarn } from "@/app/lib/devLog";
 // ── Model adları — sadece buradan değiştir ────────────────────────────────
 export const GEMINI_MODELS = {
-  FLASH: "gemini-2.5-flash", // Ana model
-  FLASH_LITE: "gemini-2.5-flash-lite",
-  FLASH_2: "gemini-2.0-flash",
-  PRO: "gemini-3-flash-preview",
+  // En güçlü ücretsiz model (Analiz ve Muhakeme için)
+  PRIMARY_ANALYSIS: "gemini-3-flash-preview",
+
+  // Hızlı ve yüksek kota limitli model
+  HIGH_SPEED: "gemini-3.1-flash-lite-preview",
+
+  // Güçlü ama önceki nesil (Yedek olarak çok stabil)
+  RELIABLE_BACKUP: "gemini-2.5-flash",
+
+  // En geniş kota, en basit işler için
+  LONG_TAIL_BACKUP: "gemini-2.5-flash-lite",
 };
 
-// 429 / 503 / 500 durumunda bu sırayla denenir
+// Ücretsiz planda hata (429/500) durumunda izlenecek yol:
 const FALLBACK_CHAIN = [
-  GEMINI_MODELS.PRO,
-  GEMINI_MODELS.FLASH,
-  GEMINI_MODELS.FLASH_LITE,
-  GEMINI_MODELS.FLASH_2,
+  GEMINI_MODELS.PRIMARY_ANALYSIS, // Önce en zekisini dene
+  GEMINI_MODELS.HIGH_SPEED, // Kota dolarsa daha hızlı/hafif olan 3.1'e geç
+  GEMINI_MODELS.RELIABLE_BACKUP, // Sorun devam ederse eski nesil stabil modele dön
+  GEMINI_MODELS.LONG_TAIL_BACKUP, // En son çare olarak en yüksek kotalı hafif modele git
 ];
 
 const BASE = "https://generativelanguage.googleapis.com/v1beta/models";
@@ -57,7 +64,7 @@ async function callGemini(model, body) {
 // Bulunamadı (404) → bu modeli atla, devam et
 async function callWithFallback(
   buildBody,
-  preferredModel = GEMINI_MODELS.FLASH,
+  preferredModel = GEMINI_MODELS.PRIMARY_ANALYSIS,
 ) {
   const startIdx = FALLBACK_CHAIN.indexOf(preferredModel);
   const queue = [
@@ -80,9 +87,7 @@ async function callWithFallback(
         throw err;
       }
       if (err.status === 429 || err.status === 503 || err.status === 500) {
-        devWarn(
-          `[gemini] ${model} rate-limit/geçici hata → sonraki model`,
-        );
+        devWarn(`[gemini] ${model} rate-limit/geçici hata → sonraki model`);
         continue; // sıradaki modele geç
       }
       if (err.status === 404) {
@@ -157,7 +162,11 @@ export function parseGeminiJSON(raw, label = "") {
  */
 export async function generateWithGrounding(
   prompt,
-  { model = GEMINI_MODELS.FLASH, temperature = 0.4, maxTokens = 8192 } = {},
+  {
+    model = GEMINI_MODELS.PRIMARY_ANALYSIS,
+    temperature = 0.4,
+    maxTokens = 8192,
+  } = {},
 ) {
   const body = {
     contents: [{ role: "user", parts: [{ text: prompt }] }],
@@ -167,8 +176,7 @@ export async function generateWithGrounding(
 
   try {
     const { text, searches } = await callGemini(model, body);
-    if (searches.length)
-      devLog("[gemini] Web searches:", searches.join(" | "));
+    if (searches.length) devLog("[gemini] Web searches:", searches.join(" | "));
     return text;
   } catch (err) {
     if (err.status === 429 || err.status === 503) {
@@ -179,7 +187,7 @@ export async function generateWithGrounding(
           contents: [{ role: "user", parts: [{ text: prompt }] }],
           generationConfig: { temperature, maxOutputTokens: maxTokens },
         }),
-        GEMINI_MODELS.FLASH_LITE,
+        GEMINI_MODELS.HIGH_SPEED,
       );
       return text;
     }
@@ -193,7 +201,7 @@ export async function generateWithGrounding(
 export async function generateJSON(
   prompt,
   {
-    model = GEMINI_MODELS.FLASH,
+    model = GEMINI_MODELS.PRIMARY_ANALYSIS,
     temperature = 0.15,
     maxTokens = 4000,
     label = "",

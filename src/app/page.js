@@ -4,6 +4,7 @@ import PullToRefresh from "@/app/components/PullToRefresh";
 import { getDailySummary } from "@/app/lib/dailySummary";
 import { getNewsFeed } from "@/app/lib/newsSource";
 import { siteConfig } from "@/app/lib/siteConfig";
+import ColumnistBanner from "@/app/components/ColumnistBanner";
 
 export const revalidate = 300; // 5 dakikada revalidate
 
@@ -38,6 +39,7 @@ export default async function HomePage() {
             <>
               {/* summaryData null ise skeleton gösterilir */}
               <DailySummary data={summaryData} />
+              <ColumnistBanner />
               <NewsFeed
                 initialArticles={feedData.results}
                 initialNextPage={feedData.nextPage || null}

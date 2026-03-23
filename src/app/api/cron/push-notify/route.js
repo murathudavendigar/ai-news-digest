@@ -4,20 +4,8 @@
 export const maxDuration = 30;
 
 import { getDailySummary } from "@/app/lib/dailySummary";
-import { Redis } from "@upstash/redis";
 import { NextResponse } from "next/server";
-import webpush from "web-push";
-
-const redis = new Redis({
-  url: process.env.STORAGE_KV_REST_API_URL,
-  token: process.env.STORAGE_KV_REST_API_TOKEN,
-});
-
-webpush.setVapidDetails(
-  process.env.VAPID_MAILTO,
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
-  process.env.VAPID_PRIVATE_KEY,
-);
+import { sendPushNotification } from "@/app/lib/push";
 
 export async function GET(request) {
   // Auth
@@ -47,46 +35,10 @@ export async function GET(request) {
     badge: "/icon-192.png",
   });
 
-  // Tüm abonelik anahtarlarını çek
-  const endpointKeys = await redis.smembers("push:endpoints").catch(() => []);
-  if (!endpointKeys.length) {
-    return NextResponse.json({ sent: 0, reason: "no-subscribers" });
-  }
-
-  let sent = 0;
-  let failed = 0;
-  const expired = [];
-
-  await Promise.allSettled(
-    endpointKeys.map(async (key) => {
-      try {
-        const raw = await redis.get(key);
-        if (!raw) return;
-        const sub = typeof raw === "string" ? JSON.parse(raw) : raw;
-        await webpush.sendNotification(sub, payload);
-        sent++;
-      } catch (err) {
-        // 404/410 = abonelik süresi dolmuş → temizle
-        if (err.statusCode === 404 || err.statusCode === 410) {
-          expired.push(key);
-        } else {
-          failed++;
-          console.error("[push-notify] Gönderim hatası:", err.message);
-        }
-      }
-    }),
-  );
-
-  // Süresi dolmuş abonelikleri temizle
-  if (expired.length) {
-    await Promise.all([
-      ...expired.map((k) => redis.del(k)),
-      redis.srem("push:endpoints", ...expired),
-    ]);
-  }
+  const { sent, failed, expired } = await sendPushNotification(payload);
 
   console.log(
-    `[push-notify] Gönderildi: ${sent}, Başarısız: ${failed}, Temizlendi: ${expired.length}`,
+    `[push-notify] Gönderildi: ${sent}, Başarısız: ${failed}, Temizlendi: ${expired}`,
   );
-  return NextResponse.json({ sent, failed, expired: expired.length });
+  return NextResponse.json({ sent, failed, expired });
 }

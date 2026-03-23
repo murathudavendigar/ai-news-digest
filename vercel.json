@@ -2,9 +2,23 @@
   "functions": {
     "src/app/api/cron/daily-summary/route.js": {
       "maxDuration": 60
+    },
+    "src/app/api/cron/daily-digest/route.js": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/generate-column/route.js": {
+      "maxDuration": 60
     }
   },
   "crons": [
+    {
+      "path": "/api/cron/generate-column",
+      "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/daily-digest",
+      "schedule": "0 20 * * *"
+    },
     {
       "path": "/api/cron/daily-summary",
       "schedule": "0 4 * * *"

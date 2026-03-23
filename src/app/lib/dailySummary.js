@@ -7,6 +7,7 @@ import {
 } from "./gemini";
 import { getNewsFeed } from "./newsSource";
 import { fetchMarketData, fetchWeatherData } from "./realTimeData";
+import { supabaseAdmin } from "./supabase";
 
 const redis = new Redis({
   url: process.env.STORAGE_KV_REST_API_URL,
@@ -220,6 +221,33 @@ export async function generateDailySummary() {
     console.log(`[dailySummary] Cache'e yazildi — Sayi #${result.issueNumber}`);
   } catch (err) {
     console.error("[dailySummary] Redis SET:", err.message);
+  }
+
+  // ── Supabase upsert — daily_digests tablosuna yaz ──
+  const todayStr = new Date().toISOString().slice(0, 10);
+  console.log("[dailySummary] Inserting digest:", {
+    date: todayStr,
+    model_used: GEMINI_MODELS.PRIMARY_ANALYSIS,
+  });
+
+  const { data: upsertData, error: upsertError } = await supabaseAdmin
+    .from("daily_digests")
+    .upsert(
+      {
+        date: todayStr,
+        top_stories: result,
+        market_data: result.markets ?? null,
+        generated_at: new Date().toISOString(),
+        model_used: GEMINI_MODELS.PRIMARY_ANALYSIS,
+      },
+      { onConflict: "date" },
+    );
+
+  if (upsertError) {
+    console.error("[dailySummary] Supabase upsert error:", upsertError);
+    // Non-fatal — Redis cache already written, don't break the response
+  } else {
+    console.log("[dailySummary] Supabase upsert OK:", { date: todayStr });
   }
 
   return { ...result, fromCache: false };
