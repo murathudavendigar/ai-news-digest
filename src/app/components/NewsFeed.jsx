@@ -9,6 +9,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import NewsCard from "./NewsCard";
 import NewsCardSkeleton from "./NewsCardSkeleton";
+import ReaderBottomSheet from "./ReaderBottomSheet";
 
 const TIME_FILTERS = [
   { key: "all", label: "Tümü" },
@@ -99,6 +100,19 @@ export default function NewsFeed({
   // Aktif sekme: "forYou" | "gundem"
   const [activeTab, setActiveTab] = useState("gundem");
   const touchStartX = useRef(null);
+
+  // Reader bottom sheet state
+  const [readerArticle, setReaderArticle] = useState(null);
+  const [readerOpen, setReaderOpen] = useState(false);
+
+  const handleReaderOpen = useCallback((article) => {
+    setReaderArticle(article);
+    setReaderOpen(true);
+  }, []);
+
+  const handleReaderClose = useCallback(() => {
+    setReaderOpen(false);
+  }, []);
 
   const { pullY, refreshing, threshold } = usePullToRefresh();
 
@@ -482,7 +496,14 @@ export default function NewsFeed({
             </div>
           </div>
         </div>
-      </div>
+    </div>
+
+      {/* Reader Bottom Sheet */}
+      <ReaderBottomSheet
+        isOpen={readerOpen}
+        onClose={handleReaderClose}
+        article={readerArticle}
+      />
     </div>
   );
 }

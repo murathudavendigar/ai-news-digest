@@ -58,7 +58,7 @@ export default async function DailyDigestPage({ params }) {
       </header>
 
       <section className="space-y-8">
-        {digest.top_stories?.map((story, idx) => (
+        {Array.isArray(digest.top_stories) && digest.top_stories.map((story, idx) => (
           <article 
             key={idx} 
             className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 transition-all hover:shadow-md"

@@ -5,6 +5,7 @@ import NewsComparison from "@/app/components/NewsComparison";
 import ReadingToolbar from "@/app/components/ReadingToolbar";
 import RelatedArticles from "@/app/components/RelatedArticles";
 import ShareButton from "@/app/components/ShareButton";
+import ArticleReader from "@/app/components/ArticleReader";
 import { CATEGORY_LABELS } from "@/app/lib/categoryConfig";
 import { getArticleForDetail } from "@/app/lib/newsSource";
 import { siteConfig } from "@/app/lib/siteConfig";
@@ -279,6 +280,12 @@ export default async function NewsDetailPage({ params }) {
                   </p>
                 </div>
               )}
+
+              {/* In-app reader — scraped full text + AI summary */}
+              <ArticleReader
+                url={article.link}
+                hasExistingContent={!!(article.content || article.description)}
+              />
 
               {/* AI Bölümleri */}
               <div className="space-y-6">
