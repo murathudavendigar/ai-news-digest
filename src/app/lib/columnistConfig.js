@@ -55,3 +55,59 @@ export const toColumnSlug = (title, date) => {
     .replace(/^-|-$/g, "");
   return `${slug}-${dateStr}`;
 };
+
+// ─────────────────────────────────────────────────────────────
+// Columnist Accent Colors — unique per author across all UI
+// ─────────────────────────────────────────────────────────────
+export const COLUMNIST_ACCENTS = {
+  "ceylan-arslan": {
+    primary: "#2E6DA4",
+    light: "#EBF3FB",
+    dark: "#1A4A75",
+    label: "blue",
+  },
+  "mert-yildiz": {
+    primary: "#D97706",
+    light: "#FEF3C7",
+    dark: "#92400E",
+    label: "amber",
+  },
+  "derin-kaya": {
+    primary: "#059669",
+    light: "#D1FAE5",
+    dark: "#064E3B",
+    label: "emerald",
+  },
+  "ayse-tunc": {
+    primary: "#DC2626",
+    light: "#FEE2E2",
+    dark: "#7F1D1D",
+    label: "red",
+  },
+  "can-erdem": {
+    primary: "#7C3AED",
+    light: "#EDE9FE",
+    dark: "#4C1D95",
+    label: "purple",
+  },
+  "lale-sahin": {
+    primary: "#DB2777",
+    light: "#FCE7F3",
+    dark: "#831843",
+    label: "rose",
+  },
+  "burak-deniz": {
+    primary: "#EA580C",
+    light: "#FFEDD5",
+    dark: "#7C2D12",
+    label: "orange",
+  },
+};
+
+export const getColumnistAccent = (slug) =>
+  COLUMNIST_ACCENTS[slug] ?? {
+    primary: "#6B7280",
+    light: "#F3F4F6",
+    dark: "#1F2937",
+    label: "gray",
+  };

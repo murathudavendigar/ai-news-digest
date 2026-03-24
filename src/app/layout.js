@@ -9,7 +9,7 @@ import SearchBar from "@/app/components/SearchBar";
 import ServiceWorkerRegistration from "@/app/components/ServiceWorkerRegistration";
 import ThemeProvider from "@/app/components/ThemeProvider";
 import { siteConfig } from "@/app/lib/siteConfig";
-import { Playfair_Display, Source_Serif_4 } from "next/font/google";
+import { Caveat, Playfair_Display, Source_Serif_4 } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 
@@ -22,6 +22,13 @@ const playfair = Playfair_Display({
 const sourceSerif = Source_Serif_4({
   subsets: ["latin"],
   variable: "--font-body",
+  display: "swap",
+});
+
+const caveat = Caveat({
+  subsets: ["latin"],
+  weight: ["600"],
+  variable: "--font-signature",
   display: "swap",
 });
 
@@ -88,7 +95,7 @@ export default function RootLayout({ children }) {
   return (
     <html
       lang="tr"
-      className={`${playfair.variable} ${sourceSerif.variable}`}
+      className={`${playfair.variable} ${sourceSerif.variable} ${caveat.variable}`}
       suppressHydrationWarning>
       <body className="antialiased bg-stone-50 dark:bg-stone-950 text-stone-900 dark:text-stone-100">
         <ThemeProvider>
