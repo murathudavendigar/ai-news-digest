@@ -4,6 +4,7 @@ import * as cheerio from "cheerio";
 import { NextResponse } from "next/server";
 
 export const maxDuration = 30;
+export const runtime = 'nodejs';
 
 const redis = new Redis({
   url: process.env.STORAGE_KV_REST_API_URL,
@@ -14,49 +15,13 @@ const CACHE_TTL = 6 * 60 * 60; // 6 hours
 const MAX_BODY_CHARS = 8000;
 
 const ARTICLE_SELECTORS = [
-  "article",
-  ".article-content",
-  ".article-body",
-  ".news-detail",
-  ".haber-detay",
-  ".detay-icerik",
-  ".icerik",
-  '[class*="article-body"]',
-  '[class*="story-body"]',
-  '[class*="content-body"]',
-  ".post-content",
-  ".entry-content",
-  "main",
-  '[role="main"]',
-];
-
-const STRIP_SELECTORS = [
-  "script",
-  "style",
-  "noscript",
-  "iframe",
-  "nav",
-  "header",
-  "footer",
-  "aside",
-  "form",
-  ".ad",
-  ".ads",
-  ".reklam",
-  ".advertisement",
-  '[class*="social"]',
-  '[class*="share"]',
-  '[class*="comment"]',
-  '[class*="related"]',
-  '[class*="sidebar"]',
-  '[class*="newsletter"]',
-  '[class*="popup"]',
-  '[class*="modal"]',
-  '[class*="cookie"]',
-  '[class*="banner"]',
-  ".breadcrumb",
-  ".pagination",
-  "figure figcaption",
+  // Turkish news sites
+  '.article-body', '.news-detail-text', '.haber-detay-icerik',
+  '.detay-icerik', '.haberMetni', '.articleContent', '.news-content',
+  '.icerik', '.article-content', '.haber-icerik', '.detay-metin',
+  // International
+  'article', '[itemprop="articleBody"]', '.story-body',
+  '.post-content', '.entry-content', 'main p',
 ];
 
 function extractSource(url) {
@@ -68,42 +33,16 @@ function extractSource(url) {
   }
 }
 
-function cleanText(html$) {
-  // Strip unwanted elements
-  STRIP_SELECTORS.forEach((sel) => {
-    try {
-      html$(sel).remove();
-    } catch {}
-  });
-
-  // Get text from paragraphs and headings
-  const blocks = [];
-  html$("p, h2, h3, h4, blockquote").each((_, el) => {
-    const text = html$(el).text().trim();
-    if (text.length > 10) {
-      const tag = html$(el).prop("tagName")?.toLowerCase();
-      if (tag === "h2" || tag === "h3" || tag === "h4") {
-        blocks.push(`\n## ${text}\n`);
-      } else if (tag === "blockquote") {
-        blocks.push(`> ${text}`);
-      } else {
-        blocks.push(text);
-      }
-    }
-  });
-
-  return blocks.join("\n\n").trim();
-}
-
 async function scrapeArticle(url) {
   const res = await fetch(url, {
     headers: {
-      "User-Agent":
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-      Accept: "text/html,application/xhtml+xml",
-      "Accept-Language": "tr-TR,tr;q=0.9,en;q=0.8",
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xhtml;q=0.9,*/*;q=0.8',
+      'Accept-Language': 'tr-TR,tr;q=0.9,en;q=0.8',
+      'Accept-Encoding': 'gzip, deflate, br',
+      'Cache-Control': 'no-cache',
     },
-    signal: AbortSignal.timeout(10000),
+    signal: AbortSignal.timeout(8000),
   });
 
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -132,21 +71,26 @@ async function scrapeArticle(url) {
   const mainImage =
     $('meta[property="og:image"]').attr("content") || null;
 
-  // Extract body text — try selectors in order
   let bodyText = "";
   for (const selector of ARTICLE_SELECTORS) {
-    const el = $(selector).first();
-    if (el.length) {
-      const clone = cheerio.load(el.html() || "");
-      bodyText = cleanText(clone);
-      if (bodyText.length >= 200) break;
+    const el = $(selector);
+    if (el.length && el.text().trim().length > 200) {
+      // Remove unwanted elements
+      el.find('script, style, nav, header, footer, aside').remove();
+      el.find('.ad, .reklam, .advertisement, .social-share, .related').remove();
+      el.find('[class*="reklam"], [class*="banner"], [class*="social"]').remove();
+      bodyText = el.text().trim();
+      break;
     }
   }
 
-  // Fallback: try full body
-  if (bodyText.length < 200) {
-    const clone = cheerio.load($("body").html() || "");
-    bodyText = cleanText(clone);
+  // Last resort: grab all <p> tags
+  if (!bodyText || bodyText.length < 200) {
+    $('script, style, nav, header, footer, aside, .ad, .reklam').remove();
+    bodyText = $('p').map((_, el) => $(el).text().trim())
+      .get()
+      .filter(t => t.length > 50)
+      .join('\n\n');
   }
 
   // Limit length
@@ -224,7 +168,7 @@ export async function GET(request) {
 
   try {
     // Check Redis cache
-    const cacheKey = `reader:${url}`;
+    const cacheKey = `reader:${Buffer.from(url).toString('base64').slice(0, 100)}`;
     const cached = await redis.get(cacheKey).catch(() => null);
     if (cached) {
       return NextResponse.json({ ...cached, fromCache: true });

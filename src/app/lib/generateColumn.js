@@ -171,66 +171,52 @@ Return ONLY a raw JSON object, no markdown fences, no explanation:
       return { error: "DB Insert Failed", details: insertError.message };
     }
 
-    // --- Quote extraction (non-blocking) ---
-    try {
-      const quoteResult = await generateJSON(
+    // --- Quote and Poll enrichment (non-blocking) ---
+    const insertedId = inserted.id;
+    Promise.allSettled([
+      // Quote extraction
+      generateJSON(
         `Bu köşe yazısından en çarpıcı, en paylaşılabilir 1 cümleyi seç.
-   Kural: Bağlamdan koparılınca da anlam taşımalı. Kendi başına güçlü olmalı.
-   Slogana benzememeli. İnsan gibi yazılmış, doğal bir cümle olmalı.
-   
-   Yazı:
-   ${generatedData.content.slice(0, 3000)}
-   
-   Yanıt YALNIZCA JSON:
-   {
-     "quote": "seçilen cümle",
-     "context": "bu cümleyi anlamak için tek cümlelik bağlam"
-   }`,
-        { model: GEMINI_MODELS.HIGH_SPEED, temperature: 0.2, label: 'quote-extraction' }
-      );
+         Bağlamdan koparılınca da anlam taşımalı. Slogan değil, insan gibi yazılmış olmalı.
+         
+         Yazı:
+         ${generatedData.content.slice(0, 3000)}
+         
+         Yanıt YALNIZCA JSON:
+         {"quote": "cümle", "context": "tek cümlelik bağlam"}`,
+        { model: GEMINI_MODELS.HIGH_SPEED, temperature: 0.2, label: 'quote' }
+      ).then(async (result) => {
+        await supabaseAdmin.from('columns').update({
+          featured_quote: result.quote,
+          featured_quote_context: result.context,
+        }).eq('id', insertedId);
+        console.log('[generateColumn] ✓ Quote saved');
+      }).catch(err => devWarn('[generateColumn] Quote failed:', err.message)),
 
-      await supabaseAdmin
-        .from('columns')
-        .update({
-          featured_quote: quoteResult.quote,
-          featured_quote_context: quoteResult.context,
-        })
-        .eq('id', inserted.id);
-    } catch (err) {
-      devWarn('[generateColumn] Quote extraction failed:', err.message);
-    }
-
-    // --- Poll generation (non-blocking) ---
-    try {
-      const pollResult = await generateJSON(
-        `Bu köşe yazısının ana argümanını veya en tartışmalı noktasını baz alarak
-   okuyuculara sorulacak bir anket sorusu ve 3 seçenek yaz.
-   
-   Kurallar:
-   - Soru tarafsız ve merak uyandırıcı olmalı
-   - 3 seçenek birbirinden gerçekten farklı bakış açıları olmalı
-   - Her seçenek max 8 kelime
-   - Siyasi veya dinî yargı içermemeli
-   
-   Yazı özeti: ${generatedData.topic_summary}
-   Yazı içeriği (ilk 2000 karakter): ${generatedData.content.slice(0, 2000)}
-   
-   Yanıt YALNIZCA JSON:
-   {
-     "question": "Soru metni?",
-     "options": ["Seçenek A", "Seçenek B", "Seçenek C"]
-   }`,
-        { model: GEMINI_MODELS.HIGH_SPEED, temperature: 0.3, label: 'poll-generation' }
-      );
-
-      await supabaseAdmin.from('column_polls').insert({
-        column_id: inserted.id,
-        question: pollResult.question,
-        options: pollResult.options,
-      });
-    } catch (err) {
-      devWarn('[generateColumn] Poll generation failed:', err.message);
-    }
+      // Poll generation
+      generateJSON(
+        `Bu köşe yazısının en tartışmalı noktasını baz alarak okuyucu anketi yaz.
+         Soru tarafsız, 3 seçenek farklı bakış açıları, her seçenek max 8 kelime.
+         Siyasi veya dinî yargı içermemeli.
+         
+         Yazı özeti: ${generatedData.topic_summary}
+         İçerik: ${generatedData.content.slice(0, 2000)}
+         
+         Yanıt YALNIZCA JSON:
+         {"question": "Soru?", "options": ["A", "B", "C"]}`,
+        { model: GEMINI_MODELS.HIGH_SPEED, temperature: 0.3, label: 'poll' }
+      ).then(async (result) => {
+        await supabaseAdmin.from('column_polls').insert({
+          column_id: insertedId,
+          question: result.question,
+          options: result.options,
+        });
+        console.log('[generateColumn] ✓ Poll saved');
+      }).catch(err => devWarn('[generateColumn] Poll failed:', err.message)),
+    ]).then(results => {
+      const failed = results.filter(r => r.status === 'rejected');
+      if (failed.length) devWarn(`[generateColumn] ${failed.length} enrichment(s) failed`);
+    });
 
     // 8. Push notification
     try {

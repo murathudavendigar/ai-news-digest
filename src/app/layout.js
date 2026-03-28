@@ -58,6 +58,7 @@ export const metadata = {
     template: `%s — ${nameShort}`,
   },
   description,
+  keywords: ["Haber", "Yapay Zeka", "Yapay Zeka Haberleri", "HaberAI", "Günlük Özet", "AI Analiz", "Son Dakika", "Köşe Yazıları", "Bağımsız Haber", "Teknoloji", "Siyaset"],
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,

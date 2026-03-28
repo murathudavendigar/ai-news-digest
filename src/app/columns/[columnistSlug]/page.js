@@ -46,9 +46,20 @@ export default async function ColumnistProfilePage({ params }) {
     .toUpperCase();
 
   const accent = getColumnistAccent(columnist.slug);
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://haberai.com.tr';
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: columnist.name,
+    jobTitle: columnist.title,
+    description: columnist.expertise,
+    url: `${baseUrl}/columns/${columnist.slug}`
+  };
 
   return (
     <main className="container mx-auto px-4 py-8 max-w-4xl">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <header
         className="rounded-3xl p-8 md:p-12 border border-stone-100 dark:border-stone-700 shadow-sm mb-12 flex flex-col md:flex-row gap-8 items-center md:items-start text-center md:text-left relative overflow-hidden"
         style={{

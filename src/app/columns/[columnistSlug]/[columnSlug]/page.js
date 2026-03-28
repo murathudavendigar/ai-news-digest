@@ -72,21 +72,20 @@ export default async function SingleColumnPage({ params }) {
 
   if (!col) notFound();
 
-  // Get poll
-  const { data: pollData } = await supabase
-    .from("column_polls")
-    .select("id")
-    .eq("column_id", col.id)
-    .maybeSingle();
-
-  // Other columns by same author
-  const { data: otherColumns } = await supabase
-    .from("columns")
-    .select("title, slug, published_at")
-    .eq("columnist_id", columnist.id)
-    .neq("id", col.id)
-    .order("published_at", { ascending: false })
-    .limit(3);
+  // Parallelize initial column and columnist fetches if possible, but actually poll and other columns can be parallelized
+  const [
+    { data: pollData },
+    { data: otherColumns }
+  ] = await Promise.all([
+    supabase.from("column_polls").select("id").eq("column_id", col.id).maybeSingle(),
+    supabase
+      .from("columns")
+      .select("title, slug, published_at")
+      .eq("columnist_id", columnist.id)
+      .neq("id", col.id)
+      .order("published_at", { ascending: false })
+      .limit(3)
+  ]);
 
   const initials = columnist.name
     .split(" ")
@@ -119,8 +118,23 @@ export default async function SingleColumnPage({ params }) {
     });
   };
 
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://haberai.com.tr';
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: col.title,
+    image: [`${baseUrl}/columns/${columnist.slug}/${col.slug}/opengraph-image`],
+    datePublished: col.published_at,
+    author: [{
+        "@type": "Person",
+        name: columnist.name,
+        url: `${baseUrl}/columns/${columnist.slug}`
+    }]
+  };
+
   return (
     <main className="container mx-auto px-4 py-8 max-w-3xl">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <ArticleViewTracker columnistSlug={columnist.slug} columnSlug={col.slug} />
       <article className="bg-white dark:bg-stone-800 rounded-3xl p-6 md:p-12 shadow-sm border border-stone-100 dark:border-stone-700 relative overflow-hidden">
         {/* Accent top bar */}

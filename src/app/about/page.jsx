@@ -1,5 +1,6 @@
 import { author, projectInfo } from "@/app/lib/authorConfig";
 import { siteConfig } from "@/app/lib/siteConfig";
+import Image from "next/image";
 
 export const metadata = {
   title: `Hakkımda · ${siteConfig.name}`,
@@ -101,12 +102,11 @@ export default function AboutPage() {
 
         {/* ══ 1. PROFİL ══════════════════════════════════════════════════ */}
         <Card>
-          <div className="h-1.5 bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500" />
+          <div className="h-1.5 bg-linear-to-r from-amber-400 via-orange-400 to-amber-500" />
           <div className="px-8 pt-8 pb-7">
             <div className="flex items-start gap-5">
               {author.avatar ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={author.avatar} alt={author.name}
+                <Image src={author.avatar} alt={author.name} width={80} height={80}
                   className="object-cover w-20 h-20 border shadow-sm rounded-2xl shrink-0 border-stone-200 dark:border-stone-700" />
               ) : (
                 <div className="flex items-center justify-center w-20 h-20 shadow-sm rounded-2xl shrink-0 bg-stone-900 dark:bg-amber-400">

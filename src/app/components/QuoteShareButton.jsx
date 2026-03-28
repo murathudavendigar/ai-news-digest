@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from 'react';
+import Image from 'next/image';
 
 export default function QuoteShareButton({ columnistSlug, columnSlug, columnTitle, columnistName, quote }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -95,10 +96,13 @@ export default function QuoteShareButton({ columnistSlug, columnSlug, columnTitl
               </div>
 
               <div className="bg-stone-50 dark:bg-stone-950 rounded-2xl p-4 flex justify-center mb-6 overflow-hidden">
-                <img 
+                <Image 
                   src={imageUrl} 
                   alt="Alıntı Görseli" 
-                  className={`rounded-xl shadow-md border border-stone-200 dark:border-stone-800 object-contain ${format === 'square' ? 'max-h-75' : 'w-full'}`}
+                  width={1200}
+                  height={630}
+                  unoptimized
+                  className={`rounded-xl shadow-md border border-stone-200 dark:border-stone-800 object-contain ${format === 'square' ? 'max-h-75 w-auto' : 'w-full h-auto'}`}
                 />
               </div>
 
