@@ -38,6 +38,14 @@ export const getTodayPublishTime = () => {
 };
 
 /**
+ * 7 gün öncesinin ISO string değerini döndürür.
+ * (React Compiler'ın impure function uyarılarını aşmak için util haline getirildi)
+ */
+export const getSevenDaysAgoISO = () => {
+  return new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+};
+
+/**
  * Türkçe karakter dönüştürücü slug helper
  * ş→s, ı→i, ğ→g, ü→u, ö→o, ç→c
  */

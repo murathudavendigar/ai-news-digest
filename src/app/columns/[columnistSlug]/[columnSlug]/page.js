@@ -7,23 +7,45 @@ import ColumnistSignature from "@/app/components/ColumnistSignature";
 import ArticleViewTracker from "@/app/components/ArticleViewTracker";
 import TomorrowTeaser from "@/app/components/TomorrowTeaser";
 import FollowColumnistButton from "@/app/components/FollowColumnistButton";
+import QuoteShareButton from "@/app/components/QuoteShareButton";
+import ColumnPoll from "@/app/components/ColumnPoll";
+import ArticleShareButton from "@/app/components/ArticleShareButton";
 
 export async function generateMetadata({ params }) {
-  const { columnSlug } = await params;
-  const { data } = await supabase
+  const { columnistSlug, columnSlug } = await params;
+  const { data: column } = await supabase
     .from("columns")
-    .select("title, subtitle")
+    .select("title, subtitle, topic_summary, published_at")
     .eq("slug", columnSlug)
     .single();
-  if (!data) return { title: "Yazı Bulunamadı" };
+
+  const { data: columnist } = await supabase
+    .from("columnists")
+    .select("name")
+    .eq("slug", columnistSlug)
+    .single();
+
+  if (!column) return { title: "Yazı Bulunamadı" };
+
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://haberai.com.tr';
+
   return {
-    title: `${data.title} | HaberAI`,
-    description: data.subtitle || data.title,
+    title: `${column.title} — ${columnist?.name || 'HaberAI'} | HaberAI`,
+    description: column.subtitle || column.topic_summary,
+    metadataBase: new URL(baseUrl),
     openGraph: {
-      title: data.title,
-      description: data.subtitle || data.title,
+      title: column.title,
+      description: column.subtitle || column.topic_summary,
       type: "article",
-      locale: "tr_TR",
+      publishedTime: column.published_at,
+      authors: [columnist?.name].filter(Boolean),
+      siteName: "HaberAI",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: column.title,
+      description: column.subtitle || column.topic_summary,
+      creator: "@haberai",
     },
   };
 }
@@ -49,6 +71,13 @@ export default async function SingleColumnPage({ params }) {
     .single();
 
   if (!col) notFound();
+
+  // Get poll
+  const { data: pollData } = await supabase
+    .from("column_polls")
+    .select("id")
+    .eq("column_id", col.id)
+    .maybeSingle();
 
   // Other columns by same author
   const { data: otherColumns } = await supabase
@@ -114,22 +143,30 @@ export default async function SingleColumnPage({ params }) {
                 {columnist.name}
               </div>
             </Link>
-            <div className="text-sm text-stone-500 mt-1 flex items-center justify-center gap-2">
-              <span>
-                {new Date(col.published_at).toLocaleDateString("tr-TR", {
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                })}
-              </span>
-              <span className="text-stone-300 dark:text-stone-600">•</span>
-              <span>{col.read_time_minutes} dk okuma</span>
-              {col.view_count > 0 && (
-                <>
-                  <span className="text-stone-300 dark:text-stone-600">•</span>
-                  <span>{col.view_count.toLocaleString('tr-TR')} okuma</span>
-                </>
-              )}
+            <div className="text-sm text-stone-500 mt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <div className="flex items-center gap-2">
+                <span>
+                  {new Date(col.published_at).toLocaleDateString("tr-TR", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  })}
+                </span>
+                <span className="text-stone-300 dark:text-stone-600">•</span>
+                <span>{col.read_time_minutes} dk okuma</span>
+                {col.view_count > 0 && (
+                  <>
+                    <span className="text-stone-300 dark:text-stone-600">•</span>
+                    <span>{col.view_count.toLocaleString('tr-TR')} okuma</span>
+                  </>
+                )}
+              </div>
+              <div className="hidden sm:block text-stone-300 dark:text-stone-600">•</div>
+              <ArticleShareButton 
+                url={`${process.env.NEXT_PUBLIC_SITE_URL || 'https://haberai.com.tr'}/columns/${columnist.slug}/${col.slug}`} 
+                title={col.title} 
+                columnistName={columnist.name} 
+              />
             </div>
           </div>
 
@@ -151,9 +188,22 @@ export default async function SingleColumnPage({ params }) {
           {formatContent(col.content)}
         </div>
 
+        {pollData?.id && (
+          <ColumnPoll pollId={pollData.id} columnistAccent={accent.primary} />
+        )}
+
         {/* Signature + Divider */}
-        <div className="mt-12 mb-8 border-t border-stone-100 dark:border-stone-700 pt-8 flex justify-center">
+        <div className="mt-12 mb-8 border-t border-b py-8 border-stone-100 dark:border-stone-700 flex flex-col items-center gap-6">
           <ColumnistSignature name={columnist.name} accentColor={accent.primary} size="md" />
+          {col.featured_quote && (
+            <QuoteShareButton 
+              columnistSlug={columnist.slug}
+              columnSlug={col.slug}
+              columnTitle={col.title}
+              columnistName={columnist.name}
+              quote={col.featured_quote}
+            />
+          )}
         </div>
 
         <ColumnReactions

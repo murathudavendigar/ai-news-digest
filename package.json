@@ -1,6 +1,6 @@
 {
   "name": "news-app",
-  "version": "0.1.0",
+  "version": "1.9.3",
   "private": true,
   "scripts": {
     "dev": "next dev",
