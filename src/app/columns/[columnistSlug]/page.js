@@ -1,4 +1,5 @@
 import { supabase } from "@/app/lib/supabase";
+import { projectInfo } from "@/app/lib/authorConfig";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getColumnistAccent } from "@/app/lib/columnistConfig";
@@ -46,7 +47,7 @@ export default async function ColumnistProfilePage({ params }) {
     .toUpperCase();
 
   const accent = getColumnistAccent(columnist.slug);
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://haberai.com.tr';
+  const baseUrl = projectInfo.siteUrl;
 
   const jsonLd = {
     "@context": "https://schema.org",

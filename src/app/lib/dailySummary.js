@@ -131,12 +131,31 @@ ZORUNLU: Yanit YALNIZCA gecerli JSON. { ile basla } ile bit.
 // PUBLIC API
 // ═══════════════════════════════════════════════════════════════════════════
 export async function getDailySummary() {
+  const todayStr = new Date().toISOString().slice(0, 10);
   try {
     const cached = await redis.get(todayKey());
     if (cached) return { ...cached, fromCache: true };
   } catch (err) {
     console.error("[dailySummary] Redis GET:", err.message);
   }
+
+  // Fallback to Supabase if not in Redis
+  try {
+    const { data: dbData } = await supabaseAdmin
+      .from("daily_digests")
+      .select("*")
+      .eq("date", todayStr)
+      .single();
+    if (dbData && dbData.top_stories) {
+      return { ...dbData.top_stories, fromCache: true, source: "supabase" };
+    }
+  } catch (err) {
+    console.error(
+      "[dailySummary] Supabase GET today fallback error:",
+      err.message,
+    );
+  }
+
   return null;
 }
 
@@ -150,6 +169,24 @@ export async function getSummaryByDate(dateStr) {
   } catch (err) {
     console.error("[dailySummary] Redis GET by date:", err.message);
   }
+
+  // Fallback to Supabase for historical dates no longer in Redis
+  try {
+    const { data: dbData, error: dbError } = await supabaseAdmin
+      .from("daily_digests")
+      .select("*")
+      .eq("date", dateStr)
+      .single();
+    if (dbData && dbData.top_stories) {
+      return { ...dbData.top_stories, fromCache: true, source: "supabase" };
+    }
+  } catch (err) {
+    console.error(
+      "[dailySummary] Supabase GET by date fallback error:",
+      err.message,
+    );
+  }
+
   return null;
 }
 

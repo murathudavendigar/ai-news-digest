@@ -5,9 +5,12 @@ import { formatDate } from "@/app/lib/news";
 import { CREDIBILITY_CONFIG, getSourceTier } from "@/app/lib/sourceCredibility";
 import { isArticleRead, trackArticle } from "@/app/lib/useArticleHistory";
 import Image from "next/image";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import BookmarkButton from "./BookmarkButton";
+import ArticleReactions from "./ArticleReactions";
+import CredibilityBadge from "./CredibilityBadge";
+import SaveButton from "./SaveButton";
+import { generateArticleSlug } from "@/app/lib/newsUtils";
 
 const VERDICT_COLORS = {
   reliable: "text-emerald-400 bg-emerald-950/60 border-emerald-700",
@@ -45,6 +48,7 @@ export default function NewsCard({
   featured = false,
   onReaderOpen,
 }) {
+  const router = useRouter();
   const [scorePreview, setScorePreview] = useState(null);
   const [hovered, setHovered] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -54,22 +58,24 @@ export default function NewsCard({
     setIsRead(isArticleRead(article.article_id));
   }, [article.article_id]);
 
-  const articleSlug = article.title
-    ? article.title
-        .toLowerCase()
-        .replace(/[^a-z0-9\u00c0-\u024f\s-]/g, "")
-        .trim()
-        .replace(/\s+/g, "-")
-        .replace(/-+/g, "-")
-        .slice(0, 80) +
-      "--" +
-      article.article_id
-    : article.article_id;
+  const articleSlug =
+    article.slug ||
+    generateArticleSlug(
+      article.title,
+      article.publishedAt || article.published_at || article.pubDate,
+    ) ||
+    null;
+
+  if (!articleSlug) {
+    console.warn("[NewsCard] Article missing slug:", article.title?.slice(0, 50));
+  }
 
   const handleShare = async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    const fullUrl = `${window.location.origin}/news/${articleSlug}`;
+    const fullUrl = articleSlug
+      ? `${window.location.origin}/news/${articleSlug}`
+      : article.link || article.url;
     const shareData = { title: article.title, url: fullUrl };
     try {
       if (navigator.share && navigator.canShare?.(shareData)) {
@@ -134,13 +140,15 @@ export default function NewsCard({
     hover:shadow-lg hover:border-stone-400 dark:hover:border-stone-600
     active:scale-[0.99] ${featured ? "block" : "flex md:block"}`;
 
-  const handleCardClick = onReaderOpen
-    ? () => {
-        trackArticle(article);
-        setIsRead(true);
-        onReaderOpen(article);
-      }
-    : undefined;
+  const handleCardClick = () => {
+    trackArticle(article);
+    setIsRead(true);
+    if (articleSlug) {
+      router.push(`/news/${articleSlug}`);
+    } else {
+      window.open(article.link || article.url, "_blank", "noopener,noreferrer");
+    }
+  };
 
   // ── Shared card inner content ──
   const cardContent = (
@@ -153,12 +161,10 @@ export default function NewsCard({
             : "self-stretch w-28 shrink-0 md:w-full md:h-48"
         }`}>
         {article.image_url ? (
-          <Image
+          <img
             src={article.image_url}
             alt={article.title}
-            fill
-            sizes="(max-width: 768px) 112px, (max-width: 1024px) 50vw, 33vw"
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             loading={priority ? "eager" : "lazy"}
             onError={(e) => {
               e.currentTarget.style.display = "none";
@@ -246,10 +252,9 @@ export default function NewsCard({
               </svg>
             )}
           </button>
-          <BookmarkButton
-            article={article}
-            className="rounded-full w-7 h-7 bg-stone-950/70 backdrop-blur-sm hover:bg-stone-950/90"
-          />
+          <div className="flex items-center justify-center bg-stone-950/70 backdrop-blur-sm rounded-full overflow-hidden w-7 h-7 hover:bg-stone-950/90 hover:opacity-100 opacity-90 transition-all">
+            <SaveButton article={article} />
+          </div>
         </div>
       </div>
 
@@ -299,10 +304,15 @@ export default function NewsCard({
           className="text-sm font-bold leading-snug transition-colors
                      text-stone-900 dark:text-stone-100
                      line-clamp-2 md:line-clamp-2
-                     group-hover:text-amber-600 dark:group-hover:text-amber-400 mb-1.5"
+                     group-hover:text-amber-600 dark:group-hover:text-amber-400 mb-1"
           style={{ fontFamily: "var(--font-display, Georgia, serif)" }}>
           {article.title}
         </h3>
+
+        {/* Credibility badge */}
+        <div className="mb-1.5">
+          <CredibilityBadge sourceName={article.source_name} />
+        </div>
 
         {article.description && (
           <p
@@ -357,10 +367,9 @@ export default function NewsCard({
                 </svg>
               )}
             </button>
-            <BookmarkButton
-              article={article}
-              className="rounded-full w-7 h-7 bg-stone-100 dark:bg-stone-800"
-            />
+            <div className="flex items-center justify-center bg-stone-100 dark:bg-stone-800 rounded-full w-7 h-7">
+              <SaveButton article={article} />
+            </div>
           </div>
         </div>
       </div>
@@ -372,44 +381,32 @@ export default function NewsCard({
       className={`relative transition-opacity duration-300 ${isRead ? "opacity-60" : "opacity-100"}`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={() => setHovered(false)}>
-      {/* ↗ External link icon — visible when reader mode is active */}
-      {onReaderOpen && (
-        <Link
-          href={`/news/${articleSlug}`}
-          onClick={(e) => e.stopPropagation()}
-          className="absolute top-2 right-2 z-20 flex items-center justify-center w-7 h-7
-                     rounded-full bg-white/80 dark:bg-stone-800/80 backdrop-blur-sm
-                     opacity-0 hover:opacity-100 focus:opacity-100
-                     transition-opacity shadow-sm border border-stone-200 dark:border-stone-700"
-          title="Detay sayfasına git">
-          <svg className="w-3 h-3 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-          </svg>
-        </Link>
-      )}
+      {/* ↗ External source link icon */}
+      <a
+        href={article.link}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={(e) => e.stopPropagation()}
+        className="absolute top-2 right-2 z-20 flex items-center justify-center w-6 h-6
+                   rounded-full bg-white/80 dark:bg-stone-800/80 backdrop-blur-sm
+                   opacity-0 group-hover:opacity-100 hover:opacity-100 focus:opacity-100
+                   transition-opacity shadow-sm border border-stone-200 dark:border-stone-700"
+        title="Kaynağa Git">
+        <svg className="w-3 h-3 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+        </svg>
+      </a>
 
-      {onReaderOpen ? (
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={handleCardClick}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") handleCardClick();
-          }}
-          className={`cursor-pointer ${cardClasses}`}>
-          {cardContent}
-        </div>
-      ) : (
-        <Link
-          href={`/news/${articleSlug}`}
-          onClick={() => {
-            trackArticle(article);
-            setIsRead(true);
-          }}
-          className={cardClasses}>
-          {cardContent}
-        </Link>
-      )}
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={handleCardClick}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") handleCardClick();
+        }}
+        className={`cursor-pointer ${cardClasses}`}>
+        {cardContent}
+      </div>
 
       {/* Hover tooltip */}
       {hovered && scorePreview && (
@@ -443,6 +440,13 @@ export default function NewsCard({
             );
           })}
           <div className="absolute w-0 h-0 -translate-x-1/2 border-t-4 border-l-4 border-r-4 top-full left-1/2 border-l-transparent border-r-transparent border-t-stone-950" />
+        </div>
+      )}
+
+      {/* Article Reactions */}
+      {articleSlug && (
+        <div className="absolute z-20 bottom-3 right-3 md:bottom-2 md:right-2">
+          <ArticleReactions articleSlug={articleSlug} categorySlug={article.category?.[0]} compact={true} />
         </div>
       )}
     </div>

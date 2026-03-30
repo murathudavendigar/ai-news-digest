@@ -1,7 +1,6 @@
 "use client";
 
 import PushNotificationToggle from "@/app/components/PushNotificationToggle";
-import ReadingStats from "@/app/components/ReadingStats";
 import { CATEGORIES, CRON, formatCronTimeLocal } from "@/app/lib/siteConfig";
 import { useUserPreferences } from "@/app/lib/useUserPreferences";
 import { useTheme } from "next-themes";
@@ -147,8 +146,17 @@ export default function SettingsPage() {
         </Section>
 
         {/* Okuma İstatistikleri */}
-        <Section title="📊 Okuma İstatistiklerin">
-          <ReadingStats />
+        <Section title="📊 Okuma Geçmişi & İstatistikler">
+          <Link
+            href="/history"
+            className="flex items-center justify-between p-4 bg-white dark:bg-stone-900 rounded-2xl border border-stone-200 dark:border-stone-800 shadow-sm hover:border-amber-400 transition-colors"
+          >
+            <div className="flex flex-col">
+              <span className="text-sm font-bold text-stone-900 dark:text-white">İstatistiklerini Gör</span>
+              <span className="text-xs text-stone-500">Hangi habere ne kadar vakit ayırdığını keşfet</span>
+            </div>
+            <span className="text-stone-400">→</span>
+          </Link>
         </Section>
 
         {/* Görüntüleme */}

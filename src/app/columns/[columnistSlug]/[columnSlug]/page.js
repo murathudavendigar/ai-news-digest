@@ -1,4 +1,5 @@
 import { supabase } from "@/app/lib/supabase";
+import { projectInfo } from "@/app/lib/authorConfig";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import ColumnReactions from "./ColumnReactions";
@@ -27,7 +28,7 @@ export async function generateMetadata({ params }) {
 
   if (!column) return { title: "Yazı Bulunamadı" };
 
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://haberai.com.tr';
+  const baseUrl = projectInfo.siteUrl;
 
   return {
     title: `${column.title} — ${columnist?.name || 'HaberAI'} | HaberAI`,
@@ -118,7 +119,7 @@ export default async function SingleColumnPage({ params }) {
     });
   };
 
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://haberai.com.tr';
+  const baseUrl = projectInfo.siteUrl;
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Article",
@@ -177,7 +178,7 @@ export default async function SingleColumnPage({ params }) {
               </div>
               <div className="hidden sm:block text-stone-300 dark:text-stone-600">•</div>
               <ArticleShareButton 
-                url={`${process.env.NEXT_PUBLIC_SITE_URL || 'https://haberai.com.tr'}/columns/${columnist.slug}/${col.slug}`} 
+                url={`${baseUrl}/columns/${columnist.slug}/${col.slug}`} 
                 title={col.title} 
                 columnistName={columnist.name} 
               />

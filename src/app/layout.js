@@ -11,6 +11,7 @@ import ThemeProvider from "@/app/components/ThemeProvider";
 import { siteConfig } from "@/app/lib/siteConfig";
 import { Caveat, Playfair_Display, Source_Serif_4 } from "next/font/google";
 import Link from "next/link";
+import AnalyticsProvider from "@/app/components/AnalyticsProvider";
 import "./globals.css";
 
 const playfair = Playfair_Display({
@@ -99,6 +100,7 @@ export default function RootLayout({ children }) {
       className={`${playfair.variable} ${sourceSerif.variable} ${caveat.variable}`}
       suppressHydrationWarning>
       <body className="antialiased bg-stone-50 dark:bg-stone-950 text-stone-900 dark:text-stone-100">
+        <AnalyticsProvider />
         <ThemeProvider>
           {/* ── Header ── */}
           <header

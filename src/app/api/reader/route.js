@@ -102,18 +102,24 @@ async function scrapeArticle(url) {
 }
 
 async function generateSummary(bodyText) {
-  const prompt = `Bu haber metnini Türkçe olarak özetle.
+  const prompt = `Şu haber metnini analiz et ve Türkçe olarak özetle.
 
-3-4 cümle, akıcı ve doğal
-Madde işareti kullanma
-Sadece özeti yaz, başka hiçbir şey ekleme
+Yanıt YALNIZCA JSON (başka hiçbir şey yazma):
+{
+  "summary": "2-3 cümlelik akıcı özet. Ne oldu, neden önemli.",
+  "bullets": [
+    "Önemli rakam veya isim içeren ilk nokta",
+    "İkinci önemli gelişme",
+    "Üçüncü kritik detay"
+  ]
+}
 
-Metin:
+Haber metni:
 ${bodyText.slice(0, 3000)}`;
 
   const BASE = "https://generativelanguage.googleapis.com/v1beta/models";
   const key = process.env.GEMINI_API_KEY;
-  if (!key) return "Özet oluşturulamadı.";
+  if (!key) return { summary: "Özet oluşturulamadı.", bullets: [] };
 
   const models = [
     GEMINI_MODELS.HIGH_SPEED,
@@ -128,7 +134,7 @@ ${bodyText.slice(0, 3000)}`;
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [{ role: "user", parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.3, maxOutputTokens: 400 },
+          generationConfig: { temperature: 0.3, maxOutputTokens: 600 },
         }),
       });
       if (!res.ok) continue;
@@ -137,13 +143,28 @@ ${bodyText.slice(0, 3000)}`;
         .map((p) => p.text || "")
         .join("")
         .trim();
-      if (text.length > 20) return text;
+      if (text.length < 20) continue;
+
+      // Try to parse JSON
+      try {
+        const clean = text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+        const parsed = JSON.parse(clean);
+        if (parsed.summary) {
+          return {
+            summary: parsed.summary,
+            bullets: Array.isArray(parsed.bullets) ? parsed.bullets : [],
+          };
+        }
+      } catch {
+        // Fallback: return as plain summary
+        return { summary: text, bullets: [] };
+      }
     } catch {
       continue;
     }
   }
 
-  return "Özet oluşturulamadı.";
+  return { summary: "Özet oluşturulamadı.", bullets: [] };
 }
 
 export async function GET(request) {
@@ -184,7 +205,7 @@ export async function GET(request) {
     const textForSummary = scrapingFailed
       ? title || url
       : bodyText;
-    const summary = await generateSummary(textForSummary);
+    const { summary, bullets } = await generateSummary(textForSummary);
 
     const result = {
       title: title || null,
@@ -192,6 +213,7 @@ export async function GET(request) {
       publishedAt: publishedAt || null,
       mainImage: mainImage || null,
       summary,
+      bullets,
       bodyText: scrapingFailed ? null : bodyText,
       sourceUrl: url,
       sourceName: extractSource(url),

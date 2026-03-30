@@ -150,6 +150,8 @@ const pct = (n) => (n == null ? "—" : `%${n}`);
 
 /* ── Ana bileşen ── */
 export default function AdminDashboard() {
+  const secret = process.env.NEXT_PUBLIC_CRON_SECRET;
+
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(null);
@@ -278,7 +280,10 @@ export default function AdminDashboard() {
     try {
       const r = await fetch("/api/admin", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.NEXT_PUBLIC_CRON_SECRET}`
+        },
         body: JSON.stringify({ action }),
       });
       const res = await r.json();
@@ -295,6 +300,40 @@ export default function AdminDashboard() {
       setWorking(null);
     }
   };
+
+  const backfillPolls = async () => {
+    setWorking("backfill-polls");
+    setToast(null);
+    try {
+      const r = await fetch("/api/admin/backfill-polls", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.NEXT_PUBLIC_CRON_SECRET}`,
+          "Content-Type": "application/json",
+        },
+      });
+      const res = await r.json();
+      setToast({
+        ok: r.ok,
+        msg: r.ok ? `✓ Anketler üretildi` : `✕ ${res.error || "Hata"}`,
+        detail: res.message || res.detail || "",
+      });
+    } catch (e) {
+      setToast({ ok: false, msg: `✕ ${e.message}` });
+    } finally {
+      setWorking(null);
+    }
+  };
+
+  if (!secret) {
+    return (
+      <div className="p-8">
+        <div className="p-6 text-xl text-red-500 bg-red-950/30 border border-red-900/50 rounded-2xl">
+          ⚠️ <b>NEXT_PUBLIC_CRON_SECRET</b> tanımlı değil. Lütfen .env.local dosyanızı kontrol edin.
+        </div>
+      </div>
+    );
+  }
 
   if (loading && !data)
     return (
@@ -545,6 +584,11 @@ export default function AdminDashboard() {
             loading={working === "clear-logs"}
             disabled={!logs.length}>
             🧹 Logları Temizle
+          </ActionBtn>
+          <ActionBtn
+            onClick={backfillPolls}
+            loading={working === "backfill-polls"}>
+            📊 Eksik Anket Üret
           </ActionBtn>
           <ActionBtn
             onClick={() =>
@@ -1198,7 +1242,10 @@ function KoseYazilariSection() {
     try {
       const r = await fetch("/api/admin", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.NEXT_PUBLIC_CRON_SECRET}`
+        },
         body: JSON.stringify({ action: "trigger-column" }),
       });
       const res = await r.json();

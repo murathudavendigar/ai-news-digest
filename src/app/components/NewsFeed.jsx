@@ -10,6 +10,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import NewsCard from "./NewsCard";
 import NewsCardSkeleton from "./NewsCardSkeleton";
 import ReaderBottomSheet from "./ReaderBottomSheet";
+import ReadingStatsWidget from "./ReadingStatsWidget";
+import { getPersonalizedCategoryOrder } from "@/app/lib/categoryStats";
 
 const TIME_FILTERS = [
   { key: "all", label: "Tümü" },
@@ -99,6 +101,7 @@ export default function NewsFeed({
   });
   // Aktif sekme: "forYou" | "gundem"
   const [activeTab, setActiveTab] = useState("gundem");
+  const [personalizedOrder, setPersonalizedOrder] = useState(null);
   const touchStartX = useRef(null);
 
   // Reader bottom sheet state
@@ -133,21 +136,32 @@ export default function NewsFeed({
 
   // Tercih varsa ikiye böl
   const forYouArticles = useMemo(
-    () =>
-      hasPrefs
-        ? filteredArticles.filter((a) =>
-            articleMatchesPrefs(
-              a,
-              prefs.followedTopics,
-              prefs.preferredCategories,
-            ),
-          )
-        : [],
+    () => {
+      if (!hasPrefs) return [];
+      const matched = filteredArticles.filter((a) =>
+        articleMatchesPrefs(
+          a,
+          prefs.followedTopics,
+          prefs.preferredCategories,
+        ),
+      );
+      
+      return matched.sort((a, b) => {
+        const aIdx = personalizedOrder ? personalizedOrder.indexOf(a.category?.[0]) : -1;
+        const bIdx = personalizedOrder ? personalizedOrder.indexOf(b.category?.[0]) : -1;
+        const aRank = aIdx === -1 ? 99 : aIdx;
+        const bRank = bIdx === -1 ? 99 : bIdx;
+        
+        if (aRank !== bRank) return aRank - bRank;
+        return new Date(b.pubDate) - new Date(a.pubDate);
+      });
+    },
     [
       filteredArticles,
       hasPrefs,
       prefs.followedTopics,
       prefs.preferredCategories,
+      personalizedOrder,
     ],
   );
 
@@ -184,6 +198,7 @@ export default function NewsFeed({
         }
       })();
       setPrefs({ followedTopics, preferredCategories });
+      setPersonalizedOrder(getPersonalizedCategoryOrder());
       if (followedTopics.length > 0 || preferredCategories.length > 0) {
         setActiveTab("forYou");
       }
@@ -373,6 +388,8 @@ export default function NewsFeed({
                 showCount={false}
               />
 
+              <ReadingStatsWidget compact />
+
               {forYouArticles.length > 0 ? (
                 <>
                   {/* Mobil: ilk 3 featured */}
@@ -383,6 +400,7 @@ export default function NewsFeed({
                         article={article}
                         priority={index < 2}
                         featured
+                        onReaderOpen={handleReaderOpen}
                       />
                     ))}
                   </div>
@@ -390,7 +408,7 @@ export default function NewsFeed({
                   {forYouArticles.length > 3 && (
                     <div className="grid grid-cols-1 gap-4 md:hidden mb-2">
                       {forYouArticles.slice(3).map((article) => (
-                        <NewsCard key={article.article_id} article={article} />
+                        <NewsCard key={article.article_id} article={article} onReaderOpen={handleReaderOpen} />
                       ))}
                     </div>
                   )}
@@ -401,6 +419,7 @@ export default function NewsFeed({
                         key={article.article_id}
                         article={article}
                         priority={index < 3}
+                        onReaderOpen={handleReaderOpen}
                       />
                     ))}
                   </div>
@@ -449,6 +468,7 @@ export default function NewsFeed({
                     key={article.article_id}
                     article={article}
                     priority={!hasPrefs && index < 3}
+                    onReaderOpen={handleReaderOpen}
                   />
                 ))
               )}

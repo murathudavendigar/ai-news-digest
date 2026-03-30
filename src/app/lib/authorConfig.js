@@ -21,6 +21,7 @@ export const projectInfo = {
   tagline: "Yapay zeka destekli Türkçe haber analizi",
   description:
     "HaberAI; çeşitli kaynaklardan gelen haberleri toplayıp Gemini yapay zeka modeliyle özetleyen, karşılaştıran ve analiz eden bağımsız bir haber platformudur.",
+  siteUrl: "https://haberaii.vercel.app", // Tek kaynak (site domaini)
 
   // ── Özellikler ──────────────────────────────────────────────────────────
   features: [

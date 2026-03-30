@@ -10,6 +10,7 @@ import {
 } from "./news";
 import { fetchMultipleRSS } from "./rssParser";
 import { getAllSources, getSourcesByCategory } from "./rssSources";
+import { normalizeArticle } from "./newsUtils";
 
 const redis = new Redis({
   url: process.env.STORAGE_KV_REST_API_URL,
@@ -30,6 +31,9 @@ async function cacheArticles(articles) {
       if (!categoryMap[cat]) categoryMap[cat] = [];
       categoryMap[cat].push(a.article_id);
     });
+    if (a.slug) {
+      redis.set(`article:slug:${a.slug}`, a, { ex: ARTICLE_CACHE_TTL }).catch(() => {});
+    }
     return redis.set(`article:${a.article_id}`, a, { ex: ARTICLE_CACHE_TTL });
   });
   await Promise.allSettled(ops);
@@ -46,7 +50,9 @@ async function cacheArticles(articles) {
 // ── ID ile makale getir ───────────────────────────────────────────────────
 export async function getArticleById(id) {
   try {
-    const cached = await redis.get(`article:${id}`);
+    let cached = await redis.get(`article:${id}`);
+    if (cached) return cached;
+    cached = await redis.get(`article:slug:${id}`);
     if (cached) return cached;
   } catch {}
   return null;
@@ -174,7 +180,8 @@ async function getNewsFeedFresh({ category, page, pageSize, cacheKey }) {
     console.log(
       `[newsSource] RSS: ${sources.length} kaynak, kategori: ${category || "all"}`,
     );
-    articles = await fetchMultipleRSS(sources);
+    const rawArticles = await fetchMultipleRSS(sources);
+    articles = rawArticles.map(normalizeArticle);
     console.log(`[newsSource] RSS: ${articles.length} haber`);
   } catch (err) {
     console.error("[newsSource] RSS hatası:", err.message);
@@ -194,9 +201,9 @@ async function getNewsFeedFresh({ category, page, pageSize, cacheKey }) {
       const rssKeys = new Set(
         articles.map((a) => a.title.slice(0, 50).toLowerCase()),
       );
-      const fresh = extra.filter(
-        (a) => !rssKeys.has(a.title?.slice(0, 50).toLowerCase()),
-      );
+      const fresh = extra
+        .filter((a) => !rssKeys.has(a.title?.slice(0, 50).toLowerCase()))
+        .map(normalizeArticle);
       articles = [...articles, ...fresh];
       source = articles.length > extra.length ? "hybrid" : "newsdata";
     } catch (err) {

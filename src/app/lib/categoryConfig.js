@@ -98,3 +98,43 @@ export function getTierConfig(article) {
   const tier = getTier(article);
   return { tier, ...TIER_CONFIG[tier] };
 }
+
+/**
+ * Bu kategorilerdeki haberler detay sayfasında "bağlam" bloğu göstermez.
+ * (Piyasa verileri, siyasi bağlam vs. gereksiz.)
+ */
+export const CATEGORIES_WITHOUT_CONTEXT = [
+  "sports",
+  "health",
+  "lifestyle",
+  "culture",
+  "entertainment",
+  "science",
+  "education",
+  "food",
+  "tourism",
+];
+
+/** Kategori → renk eşlemesi (Tailwind renk isimleri) */
+export const CATEGORY_COLORS = {
+  politics: "red",
+  domestic: "red",
+  breaking: "red",
+  business: "amber",
+  sports: "green",
+  technology: "blue",
+  science: "indigo",
+  health: "teal",
+  world: "purple",
+  culture: "pink",
+  entertainment: "pink",
+  lifestyle: "orange",
+  defense: "slate",
+  crime: "rose",
+  environment: "emerald",
+  education: "cyan",
+  food: "yellow",
+  tourism: "sky",
+  top: "amber",
+  other: "stone",
+};

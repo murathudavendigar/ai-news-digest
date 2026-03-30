@@ -171,9 +171,9 @@ Return ONLY a raw JSON object, no markdown fences, no explanation:
       return { error: "DB Insert Failed", details: insertError.message };
     }
 
-    // --- Quote and Poll enrichment (non-blocking) ---
+    // --- Quote and Poll enrichment (blocking enough to finish before Vercel kills it) ---
     const insertedId = inserted.id;
-    Promise.allSettled([
+    await Promise.allSettled([
       // Quote extraction
       generateJSON(
         `Bu köşe yazısından en çarpıcı, en paylaşılabilir 1 cümleyi seç.

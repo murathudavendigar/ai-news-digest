@@ -100,7 +100,7 @@ export function getSourceTier(sourceName) {
   return SOURCE_MAP[key] ?? null;
 }
 
-/** Görsel konfigürasyonu */
+/** Görsel konfigürasyonu (eski — geriye dönük uyumluluk) */
 export const CREDIBILITY_CONFIG = {
   high: {
     label: "Doğrulanmış kaynak",
@@ -115,3 +115,15 @@ export const CREDIBILITY_CONFIG = {
     bg: "bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800",
   },
 };
+
+/**
+ * Kaynak adını yeni kompakt etiket sistemine eşler.
+ * @param {string} sourceName
+ * @returns {"verified"|"biased"|"caution"}
+ */
+export function getCredibilityLabel(sourceName) {
+  const tier = getSourceTier(sourceName);
+  if (tier === "low") return "caution";
+  // high ve medium → verified, null (bilinmeyen) → verified (şüphe durumunda alarma geçirme)
+  return "verified";
+}

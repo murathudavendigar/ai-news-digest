@@ -5,6 +5,7 @@ import { CATEGORIES as categories } from "@/app/lib/siteConfig";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { startTransition, useEffect, useRef, useState } from "react";
+import { getSavedArticles } from "@/app/lib/readingList";
 
 /* ─── İkonlar ─────────────────────────────────────────────────────────── */
 function HomeIcon({ active }) {
@@ -63,6 +64,17 @@ function SunIcon({ active }) {
     </svg>
   );
 }
+function PenIcon({ active }) {
+  return active ? (
+    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+      <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.158 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.713ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
+    </svg>
+  ) : (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+    </svg>
+  );
+}
 function BookmarkIcon({ active }) {
   return active ? (
     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -118,6 +130,16 @@ export default function Navigation() {
   const [dropOpen, setDropOpen] = useState(false); // desktop dropdown
   const dropRef = useRef(null);
   const pathname = usePathname();
+  const [savedCount, setSavedCount] = useState(0);
+
+  useEffect(() => {
+    const updateCount = () => {
+      setSavedCount(getSavedArticles().length);
+    };
+    updateCount();
+    window.addEventListener("haberai_saved_articles_updated", updateCount);
+    return () => window.removeEventListener("haberai_saved_articles_updated", updateCount);
+  }, []);
 
   // Sayfa değişince her şeyi kapat
   useEffect(() => {
@@ -227,15 +249,16 @@ export default function Navigation() {
 
         <div className="w-px h-4 mx-1 bg-stone-200 dark:bg-white/10" />
 
-        {/* Günün Özeti */}
+        {/* Köşe Yazıları */}
         <Link
-          href="/summary"
+          href="/columns"
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
-            isActive("/summary")
-              ? "bg-amber-500 text-white"
-              : "bg-stone-100 dark:bg-white/10 border border-stone-200 dark:border-white/20 text-stone-700 dark:text-white hover:bg-amber-500 hover:text-white hover:border-amber-500 dark:hover:bg-amber-500 dark:hover:border-amber-500"
+            isActive("/columns")
+              ? "bg-amber-50 dark:bg-amber-900/25 text-amber-700 dark:text-amber-400"
+              : "text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-white/6 hover:text-stone-900 dark:hover:text-white"
           }`}>
-          ☀️ Günün Özeti
+          <span className="text-base leading-none">✍️</span>
+          Köşeler
         </Link>
       </nav>
 
@@ -274,15 +297,15 @@ export default function Navigation() {
           </button>
 
           <Link
-            href="/summary"
+            href="/columns"
             onClick={hapticLight}
             className={`flex flex-col items-center justify-center gap-0.5 w-14 h-12 rounded-xl transition-all ${
-              isActive("/summary")
+              isActive("/columns")
                 ? "text-amber-600 dark:text-amber-400"
                 : "text-stone-400 dark:text-stone-500"
             }`}>
-            <SunIcon active={isActive("/summary")} />
-            <span className="text-[9px] font-semibold">Özet</span>
+            <PenIcon active={isActive("/columns")} />
+            <span className="text-[9px] font-semibold">Köşeler</span>
           </Link>
 
           <Link
@@ -293,7 +316,14 @@ export default function Navigation() {
                 ? "text-amber-600 dark:text-amber-400"
                 : "text-stone-400 dark:text-stone-500"
             }`}>
-            <BookmarkIcon active={isActive("/saved")} />
+            <div className="relative">
+              <BookmarkIcon active={isActive("/saved")} />
+              {savedCount > 0 && (
+                <span className="absolute -top-1 -right-1.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-red-500 px-0.5 text-[8px] font-bold text-white ring-2 ring-white dark:ring-stone-950">
+                  {savedCount > 99 ? "99+" : savedCount}
+                </span>
+              )}
+            </div>
             <span className="text-[9px] font-semibold">Kayıtlı</span>
           </Link>
 
@@ -306,7 +336,7 @@ export default function Navigation() {
                 : "text-stone-400 dark:text-stone-500"
             }`}>
             <SettingsIcon active={isActive("/settings")} />
-            <span className="text-[9px] font-semibold">Ayarlar</span>
+            <span className="text-[9px] font-semibold">Profil</span>
           </Link>
         </div>
       </nav>
