@@ -1,5 +1,7 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
+import Image from "next/image";
 import { useCallback, useRef, useState } from "react";
 
 const STANCE = {

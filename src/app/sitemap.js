@@ -24,7 +24,7 @@ export default async function sitemap() {
       priority: 1,
     },
     {
-      url: `${SITE_URL}/summary`,
+      url: `${SITE_URL}/digest`,
       lastModified: now,
       changeFrequency: "daily",
       priority: 0.9,
@@ -42,6 +42,12 @@ export default async function sitemap() {
       priority: 0.4,
     },
     {
+      url: `${SITE_URL}/world`,
+      lastModified: now,
+      changeFrequency: "hourly",
+      priority: 0.9,
+    },
+    {
       url: `${SITE_URL}/columns`,
       lastModified: now,
       changeFrequency: "hourly",
@@ -52,7 +58,7 @@ export default async function sitemap() {
       lastModified: now,
       changeFrequency: "monthly",
       priority: 0.5,
-    }
+    },
   ];
 
   const categoryRoutes = CATEGORY_SLUGS.map((slug) => ({
@@ -63,7 +69,10 @@ export default async function sitemap() {
   }));
 
   // Columnists
-  const { data: columnists } = await supabase.from('columnists').select('slug, updated_at').eq('is_active', true);
+  const { data: columnists } = await supabase
+    .from("columnists")
+    .select("slug, updated_at")
+    .eq("is_active", true);
   const columnistRoutes = (columnists || []).map((c) => ({
     url: `${SITE_URL}/columns/${c.slug}`,
     lastModified: c.updated_at ? new Date(c.updated_at).toISOString() : now,
@@ -73,9 +82,9 @@ export default async function sitemap() {
 
   // Columns
   const { data: columns } = await supabase
-    .from('columns')
-    .select('slug, published_at, columnist:columnist_id(slug)')
-    .order('published_at', { ascending: false })
+    .from("columns")
+    .select("slug, published_at, columnist:columnist_id(slug)")
+    .order("published_at", { ascending: false })
     .limit(1000);
 
   const columnRoutes = (columns || []).map((col) => {
@@ -88,5 +97,10 @@ export default async function sitemap() {
     };
   });
 
-  return [...staticRoutes, ...categoryRoutes, ...columnistRoutes, ...columnRoutes];
+  return [
+    ...staticRoutes,
+    ...categoryRoutes,
+    ...columnistRoutes,
+    ...columnRoutes,
+  ];
 }

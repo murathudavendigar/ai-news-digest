@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import {
   WeatherStrip,
   WeatherWidget,
@@ -11,7 +12,7 @@ import {
 } from "@/app/lib/dailySummary";
 import { fetchMarketData, fetchWeatherData } from "@/app/lib/realTimeData";
 import { siteConfig } from "@/app/lib/siteConfig";
-import Image from "next/image";
+
 import Link from "next/link";
 
 export const revalidate = 3600;
@@ -161,12 +162,12 @@ export default async function SummaryPage({ searchParams }) {
           )}
           <div className="flex items-center justify-center gap-4 pt-2">
             <Link
-              href={`/summary?date=${prevDateStr}`}
+              href={`/digest?date=${prevDateStr}`}
               className="inline-block px-4 py-2 text-xs transition-colors border text-stone-600 hover:text-stone-400 border-stone-700">
               ← {fmtDate(prevDateStr)}
             </Link>
             <Link
-              href="/summary"
+              href="/digest"
               className="inline-block px-4 py-2 text-xs transition-colors border text-stone-600 hover:text-stone-400 border-stone-700">
               Bugün
             </Link>
@@ -224,7 +225,7 @@ export default async function SummaryPage({ searchParams }) {
             {/* Tarih + navigasyon okları */}
             <div className="flex items-center gap-3">
               <Link
-                href={`/summary?date=${prevDateStr}`}
+                href={`/digest?date=${prevDateStr}`}
                 title={fmtDate(prevDateStr)}
                 className="transition-colors text-stone-600 hover:text-stone-300">
                 ←
@@ -234,7 +235,7 @@ export default async function SummaryPage({ searchParams }) {
               </span>
               {canGoNext ? (
                 <Link
-                  href={`/summary?date=${nextDateStr}`}
+                  href={`/digest?date=${nextDateStr}`}
                   title={fmtDate(nextDateStr)}
                   className="transition-colors text-stone-600 hover:text-stone-300">
                   →
@@ -322,13 +323,13 @@ export default async function SummaryPage({ searchParams }) {
               {/* Ana haber görseli */}
               {mainStory?.imageUrl && (
                 <div className="mb-5 overflow-hidden">
-                  <Image
+                  <img
                     src={mainStory.imageUrl}
                     alt={mainStory.title}
-                    width={800}
-                    height={256}
-                    className="object-cover w-full h-64 transition-all duration-500 grayscale-20 hover:grayscale-0"
-                    unoptimized
+                    loading="eager"
+                    decoding="async"
+                    style={{ objectFit: "cover", width: "100%", height: "256px" }}
+                    className="w-full h-64 object-cover transition-all duration-500 grayscale-20 hover:grayscale-0"
                   />
                   <p className="text-[9px] text-stone-600 mt-1 uppercase tracking-wider">
                     {mainStory.title}
@@ -384,13 +385,12 @@ export default async function SummaryPage({ searchParams }) {
                         </span>
                       </div>
                       {story.imageUrl && (
-                        <Image
+                        <img
                           src={story.imageUrl}
                           alt={story.title}
-                          width={400}
-                          height={112}
+                          loading="lazy"
+                          decoding="async"
                           className="object-cover w-full mb-2 h-28 grayscale-30"
-                          unoptimized
                         />
                       )}
                       <h3 className="text-sm font-black text-stone-900 dark:text-white mb-1.5 leading-snug">
@@ -545,13 +545,12 @@ export default async function SummaryPage({ searchParams }) {
                     </span>
                   </div>
                   {story.imageUrl && (
-                    <Image
+                    <img
                       src={story.imageUrl}
                       alt={story.title}
-                      width={400}
-                      height={96}
+                      loading="lazy"
+                      decoding="async"
                       className="object-cover w-full h-24 mb-2 grayscale-40"
-                      unoptimized
                     />
                   )}
                   <h3 className="mb-1 text-sm font-black leading-snug text-stone-900 dark:text-white">

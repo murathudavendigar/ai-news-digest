@@ -10,7 +10,7 @@ export default function ArticleReactions({ articleSlug, categorySlug, compact = 
 
   useEffect(() => {
     if (articleSlug) {
-      setSelected(getReaction(articleSlug));
+      Promise.resolve().then(() => setSelected(getReaction(articleSlug)));
     }
   }, [articleSlug]);
 

@@ -1,6 +1,8 @@
 "use client";
 
 import PushNotificationToggle from "@/app/components/PushNotificationToggle";
+import UserStatsSection from "@/app/components/UserStatsSection";
+import FeedPersonalizationSection from "@/app/components/FeedPersonalizationSection";
 import { CATEGORIES, CRON, formatCronTimeLocal } from "@/app/lib/siteConfig";
 import { useUserPreferences } from "@/app/lib/useUserPreferences";
 import { useTheme } from "next-themes";

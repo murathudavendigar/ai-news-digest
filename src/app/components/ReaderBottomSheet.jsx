@@ -1,10 +1,12 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { CATEGORY_LABELS } from "@/app/lib/categoryConfig";
-import Image from "next/image";
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import CredibilityBadge from "./CredibilityBadge";
 import ArticleReactions from "./ArticleReactions";
+import DeepAnalysis from "./DeepAnalysis";
 import SaveButton from "./SaveButton";
 import { useReadingTracker } from "@/app/hooks/useReadingTracker";
 
@@ -75,12 +77,14 @@ export default function ReaderBottomSheet({ isOpen, onClose, article }) {
   // ── Open / close animation ──
   useEffect(() => {
     if (isOpen) {
-      setVisible(true);
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => setSlideIn(true));
+      Promise.resolve().then(() => {
+        setVisible(true);
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => setSlideIn(true));
+        });
       });
     } else {
-      setSlideIn(false);
+      Promise.resolve().then(() => setSlideIn(false));
       const timer = setTimeout(() => {
         setVisible(false);
         setData(null);
@@ -312,6 +316,15 @@ export default function ReaderBottomSheet({ isOpen, onClose, article }) {
 
                 {/* Bullet Points */}
                 <BulletList bullets={data?.bullets} />
+
+                {/* Deep Analysis — Arka Plan */}
+                {article?.slug && (
+                  <DeepAnalysis
+                    articleSlug={article.slug}
+                    articleTitle={article.title}
+                    articleUrl={article.link}
+                  />
+                )}
 
                 {/* Scraping failed fallback */}
                 {data?.scrapingFailed && !data?.summary && (

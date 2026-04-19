@@ -1,7 +1,8 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { formatDate } from "@/app/lib/news";
-import Image from "next/image";
+
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -62,14 +63,13 @@ export default function RelatedArticles({ keywords = [], currentId, title }) {
                        bg-stone-50 dark:bg-stone-900 hover:border-stone-300 dark:hover:border-stone-600
                        transition-all group">
             {article.image_url && (
-              <div className="relative w-16 h-16 shrink-0">
-                <Image
+              <div className="relative w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-stone-100 dark:bg-stone-800">
+                <img
                   src={article.image_url}
                   alt=""
-                  fill
-                  sizes="64px"
-                  className="rounded-lg object-cover grayscale-20 group-hover:grayscale-0 transition-all"
-                  unoptimized
+                  loading="lazy"
+                  decoding="async"
+                  className="w-full h-full object-cover"
                 />
               </div>
             )}

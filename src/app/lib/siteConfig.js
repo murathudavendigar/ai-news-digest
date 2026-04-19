@@ -21,7 +21,7 @@ export const siteConfig = {
   nameShort: "HaberAI",
 
   /** Versiyon — package.json ile senkronize tutun */
-  version: "2.1.0",
+  version: "2.4.1",
 
   /** Ana slogan */
   tagline: "Yapay Zeka Destekli Haber Analizi",
@@ -82,7 +82,7 @@ export const CATEGORIES = [
   { slug: "defense", title: "Savunma", icon: "🛡️" },
   { slug: "lifestyle", title: "Yaşam", icon: "🌿" },
   { slug: "politics", title: "Politika", icon: "🏙️" },
-  { slug: "world", title: "Dünya", icon: "🌍" },
+  { slug: "world", title: "Dünya", icon: "🌍", url: "/world" },
 ];
 
 /**

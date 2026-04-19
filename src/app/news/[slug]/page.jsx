@@ -1,10 +1,12 @@
+/* eslint-disable @next/next/no-img-element */
 import CredibilityBadge from "@/app/components/CredibilityBadge";
+import DeepAnalysis from "@/app/components/DeepAnalysis";
 import DetailPageSummary from "@/app/components/DetailPageSummary";
 import ShareButton from "@/app/components/ShareButton";
 import { CATEGORIES_WITHOUT_CONTEXT, CATEGORY_LABELS } from "@/app/lib/categoryConfig";
 import { getArticleForDetail } from "@/app/lib/newsSource";
 import { siteConfig } from "@/app/lib/siteConfig";
-import Image from "next/image";
+
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -104,8 +106,8 @@ export default async function NewsDetailPage({ params }) {
   };
 
   // Determine if this category should show context blocks
-  const categories = article.category || [];
-  const showContextBlock = !categories.some((c) =>
+  const categories = Array.isArray(article.category) ? article.category : [];
+  const showContextBlock = categories.length > 0 && !categories.some((c) =>
     CATEGORIES_WITHOUT_CONTEXT.includes(c?.toLowerCase())
   );
 
@@ -161,12 +163,20 @@ export default async function NewsDetailPage({ params }) {
               <div className="flex flex-wrap items-center gap-3 pb-5 mb-6 border-b border-stone-100 dark:border-stone-800">
                 <div className="flex items-center gap-2">
                   {article.source_icon && (
-                    <Image
+                    <img
                       src={article.source_icon}
                       alt={article.source_name ?? ""}
                       width={20}
                       height={20}
-                      className="border rounded-full border-stone-200 dark:border-stone-700"
+                      loading="lazy"
+                      decoding="async"
+                      style={{
+                        width: "20px",
+                        height: "20px",
+                        borderRadius: "50%",
+                        border: "1px solid var(--border-subtle)",
+                        objectFit: "cover",
+                      }}
                     />
                   )}
                   <span className="text-sm font-bold text-stone-700 dark:text-stone-300">
@@ -200,6 +210,13 @@ export default async function NewsDetailPage({ params }) {
                   </p>
                 </div>
               )}
+
+              {/* Deep Analysis — Arka Plan */}
+              <DeepAnalysis
+                articleSlug={slug}
+                articleTitle={article.title}
+                articleUrl={article.link}
+              />
 
               {/* Article Reactions & Save */}
               <div className="flex flex-col gap-4 mt-6 mb-4">

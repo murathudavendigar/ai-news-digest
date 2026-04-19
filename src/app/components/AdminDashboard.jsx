@@ -9,7 +9,7 @@ function useCountUp(target, duration = 700) {
     const num =
       typeof target === "number" ? target : parseFloat(String(target));
     if (isNaN(num)) {
-      setDisplay(target);
+      Promise.resolve().then(() => setDisplay(target));
       return;
     }
     const start = performance.now();
@@ -660,7 +660,7 @@ export default function AdminDashboard() {
                 type="text"
                 value={pushUrl}
                 onChange={(e) => setPushUrl(e.target.value)}
-                placeholder="/summary"
+                placeholder="/digest"
                 className="w-full px-3 py-2 text-xs transition-colors border rounded-lg outline-none bg-stone-950 border-stone-700 text-stone-200 placeholder-stone-700 focus:border-amber-500"
               />
             </div>
@@ -706,6 +706,9 @@ export default function AdminDashboard() {
 
       {/* ─── Köşe Yazıları ─────────────────────────────────────────── */}
       <KoseYazilariSection />
+
+      {/* ─── Dünya Haberleri ─────────────────────────────────────────── */}
+      <DunyaHaberleriSection />
 
       {/* Bugünkü özet */}
       {cache?.todayMeta && (
@@ -1506,6 +1509,93 @@ function RSSMonitor() {
           </p>
         </div>
       )}
+    </Section>
+  );
+}
+/* ── Dünya Haberleri admin section ── */
+function DunyaHaberleriSection() {
+  const [working, setWorking] = useState(false);
+  const [results, setResults] = useState(null);
+  const [toast, setToast] = useState(null);
+  const secret = process.env.NEXT_PUBLIC_CRON_SECRET;
+
+  const refresh = async () => {
+    setWorking(true);
+    setResults(null);
+    setToast(null);
+    try {
+      const r = await fetch("/api/cron/refresh-international", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${secret}`,
+          "Content-Type": "application/json",
+        },
+      });
+      const data = await r.json();
+      setResults(data);
+      if (r.ok) {
+        setToast({ ok: true, msg: "✓ Dünya haberleri başarıyla güncellendi" });
+      } else {
+        setToast({ ok: false, msg: `✕ Hata: ${data.error || "Bilinmiyor"}` });
+      }
+    } catch (e) {
+      setToast({ ok: false, msg: `✕ Ağ hatası: ${e.message}` });
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  return (
+    <Section title="🌍 Dünya Haberleri">
+      <div className="space-y-4">
+        {toast && (
+          <div
+            className={`px-4 py-2 rounded-lg text-xs font-medium border ${
+              toast.ok
+                ? "bg-emerald-950/20 border-emerald-800 text-emerald-400"
+                : "bg-red-950/20 border-red-800 text-red-400"
+            }`}>
+            {toast.msg}
+          </div>
+        )}
+
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-bold text-white">Uluslararası Haber Akışı</p>
+            <p className="text-[10px] text-stone-500 mt-1">
+              Reuters, AP, BBC, Bloomberg ve Guardian kaynaklarını tarar ve Groq/SambaNova ile Türkçeye çevirir.
+            </p>
+          </div>
+          <ActionBtn
+            variant="primary"
+            onClick={refresh}
+            loading={working}
+            disabled={working}>
+            🔄 Şimdi Yenile
+          </ActionBtn>
+        </div>
+
+        {results && (
+          <div className="pt-4 border-t border-stone-800 mt-4 space-y-3">
+             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <Stat label="Toplam Haber" value={results.count || 0} sub="Dunya sayfasında" />
+                <Stat label="Kaynak" value={results.sources || 0} sub="Uluslararası" />
+                <Stat label="Süre" value={ms2s(results.durationMs)} sub="AI İşlemleri dahil" />
+                <Stat label="Durum" value="✓ Hazır" color="emerald" sub="Redis'e yazıldı" />
+             </div>
+             {results.sourceStats && (
+               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                 {Object.entries(results.sourceStats).map(([id, count]) => (
+                   <div key={id} className="px-3 py-2 bg-stone-950 border border-stone-800 rounded-lg flex justify-between items-center">
+                      <span className="text-[10px] font-bold text-stone-400 uppercase">{id}</span>
+                      <span className="text-xs font-black text-amber-500">{count}</span>
+                   </div>
+                 ))}
+               </div>
+             )}
+          </div>
+        )}
+      </div>
     </Section>
   );
 }

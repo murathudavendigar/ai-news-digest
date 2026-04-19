@@ -30,7 +30,7 @@ export async function GET(request) {
   const payload = JSON.stringify({
     title: `📰 HaberAI — Günün Özeti #${summary.issueNumber ?? ""}`,
     body: headlines || summary.headline || "Bugünün haberleri hazır!",
-    url: "/summary",
+    url: "/digest",
     icon: "/icon-192.png",
     badge: "/icon-192.png",
   });

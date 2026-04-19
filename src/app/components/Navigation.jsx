@@ -1,11 +1,11 @@
 "use client";
 
 import { hapticLight } from "@/app/lib/haptic";
+import { getSavedArticles } from "@/app/lib/readingList";
 import { CATEGORIES as categories } from "@/app/lib/siteConfig";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { startTransition, useEffect, useRef, useState } from "react";
-import { getSavedArticles } from "@/app/lib/readingList";
 
 /* ─── İkonlar ─────────────────────────────────────────────────────────── */
 function HomeIcon({ active }) {
@@ -70,8 +70,17 @@ function PenIcon({ active }) {
       <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.158 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.713ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
     </svg>
   ) : (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+    <svg
+      className="w-5 h-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      viewBox="0 0 24 24">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125"
+      />
     </svg>
   );
 }
@@ -124,6 +133,30 @@ function SettingsIcon({ active }) {
     </svg>
   );
 }
+function GlobeIcon({ active }) {
+  return active ? (
+    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+      <path
+        fillRule="evenodd"
+        d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm-2.625 6c-.541 3.428-1.5 6-1.5 6s-.959-2.572-1.5-6a15.226 15.226 0 013 0zm5.25 0c.541 3.428 1.5 6 1.5 6s.959-2.572 1.5-6a15.226 15.226 0 00-3 0zm-2.625 0h-5.25c.541 3.428 1.5 6 1.5 6s.959-2.572 1.5-6zm2.625 0h-5.25c-.541 3.428-1.5 6-1.5 6s-.959-2.572-1.5-6z"
+        clipRule="evenodd"
+      />
+    </svg>
+  ) : (
+    <svg
+      className="w-5 h-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      viewBox="0 0 24 24">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418"
+      />
+    </svg>
+  );
+}
 
 export default function Navigation() {
   const [catOpen, setCatOpen] = useState(false); // mobil sheet
@@ -138,7 +171,8 @@ export default function Navigation() {
     };
     updateCount();
     window.addEventListener("haberai_saved_articles_updated", updateCount);
-    return () => window.removeEventListener("haberai_saved_articles_updated", updateCount);
+    return () =>
+      window.removeEventListener("haberai_saved_articles_updated", updateCount);
   }, []);
 
   // Sayfa değişince her şeyi kapat
@@ -227,7 +261,7 @@ export default function Navigation() {
             <div className="absolute top-full left-0 mt-1.5 w-64 bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-white/10 shadow-2xl z-70 overflow-hidden">
               <div className="grid grid-cols-2 gap-0.5 p-1.5">
                 {categories.map((cat) => {
-                  const href = `/category/${cat.slug}`;
+                  const href = cat.url || `/category/${cat.slug}`;
                   return (
                     <Link
                       key={cat.slug}
@@ -306,6 +340,18 @@ export default function Navigation() {
             }`}>
             <PenIcon active={isActive("/columns")} />
             <span className="text-[9px] font-semibold">Köşeler</span>
+          </Link>
+
+          <Link
+            href="/world"
+            onClick={hapticLight}
+            className={`flex flex-col items-center justify-center gap-0.5 w-14 h-12 rounded-xl transition-all ${
+              isActive("/world")
+                ? "text-amber-600 dark:text-amber-400"
+                : "text-stone-400 dark:text-stone-500"
+            }`}>
+            <GlobeIcon active={isActive("/world")} />
+            <span className="text-[9px] font-semibold">Dünya</span>
           </Link>
 
           <Link
@@ -396,7 +442,7 @@ export default function Navigation() {
               </Link>
 
               {categories.map((cat) => {
-                const href = `/category/${cat.slug}`;
+                const href = cat.url || `/category/${cat.slug}`;
                 return (
                   <Link
                     key={cat.slug}

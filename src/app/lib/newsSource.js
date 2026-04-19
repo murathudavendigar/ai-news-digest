@@ -63,12 +63,13 @@ export async function getArticleById(id) {
 export async function getArticleForDetail(id) {
   // 1. RSS / feed cache (en hızlı, API harcamaz)
   const cached = await getArticleById(id);
-  if (cached) return cached;
+  if (cached) return normalizeArticle(cached); // Ensure normalized even from cache
 
   // 2. NewsData API fallback — eski haberler veya doğrudan paylaşılan linkler
   try {
     const data = await getNewsByArticleID(id);
-    return data.results?.[0] ?? null;
+    const article = data.results?.[0] ?? null;
+    return article ? normalizeArticle(article) : null;
   } catch {
     return null;
   }

@@ -20,13 +20,26 @@ export default function DetailPageSummary({ url, description }) {
   useEffect(() => {
     if (!url || fetched.current) return;
     fetched.current = true;
-    setLoading(true);
+    
+    let isMounted = true;
+    const doFetch = async () => {
+      setLoading(true);
+      try {
+        const r = await fetch(`/api/reader?url=${encodeURIComponent(url)}`);
+        const result = await r.json();
+        if (isMounted) setData(result);
+      } catch (err) {
+        if (isMounted) setData(null);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
 
-    fetch(`/api/reader?url=${encodeURIComponent(url)}`)
-      .then((r) => r.json())
-      .then((result) => setData(result))
-      .catch(() => setData(null))
-      .finally(() => setLoading(false));
+    doFetch();
+    
+    return () => {
+      isMounted = false;
+    };
   }, [url]);
 
   if (loading) {

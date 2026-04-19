@@ -32,7 +32,7 @@ export default function NotFound() {
               Ana Sayfaya Dön
             </Link>
             <Link
-              href="/summary"
+              href="/digest"
               className="px-5 py-2.5 border border-stone-300 dark:border-stone-600
                          text-sm font-bold text-stone-700 dark:text-stone-300 rounded-lg
                          hover:border-stone-500 dark:hover:border-stone-400 transition-colors">

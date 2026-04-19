@@ -19,7 +19,7 @@ export default function SummaryNotFound() {
           Bu tarihe ait günün özeti mevcut değil.
         </p>
         <Link
-          href="/summary"
+          href="/digest"
           className="inline-block px-6 py-3 text-sm font-bold transition-opacity rounded-lg bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 hover:opacity-90">
           Bugünün Baskısına Git
         </Link>

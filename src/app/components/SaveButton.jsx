@@ -9,7 +9,7 @@ export default function SaveButton({ article, showLabel = false }) {
 
   useEffect(() => {
     if (article?.slug) {
-      setSaved(isArticleSaved(article.slug));
+      Promise.resolve().then(() => setSaved(isArticleSaved(article.slug)));
     }
   }, [article?.slug]);
 

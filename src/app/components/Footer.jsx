@@ -28,7 +28,7 @@ export default function Footer() {
               Anasayfa
             </Link>
             <Link
-              href="/summary"
+              href="/digest"
               className="transition-colors hover:text-stone-900 dark:hover:text-stone-200">
               Günün Özeti
             </Link>

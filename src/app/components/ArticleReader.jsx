@@ -18,12 +18,25 @@ export default function ArticleReader({ url, hasExistingContent }) {
   useEffect(() => {
     if (!url) return;
 
-    setLoading(true);
-    fetch(`/api/reader?url=${encodeURIComponent(url)}`)
-      .then((r) => r.json())
-      .then((result) => setData(result))
-      .catch(() => setData({ scrapingFailed: true }))
-      .finally(() => setLoading(false));
+    let isMounted = true;
+    const doFetch = async () => {
+      setLoading(true);
+      try {
+        const r = await fetch(`/api/reader?url=${encodeURIComponent(url)}`);
+        const result = await r.json();
+        if (isMounted) setData(result);
+      } catch (err) {
+        if (isMounted) setData({ scrapingFailed: true });
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+    
+    doFetch();
+    
+    return () => {
+      isMounted = false;
+    };
   }, [url]);
 
   // Nothing to show

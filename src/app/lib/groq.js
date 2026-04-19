@@ -209,6 +209,87 @@ export async function generateCompletion(userPrompt, options = {}) {
   throw lastError || new Error("Tüm AI provider'ları başarısız oldu");
 }
 
+// ── JSON onarıcı ─────────────────────────────────────────────────────────
+/**
+ * Token limiti nedeniyle kesilmiş veya prefix/suffix içeren JSON'u onarır.
+ */
+function repairJSON(raw) {
+  // 1. Fence'leri soy
+  let s = raw
+    .replace(/^```json\s*/im, "")
+    .replace(/^```\s*/m, "")
+    .replace(/```\s*$/m, "")
+    .trim();
+
+  // 2. İlk { ... son } veya [ ... son ] arasını al
+  const firstBrace = s.indexOf("{");
+  const firstBracket = s.indexOf("[");
+  let start = -1;
+  let end = -1;
+
+  if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
+    start = firstBrace;
+    end = s.lastIndexOf("}");
+  } else if (firstBracket !== -1) {
+    start = firstBracket;
+    end = s.lastIndexOf("]");
+  }
+
+  if (start !== -1 && end > start) s = s.slice(start, end + 1);
+  else if (start !== -1) s = s.slice(start);
+
+  // 3. Token kesilmesi: yarım string'i kapat
+  const quotes = (s.match(/(?<!\\)"/g) || []).length;
+  if (quotes % 2 !== 0) s += '"';
+
+  // 4. Sondaki yarım property'yi sil: ,"key": veya ,"key":"
+  s = s.replace(/,\s*"[^"]*"\s*:\s*"?[^"}\]]*$/, "");
+
+  // 5. Eksik kapanış bracket'larını tamamla
+  const stack = [];
+  for (const ch of s) {
+    if (ch === "{" || ch === "[") stack.push(ch);
+    else if (ch === "}" || ch === "]") stack.pop();
+  }
+  for (let i = stack.length - 1; i >= 0; i--) {
+    s += stack[i] === "{" ? "}" : "]";
+  }
+
+  return s;
+}
+
+/**
+ * String halindeki JSON'u güvenli şekilde ayrıştırır.
+ */
+export function parseJSON(raw, label = "") {
+  const repaired = repairJSON(raw);
+  try {
+    return JSON.parse(repaired);
+  } catch (e) {
+    console.error(
+      `[ai] JSON parse hatası${label ? " (" + label + ")" : ""}`,
+      "\nOnarım sonrası:\n",
+      repaired.slice(0, 500)
+    );
+    throw new Error("JSON parse failed: " + e.message);
+  }
+}
+
+/**
+ * JSON çıktısı garantili üretim.
+ */
+export async function generateJSON(prompt, options = {}) {
+  const { label = "json-gen", ...rest } = options;
+  const jsonPrompt = `${prompt}\n\nZORUNLU: Yanıt YALNIZCA geçerli bir JSON objesi veya dizisi olmalıdır. Açıklama, giriş veya \`\`\` blokları ekleme. İlk karakter { veya [ olmalı.`;
+
+  const result = await generateCompletion(jsonPrompt, {
+    ...rest,
+    temperature: options.temperature ?? 0.1, // Düşük sıcaklık daha stabil JSON üretir
+  });
+
+  return parseJSON(result.text, label);
+}
+
 // ── Provider listesini dışa aç (admin stats için) ─────────────────────
 export function getProviderKeys() {
   return FALLBACK_ORDER;

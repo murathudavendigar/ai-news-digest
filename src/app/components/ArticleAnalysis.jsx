@@ -158,7 +158,6 @@ export default function ArticleAnalysis({ article }) {
         setState("error");
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [article],
   );
 

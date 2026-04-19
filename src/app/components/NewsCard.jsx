@@ -1,15 +1,18 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
+import Image from "next/image";
 import { CATEGORY_LABELS } from "@/app/lib/categoryConfig";
 import { formatDate } from "@/app/lib/news";
 import { CREDIBILITY_CONFIG, getSourceTier } from "@/app/lib/sourceCredibility";
 import { isArticleRead, trackArticle } from "@/app/lib/useArticleHistory";
-import Image from "next/image";
+
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import ArticleReactions from "./ArticleReactions";
 import CredibilityBadge from "./CredibilityBadge";
 import SaveButton from "./SaveButton";
+import TranslationBadge from "./TranslationBadge";
 import { generateArticleSlug } from "@/app/lib/newsUtils";
 
 const VERDICT_COLORS = {
@@ -55,8 +58,9 @@ export default function NewsCard({
   const [isRead, setIsRead] = useState(false);
 
   useEffect(() => {
-    setIsRead(isArticleRead(article.article_id));
-  }, [article.article_id]);
+    const read = isArticleRead(article.article_id);
+    if (isRead !== read) Promise.resolve().then(() => setIsRead(read));
+  }, [article.article_id, isRead]);
 
   const articleSlug =
     article.slug ||
@@ -143,9 +147,14 @@ export default function NewsCard({
   const handleCardClick = () => {
     trackArticle(article);
     setIsRead(true);
-    if (articleSlug) {
+
+    if (articleSlug && articleSlug !== "undefined") {
       router.push(`/news/${articleSlug}`);
     } else {
+      console.warn("[NewsCard] Opening external link — slug is missing or 'undefined'.", {
+        title: article.title,
+        link: article.link || article.url
+      });
       window.open(article.link || article.url, "_blank", "noopener,noreferrer");
     }
   };
@@ -185,12 +194,14 @@ export default function NewsCard({
           className={`absolute top-3 left-3 items-center gap-1.5 px-2.5 py-1
                       bg-black/60 backdrop-blur-sm rounded-full ${featured ? "flex" : "hidden md:flex"}`}>
           {article.source_icon && (
-            <Image
+            <img
               src={article.source_icon}
               width={14}
               height={14}
-              className="rounded-full"
               alt=""
+              loading="lazy"
+              decoding="async"
+              style={{ borderRadius: "50%", width: "14px", height: "14px", objectFit: "cover" }}
               onError={(e) => {
                 e.currentTarget.style.display = "none";
               }}
@@ -199,6 +210,12 @@ export default function NewsCard({
           <span className="text-[10px] font-bold text-white tracking-wide">
             {article.source_name}
           </span>
+          {article.isTranslated && (
+            <TranslationBadge
+              isTranslated={article.isTranslated}
+              originalTitle={article.originalTitle}
+            />
+          )}
           {credCfg && (
             <span title={credCfg.label} className="text-[10px]">
               {credCfg.badge}
@@ -268,8 +285,9 @@ export default function NewsCard({
               src={article.source_icon}
               width={12}
               height={12}
-              className="rounded-full shrink-0"
               alt=""
+              loading="lazy"
+              style={{ borderRadius: "50%", width: "12px", height: "12px", objectFit: "cover", flexShrink: 0 }}
               onError={(e) => {
                 e.currentTarget.style.display = "none";
               }}
@@ -278,6 +296,12 @@ export default function NewsCard({
           <span className="text-[10px] font-bold text-stone-400 truncate">
             {article.source_name}
           </span>
+          {article.isTranslated && (
+            <TranslationBadge
+              isTranslated={article.isTranslated}
+              originalTitle={article.originalTitle}
+            />
+          )}
           {credCfg && (
             <span title={credCfg.label} className="shrink-0 text-[10px]">
               {credCfg.badge}

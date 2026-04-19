@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import Footer from "./Footer";
 
 // Bu sayfalar tam ekran/gazete tasarımı — global footer gösterilmez
-const HIDDEN_ON = ["/summary"];
+const HIDDEN_ON = ["/digest"];
 
 export default function ConditionalFooter() {
   const pathname = usePathname();

@@ -121,7 +121,7 @@ export default function DailySummary({ data }) {
             {mood.label}
           </span>
           <Link
-            href="/summary"
+            href="/digest"
             className="flex items-center gap-1 text-xs font-semibold transition-colors text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-white group">
             Tam baskı
             <svg
@@ -307,7 +307,7 @@ export default function DailySummary({ data }) {
               {data.articleCount} haber
             </p>
             <Link
-              href="/summary"
+              href="/digest"
               className="flex items-center gap-1.5 px-4 py-2 bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 text-xs font-bold rounded-lg hover:opacity-90 transition-opacity">
               Tam Baskı
               <svg

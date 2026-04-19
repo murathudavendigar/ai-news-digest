@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useEffect, useState } from "react";
@@ -9,10 +10,11 @@ export default function SavedArticlesPage() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    Promise.resolve().then(() => {
+      setMounted(true);
+      setSaved(getSavedArticles());
+    });
     const loadSaved = () => setSaved(getSavedArticles());
-    
-    loadSaved();
     
     const handleStorageUpdate = () => loadSaved();
     window.addEventListener("haberai_saved_articles_updated", handleStorageUpdate);
