@@ -179,9 +179,9 @@ export default function RootLayout({ children }) {
         <ThemeProvider>
           {/* ── Header ── */}
           <header
-            className="sticky top-0 z-50 shadow-xl bg-white dark:bg-stone-950 shadow-stone-200/50 dark:shadow-stone-950"
+            className="sticky top-0 z-50 shadow-xl bg-white dark:bg-stone-950 shadow-stone-200/50 dark:shadow-stone-950 pt-[env(safe-area-inset-top)]"
             style={{ "--header-height": "88px" }}>
-            {/* Üst ince bant */}
+            {/* Üst ince bant — PWA/notch altında ezilmesin diye safe-area header'da */}
             <div className="border-b border-stone-100 dark:border-white/10">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 py-1.5 flex items-center justify-between">
                 <p className="text-[10px] text-stone-400 dark:text-stone-500 uppercase tracking-widest hidden sm:block">

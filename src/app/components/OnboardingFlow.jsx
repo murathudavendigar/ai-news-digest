@@ -56,7 +56,7 @@ function SkipBtn({ onClick, children = "Atla →" }) {
 /* ─── Step 0: Karşılama ───────────────────────────────────────────────── */
 function WelcomeStep({ onStart, onSkipAll }) {
   return (
-    <div className="flex flex-col items-center py-10 text-center">
+    <div className="flex flex-col items-center py-10 pt-[max(2.5rem,env(safe-area-inset-top))] text-center">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/icon-192.png"
@@ -444,7 +444,7 @@ export default function OnboardingFlow({ onComplete }) {
       <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-linear-to-b from-stone-900/80 to-transparent" />
 
       {showProgress && (
-        <div className="relative z-10 px-6 pt-10 pb-0 shrink-0">
+        <div className="relative z-10 shrink-0 px-6 pb-0 pt-[calc(2.5rem+env(safe-area-inset-top))]">
           <div className="flex items-center justify-between mb-3">
             <button
               onClick={back}
