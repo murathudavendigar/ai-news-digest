@@ -9,28 +9,29 @@ export default function CategoryError({ error, reset }) {
   }, [error]);
 
   return (
-    <div className="min-h-[70vh] flex items-center justify-center px-4">
+    <div className="page-shell flex min-h-[70vh] items-center justify-center px-4">
       <div className="max-w-md text-center">
-        <p className="mb-3 text-5xl">⚡</p>
-        <div className="h-0.5 w-16 bg-red-500 mx-auto mb-5" />
-        <h2
-          className="mb-2 text-xl font-black text-stone-900 dark:text-stone-100"
-          style={{ fontFamily: "Georgia, serif" }}>
-          Haberler Yüklenemedi
+        <p className="page-masthead-kicker mb-3">Kategori</p>
+        <div className="mx-auto mb-5 h-0.5 w-16 bg-[var(--danger)]" />
+        <h2 className="page-masthead-title mb-2 !text-[1.5rem]">
+          Haberler yüklenemedi
         </h2>
-        <p className="mb-6 text-sm text-stone-500 dark:text-stone-400">
-          Bu kategori yüklenirken bir hata oluştu.
+        <p className="mb-6 text-sm text-[var(--text-secondary)]">
+          Bu kategori açılırken bir hata oluştu. Biraz sonra tekrar dene.
         </p>
         <div className="flex items-center justify-center gap-3">
           <button
+            type="button"
             onClick={reset}
-            className="px-5 py-2.5 bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 text-sm font-bold rounded-lg hover:opacity-90 transition-opacity">
-            Tekrar Dene
+            className="border border-[var(--text-primary)] bg-[var(--text-primary)] px-5 py-2.5 text-[11px] font-black uppercase tracking-widest text-[var(--bg-primary)]"
+          >
+            Tekrar dene
           </button>
           <Link
             href="/"
-            className="px-5 py-2.5 border border-stone-300 dark:border-stone-600 text-sm font-bold text-stone-700 dark:text-stone-300 rounded-lg hover:border-stone-500 transition-colors">
-            Ana Sayfa
+            className="border border-[var(--border-subtle)] px-5 py-2.5 text-[11px] font-black uppercase tracking-widest text-[var(--text-secondary)] no-underline"
+          >
+            Ana sayfa
           </Link>
         </div>
       </div>

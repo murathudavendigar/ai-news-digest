@@ -150,8 +150,6 @@ const pct = (n) => (n == null ? "—" : `%${n}`);
 
 /* ── Ana bileşen ── */
 export default function AdminDashboard() {
-  const secret = process.env.NEXT_PUBLIC_CRON_SECRET;
-
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(null);
@@ -282,8 +280,8 @@ export default function AdminDashboard() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${process.env.NEXT_PUBLIC_CRON_SECRET}`
         },
+        credentials: "include",
         body: JSON.stringify({ action }),
       });
       const res = await r.json();
@@ -308,9 +306,9 @@ export default function AdminDashboard() {
       const r = await fetch("/api/admin/backfill-polls", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${process.env.NEXT_PUBLIC_CRON_SECRET}`,
           "Content-Type": "application/json",
         },
+        credentials: "include",
       });
       const res = await r.json();
       setToast({
@@ -324,16 +322,6 @@ export default function AdminDashboard() {
       setWorking(null);
     }
   };
-
-  if (!secret) {
-    return (
-      <div className="p-8">
-        <div className="p-6 text-xl text-red-500 bg-red-950/30 border border-red-900/50 rounded-2xl">
-          ⚠️ <b>NEXT_PUBLIC_CRON_SECRET</b> tanımlı değil. Lütfen .env.local dosyanızı kontrol edin.
-        </div>
-      </div>
-    );
-  }
 
   if (loading && !data)
     return (
@@ -1243,16 +1231,14 @@ function KoseYazilariSection() {
     setGenerating(true);
     setResult(null);
     try {
-      const r = await fetch("/api/admin", {
+      const r = await fetch("/api/admin/trigger", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${process.env.NEXT_PUBLIC_CRON_SECRET}`
-        },
-        body: JSON.stringify({ action: "trigger-column" }),
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ job: "generate-column" }),
       });
       const res = await r.json();
-      setResult({ ok: r.ok, ...(res.result || res) });
+      setResult({ ok: r.ok, ...(res.data || res) });
       if (r.ok) loadColumns();
     } catch (e) {
       setResult({ ok: false, error: e.message });
@@ -1517,26 +1503,25 @@ function DunyaHaberleriSection() {
   const [working, setWorking] = useState(false);
   const [results, setResults] = useState(null);
   const [toast, setToast] = useState(null);
-  const secret = process.env.NEXT_PUBLIC_CRON_SECRET;
 
   const refresh = async () => {
     setWorking(true);
     setResults(null);
     setToast(null);
     try {
-      const r = await fetch("/api/cron/refresh-international", {
+      const r = await fetch("/api/admin/trigger", {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${secret}`,
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ job: "refresh-international" }),
       });
-      const data = await r.json();
+      const payload = await r.json();
+      const data = payload.data || payload;
       setResults(data);
       if (r.ok) {
         setToast({ ok: true, msg: "✓ Dünya haberleri başarıyla güncellendi" });
       } else {
-        setToast({ ok: false, msg: `✕ Hata: ${data.error || "Bilinmiyor"}` });
+        setToast({ ok: false, msg: `✕ Hata: ${data.error || payload.error || "Bilinmiyor"}` });
       }
     } catch (e) {
       setToast({ ok: false, msg: `✕ Ağ hatası: ${e.message}` });

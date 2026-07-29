@@ -10,6 +10,7 @@ import { isArticleRead, trackArticle } from "@/app/lib/useArticleHistory";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import ArticleReactions from "./ArticleReactions";
+import AiDisclosure from "./AiDisclosure";
 import CredibilityBadge from "./CredibilityBadge";
 import SaveButton from "./SaveButton";
 import TranslationBadge from "./TranslationBadge";
@@ -53,6 +54,7 @@ export default function NewsCard({
 }) {
   const router = useRouter();
   const [scorePreview, setScorePreview] = useState(null);
+  const [whyPreview, setWhyPreview] = useState(null);
   const [hovered, setHovered] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isRead, setIsRead] = useState(false);
@@ -123,6 +125,14 @@ export default function NewsCard({
       if (!res.ok) return;
       const data = await res.json();
       if (data.fromCache && data.score) setScorePreview(data.score);
+      const why =
+        data.context?.whyNow ||
+        (Array.isArray(data.context?.whyMatters)
+          ? data.context.whyMatters[0]
+          : null) ||
+        data.score?.summary ||
+        null;
+      if (why) setWhyPreview(why);
     } catch {}
   }, [article, scorePreview]);
 
@@ -338,6 +348,15 @@ export default function NewsCard({
           <CredibilityBadge sourceName={article.source_name} />
         </div>
 
+        {whyPreview && (
+          <p
+            className={`mb-2 text-[11px] leading-snug text-[var(--accent-brand)] line-clamp-2 ${featured ? "block" : "hidden md:block"}`}>
+            {whyPreview.length > 140
+              ? whyPreview.slice(0, 140).trimEnd() + "…"
+              : whyPreview}
+          </p>
+        )}
+
         {article.description && (
           <p
             className={`mb-3 overflow-hidden text-xs leading-relaxed text-stone-500 dark:text-stone-400 line-clamp-2 ${featured ? "block" : "hidden md:block"}`}>
@@ -345,6 +364,14 @@ export default function NewsCard({
               ? article.description.slice(0, 120).trimEnd() + "…"
               : article.description}
           </p>
+        )}
+
+        {(scorePreview || whyPreview) && (
+          <AiDisclosure
+            compact
+            sourceName={article.source_name}
+            sourceUrl={article.link || article.url}
+          />
         )}
 
         {/* Footer */}

@@ -12,15 +12,19 @@ webpush.setVapidDetails(
   process.env.VAPID_PRIVATE_KEY,
 );
 
+/**
+ * @param {object|string} payload - bildirim objesi veya hazır JSON string
+ */
 export async function sendPushNotification(payload) {
   const endpointKeys = await redis.smembers("push:endpoints").catch(() => []);
-  if (!endpointKeys.length) return { sent: 0, reason: "no-subscribers" };
+  if (!endpointKeys.length) return { sent: 0, failed: 0, expired: 0, reason: "no-subscribers" };
 
   let sent = 0;
   let failed = 0;
   const expired = [];
 
-  const payloadString = JSON.stringify(payload);
+  const payloadString =
+    typeof payload === "string" ? payload : JSON.stringify(payload);
 
   await Promise.allSettled(
     endpointKeys.map(async (key) => {

@@ -1,55 +1,65 @@
 {
+  "id": "/",
   "name": "HaberAI",
   "short_name": "HaberAI",
   "description": "Yapay zeka destekli haber analizi — Türkiye ve dünya",
-  "start_url": "/",
+  "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#1c1917",
+  "orientation": "any",
+  "background_color": "#fafaf9",
   "theme_color": "#1c1917",
-  "categories": ["news"],
+  "categories": ["news", "magazines"],
   "lang": "tr",
+  "dir": "ltr",
   "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
     {
       "src": "/apple-touch-icon.png",
       "sizes": "180x180",
       "type": "image/png",
       "purpose": "any"
-    },
-    {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
     }
   ],
   "shortcuts": [
     {
-      "name": "Günlük Özet",
-      "url": "/summary",
+      "name": "Günün özeti",
+      "short_name": "Özet",
+      "url": "/digest",
       "description": "Bugünün AI haber özeti"
     },
     {
+      "name": "Köşe yazıları",
+      "short_name": "Köşe",
+      "url": "/columns",
+      "description": "Günün köşe yazısı"
+    },
+    {
       "name": "Kaydedilenler",
+      "short_name": "Kayıtlar",
       "url": "/saved",
       "description": "Kaydettiğin haberler"
     }

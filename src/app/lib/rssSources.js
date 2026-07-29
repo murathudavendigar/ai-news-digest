@@ -49,7 +49,7 @@ export const RSS_SOURCES = [
     name: "Hürriyet",
     url: "https://www.hurriyet.com.tr/rss/anasayfa",
     icon: "https://www.hurriyet.com.tr/favicon.ico",
-    categories: ["politics", "world", "business"],
+    categories: ["politics", "business"],
     lang: "tr",
     priority: 1,
   },
@@ -58,7 +58,7 @@ export const RSS_SOURCES = [
     name: "Sabah",
     url: "https://www.sabah.com.tr/rss/anasayfa.xml",
     icon: "https://www.sabah.com.tr/favicon.ico",
-    categories: ["politics", "world", "business"],
+    categories: ["politics", "business"],
     lang: "tr",
     priority: 3,
   },
@@ -67,7 +67,7 @@ export const RSS_SOURCES = [
     name: "Milliyet",
     url: "https://www.milliyet.com.tr/rss/rssNew/gundemRss.xml",
     icon: "https://www.milliyet.com.tr/favicon.ico",
-    categories: ["politics", "world"],
+    categories: ["politics"],
     lang: "tr",
     priority: 1,
   },
@@ -76,7 +76,7 @@ export const RSS_SOURCES = [
     name: "Sözcü",
     url: "https://www.sozcu.com.tr/feeds-rss-category-gundem",
     icon: SOZCU_FAVICON,
-    categories: ["politics", "world"],
+    categories: ["politics"],
     lang: "tr",
     priority: 1,
   },
@@ -85,7 +85,7 @@ export const RSS_SOURCES = [
     name: "Cumhuriyet",
     url: "https://www.cumhuriyet.com.tr/rss/son_dakika.xml",
     icon: "https://www.cumhuriyet.com.tr/favicon.ico",
-    categories: ["politics", "world"],
+    categories: ["politics"],
     lang: "tr",
     priority: 1,
   },
@@ -94,7 +94,7 @@ export const RSS_SOURCES = [
     name: "Anadolu Ajansı",
     url: "https://www.aa.com.tr/tr/rss/default?cat=gundem",
     icon: "https://www.aa.com.tr/favicon.ico",
-    categories: ["politics", "world"],
+    categories: ["politics"],
     lang: "tr",
     priority: 1,
   },
@@ -103,7 +103,7 @@ export const RSS_SOURCES = [
     name: "BBC Türkçe",
     url: "https://feeds.bbci.co.uk/turkce/rss.xml",
     icon: "https://www.bbc.co.uk/favicon.ico",
-    categories: ["politics", "world"],
+    categories: ["politics"],
     lang: "tr",
     priority: 1,
   },
@@ -112,7 +112,7 @@ export const RSS_SOURCES = [
     name: "DW Türkçe",
     url: "https://rss.dw.com/rdf/rss-tur-all",
     icon: "https://www.dw.com/favicon.ico",
-    categories: ["politics", "world"],
+    categories: ["politics"],
     lang: "tr",
     priority: 1,
   },
@@ -121,7 +121,7 @@ export const RSS_SOURCES = [
     name: "Habertürk",
     url: "https://www.haberturk.com/rss",
     icon: "https://www.haberturk.com/favicon.ico",
-    categories: ["politics", "world", "business"],
+    categories: ["politics", "business"],
     lang: "tr",
     priority: 2,
   },
@@ -130,7 +130,7 @@ export const RSS_SOURCES = [
     name: "NTV",
     url: "https://www.ntv.com.tr/son-dakika.rss",
     icon: "https://www.ntv.com.tr/favicon.ico",
-    categories: ["politics", "world"],
+    categories: ["politics"],
     lang: "tr",
     priority: 2,
   },
@@ -139,7 +139,7 @@ export const RSS_SOURCES = [
     name: "CNN Türk",
     url: "https://www.cnnturk.com/feed/rss/all/news",
     icon: "https://www.cnnturk.com/favicon.ico",
-    categories: ["politics", "world"],
+    categories: ["politics"],
     lang: "tr",
     priority: 2,
   },
@@ -148,7 +148,7 @@ export const RSS_SOURCES = [
     name: "T24",
     url: "https://t24.com.tr/rss",
     icon: "https://t24.com.tr/favicon.ico",
-    categories: ["politics", "world"],
+    categories: ["politics"],
     lang: "tr",
     priority: 2,
   },
@@ -157,7 +157,7 @@ export const RSS_SOURCES = [
     name: "Teyit",
     url: "https://teyit.org/feed?lang=tr",
     icon: "https://teyit.org/favicon.ico",
-    categories: ["politics", "world"],
+    categories: ["politics"],
     lang: "tr",
     priority: 2,
   },
@@ -166,7 +166,7 @@ export const RSS_SOURCES = [
     name: "Gazete Duvar",
     url: "https://www.gazeteduvar.com.tr/export/rss",
     icon: "https://www.gazeteduvar.com.tr/favicon.ico",
-    categories: ["politics", "world"],
+    categories: ["politics"],
     lang: "tr",
     priority: 2,
   },
@@ -175,7 +175,7 @@ export const RSS_SOURCES = [
     name: "Journo",
     url: "https://journo.com.tr/feed",
     icon: "https://journo.com.tr/favicon.ico",
-    categories: ["politics", "world"],
+    categories: ["politics"],
     lang: "tr",
     priority: 2,
   },
@@ -184,7 +184,7 @@ export const RSS_SOURCES = [
     name: "Independent Türkçe",
     url: "https://www.indyturk.com/rss.xml",
     icon: "https://www.indyturk.com/favicon.ico",
-    categories: ["politics", "world"],
+    categories: ["politics"],
     lang: "tr",
     priority: 2,
   },
@@ -193,7 +193,7 @@ export const RSS_SOURCES = [
     name: "BirGün",
     url: "https://www.birgun.net/rss/son-dakika.rss",
     icon: "https://www.birgun.net/favicon.ico",
-    categories: ["politics", "world"],
+    categories: ["politics"],
     lang: "tr",
     priority: 3,
   },
@@ -202,7 +202,7 @@ export const RSS_SOURCES = [
     name: "Diken",
     url: "https://www.diken.com.tr/feed/",
     icon: "https://www.diken.com.tr/favicon.ico",
-    categories: ["politics", "world"],
+    categories: ["politics"],
     lang: "tr",
     priority: 3,
   },
@@ -211,7 +211,7 @@ export const RSS_SOURCES = [
     name: "Bianet",
     url: "https://bianet.org/bianet.rss",
     icon: "https://bianet.org/favicon.ico",
-    categories: ["politics", "world"],
+    categories: ["politics"],
     lang: "tr",
     priority: 3,
   },
@@ -234,15 +234,6 @@ export const RSS_SOURCES = [
     categories: ["business"],
     lang: "tr",
     priority: 1,
-  },
-  {
-    id: "onedio_ekonomi",
-    name: "Onedio Ekonomi",
-    url: "https://onedio.com/Publisher/publisher-ekonomi.rss",
-    icon: "https://onedio.com/favicon.ico",
-    categories: ["business"],
-    lang: "tr",
-    priority: 2,
   },
   {
     id: "onedio_finans",
@@ -372,15 +363,6 @@ export const RSS_SOURCES = [
     categories: ["technology"],
     lang: "tr",
     priority: 1,
-  },
-  {
-    id: "onedio_teknoloji",
-    name: "Onedio Teknoloji",
-    url: "https://onedio.com/Publisher/publisher-teknoloji.rss",
-    icon: "https://onedio.com/favicon.ico",
-    categories: ["technology"],
-    lang: "tr",
-    priority: 2,
   },
   {
     id: "chip",
@@ -862,14 +844,108 @@ export const RSS_SOURCES = [
   },
 ];
 
-// Kategoriye göre filtrele
+import { Redis } from "@upstash/redis";
+
+const redis = new Redis({
+  url: process.env.STORAGE_KV_REST_API_URL,
+  token: process.env.STORAGE_KV_REST_API_TOKEN,
+});
+
+async function getDisabledSourceIds() {
+  try {
+    const ids = await redis.smembers("rss:disabled");
+    return new Set(ids || []);
+  } catch {
+    return new Set();
+  }
+}
+
+function filterEnabled(sources, disabled) {
+  return sources.filter(
+    (s) => s.enabled !== false && !disabled.has(s.id),
+  );
+}
+
+// Kategoriye göre filtrele (domestic → politics alias)
 export function getSourcesByCategory(category) {
-  return RSS_SOURCES.filter((s) => s.categories.includes(category)).sort(
+  const cat =
+    category === "domestic" || category === "gundem" ? "politics" : category;
+  return RSS_SOURCES.filter((s) => s.categories.includes(cat)).sort(
     (a, b) => a.priority - b.priority,
   );
 }
 
-// Tüm unique URL'leri al (tekrar etmeden)
+export async function getSourcesByCategoryAsync(category) {
+  const disabled = await getDisabledSourceIds();
+  return filterEnabled(getSourcesByCategory(category), disabled);
+}
+
+// Tüm kaynaklar — kopya üzerinde sırala (modül dizisini mutate etme)
 export function getAllSources() {
-  return RSS_SOURCES.sort((a, b) => a.priority - b.priority);
+  return [...RSS_SOURCES].sort((a, b) => a.priority - b.priority);
+}
+
+export async function getAllSourcesAsync() {
+  const disabled = await getDisabledSourceIds();
+  return filterEnabled(getAllSources(), disabled);
+}
+
+/**
+ * Ana sayfa "all" feed için dengeli kaynak seçimi.
+ */
+export function pickSourcesForHomepage({
+  perCategory = 2,
+  maxTotal = 18,
+  maxPriority = 2,
+  disabled = new Set(),
+} = {}) {
+  const preferredOrder = [
+    "politics",
+    "world",
+    "business",
+    "sports",
+    "technology",
+    "health",
+    "science",
+    "culture",
+    "entertainment",
+    "defense",
+    "lifestyle",
+  ];
+
+  const eligible = filterEnabled(
+    getAllSources().filter((s) => s.priority <= maxPriority),
+    disabled,
+  );
+  const picked = [];
+  const seen = new Set();
+
+  for (const cat of preferredOrder) {
+    let n = 0;
+    for (const s of eligible) {
+      if (n >= perCategory || picked.length >= maxTotal) break;
+      if (seen.has(s.id)) continue;
+      if (!s.categories.includes(cat)) continue;
+      picked.push(s);
+      seen.add(s.id);
+      n++;
+    }
+    if (picked.length >= maxTotal) break;
+  }
+
+  if (picked.length < maxTotal) {
+    for (const s of eligible) {
+      if (picked.length >= maxTotal) break;
+      if (seen.has(s.id)) continue;
+      picked.push(s);
+      seen.add(s.id);
+    }
+  }
+
+  return picked;
+}
+
+export async function pickSourcesForHomepageAsync(opts = {}) {
+  const disabled = await getDisabledSourceIds();
+  return pickSourcesForHomepage({ ...opts, disabled });
 }

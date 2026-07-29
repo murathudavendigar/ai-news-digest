@@ -102,11 +102,13 @@ async function scrapeArticle(url) {
 }
 
 async function generateSummary(bodyText) {
-  const prompt = `Şu haber metnini analiz et ve Türkçe olarak özetle.
+  const { withAiContract } = await import("@/app/lib/aiContract");
+  const prompt = withAiContract(`Şu haber metnini analiz et ve Türkçe olarak özetle.
 
 Yanıt YALNIZCA JSON (başka hiçbir şey yazma):
 {
   "summary": "2-3 cümlelik akıcı özet. Ne oldu, neden önemli.",
+  "whyMatters": "Tek cümle: okuyucu için neden önemli.",
   "bullets": [
     "Önemli rakam veya isim içeren ilk nokta",
     "İkinci önemli gelişme",
@@ -115,11 +117,13 @@ Yanıt YALNIZCA JSON (başka hiçbir şey yazma):
 }
 
 Haber metni:
-${bodyText.slice(0, 3000)}`;
+${bodyText.slice(0, 3000)}`);
 
   const BASE = "https://generativelanguage.googleapis.com/v1beta/models";
   const key = process.env.GEMINI_API_KEY;
-  if (!key) return { summary: "Özet oluşturulamadı.", bullets: [] };
+  if (!key) {
+    return { summary: "Özet oluşturulamadı.", whyMatters: null, bullets: [] };
+  }
 
   const models = [
     GEMINI_MODELS.HIGH_SPEED,
@@ -134,7 +138,7 @@ ${bodyText.slice(0, 3000)}`;
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [{ role: "user", parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.3, maxOutputTokens: 600 },
+          generationConfig: { temperature: 0.3, maxOutputTokens: 700 },
         }),
       });
       if (!res.ok) continue;
@@ -145,29 +149,54 @@ ${bodyText.slice(0, 3000)}`;
         .trim();
       if (text.length < 20) continue;
 
-      // Try to parse JSON
       try {
-        const clean = text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+        const start = text.indexOf("{");
+        const end = text.lastIndexOf("}");
+        const clean =
+          start !== -1 && end > start
+            ? text.slice(start, end + 1)
+            : text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
         const parsed = JSON.parse(clean);
         if (parsed.summary) {
           return {
             summary: parsed.summary,
-            bullets: Array.isArray(parsed.bullets) ? parsed.bullets : [],
+            whyMatters: parsed.whyMatters || null,
+            bullets: Array.isArray(parsed.bullets) ? parsed.bullets.slice(0, 4) : [],
           };
         }
       } catch {
-        // Fallback: return as plain summary
-        return { summary: text, bullets: [] };
+        return { summary: text.slice(0, 500), whyMatters: null, bullets: [] };
       }
     } catch {
       continue;
     }
   }
 
-  return { summary: "Özet oluşturulamadı.", bullets: [] };
+  return { summary: "Özet oluşturulamadı.", whyMatters: null, bullets: [] };
+}
+
+function toParagraphs(bodyText) {
+  if (!bodyText) return [];
+  return bodyText
+    .replace(/\r\n/g, "\n")
+    .split(/\n{2,}|\n/)
+    .map((p) => p.replace(/\s+/g, " ").trim())
+    .filter((p) => p.length > 40);
 }
 
 export async function GET(request) {
+  const { checkRateLimit, clientIp } = await import("@/app/lib/rateLimit");
+  const rl = await checkRateLimit(`reader:${clientIp(request)}`, {
+    limit: 30,
+    windowSec: 60,
+  });
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Çok fazla istek", scrapingFailed: true },
+      { status: 429 },
+    );
+  }
+
   const { searchParams } = new URL(request.url);
   const url = searchParams.get("url");
 
@@ -205,7 +234,8 @@ export async function GET(request) {
     const textForSummary = scrapingFailed
       ? title || url
       : bodyText;
-    const { summary, bullets } = await generateSummary(textForSummary);
+    const { summary, whyMatters, bullets } = await generateSummary(textForSummary);
+    const paragraphs = scrapingFailed ? [] : toParagraphs(bodyText);
 
     const result = {
       title: title || null,
@@ -213,8 +243,14 @@ export async function GET(request) {
       publishedAt: publishedAt || null,
       mainImage: mainImage || null,
       summary,
+      whyMatters: whyMatters || null,
       bullets,
+      paragraphs,
       bodyText: scrapingFailed ? null : bodyText,
+      readingMinutes: Math.max(
+        1,
+        Math.round((bodyText || textForSummary || "").split(/\s+/).length / 200),
+      ),
       sourceUrl: url,
       sourceName: extractSource(url),
       scrapingFailed,

@@ -6,8 +6,7 @@ import Link from "next/link";
 
 /**
  * WorldNewsStrip — Client component
- * Horizontal scroll (mobile) / 3-col grid (desktop).
- * Clean flat design with thumbnail-left cards.
+ * Utilizes native CSS horizontal scroll for an intuitive swiping experience.
  */
 export default function WorldNewsStrip() {
   const [articles, setArticles] = useState([]);
@@ -19,9 +18,9 @@ export default function WorldNewsStrip() {
         const res = await fetch("/api/news/international");
         if (!res.ok) throw new Error("fetch failed");
         const data = await res.json();
-        setArticles((data.articles || data || []).slice(0, 6));
+        setArticles((data.articles || data || []).slice(0, 10)); // Fetched a bit more for marquee
       } catch {
-        // Silent fail — strip just won't show
+        // Silent fail
       } finally {
         setLoading(false);
       }
@@ -32,17 +31,11 @@ export default function WorldNewsStrip() {
   if (loading) {
     return (
       <section>
-        <div style={{ display: "flex", gap: "12px", overflow: "hidden" }}>
+        <div className="flex gap-3 overflow-hidden">
           {[0, 1, 2].map((i) => (
             <div
               key={i}
-              style={{
-                minWidth: "260px",
-                height: "96px",
-                borderRadius: "var(--radius-md)",
-                background: "var(--bg-elevated)",
-                animation: "pulse 2s infinite",
-              }}
+              className="min-w-[260px] h-[96px] rounded-md bg-[var(--bg-elevated)] animate-pulse"
             />
           ))}
         </div>
@@ -55,70 +48,27 @@ export default function WorldNewsStrip() {
   return (
     <section>
       {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: "12px",
-        }}
-      >
-        <h2
-          style={{
-            fontSize: "16px",
-            fontWeight: 600,
-            color: "var(--text-primary)",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            margin: 0,
-          }}
-        >
-          <span>🌍</span> Dünya&apos;dan
+      <div className="flex items-center justify-between mb-3 gap-3">
+        <h2 className="m-0 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">
+          Dünya&apos;dan
         </h2>
+        <span className="flex-1 h-px bg-[var(--border-subtle)]" aria-hidden="true" />
         <Link
           href="/world"
-          style={{
-            fontSize: "13px",
-            fontWeight: 600,
-            color: "var(--accent-brand)",
-            textDecoration: "none",
-            display: "flex",
-            alignItems: "center",
-            gap: "4px",
-          }}
+          className="text-[11px] font-black uppercase tracking-widest text-[var(--accent-brand)] no-underline"
         >
-          Tümünü gör →
+          Tümü →
         </Link>
       </div>
 
-      {/* Cards container */}
-      <div className="world-strip-grid scrollbar-hide">
+      {/* Cards container using Native Scroll */}
+      <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-4 -mx-4 px-4">
         {articles.map((article, idx) => (
-          <WorldCard key={article.slug || `world-${idx}`} article={article} />
+          <div key={article.slug || `world-${idx}`} className="snap-start shrink-0">
+            <WorldCard article={article} />
+          </div>
         ))}
       </div>
-
-      <style jsx>{`
-        .world-strip-grid {
-          display: flex;
-          gap: 12px;
-          overflow-x: auto;
-          -webkit-overflow-scrolling: touch;
-          scrollbar-width: none;
-          padding-bottom: 4px;
-        }
-        .world-strip-grid::-webkit-scrollbar {
-          display: none;
-        }
-        @media (min-width: 768px) {
-          .world-strip-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            overflow-x: visible;
-          }
-        }
-      `}</style>
     </section>
   );
 }
@@ -131,44 +81,16 @@ function WorldCard({ article }) {
   const timeAgo = getTimeAgo(article.publishedAt || article.published_at || article.pubDate);
 
   return (
-    <div
-      style={{
-        display: "flex",
-        gap: "12px",
-        padding: "12px",
-        minWidth: "260px",
-        flexShrink: 0,
-        background: "var(--bg-card)",
-        border: "1px solid var(--border-subtle)",
-        borderRadius: "var(--radius-md)",
-        textDecoration: "none",
-        transition: "border-color 0.2s",
-        position: "relative",
-      }}
-    >
+    <div className="flex gap-3 p-3 w-[300px] shrink-0 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-xl no-underline transition-colors relative mx-2">
       {/* Thumbnail */}
       {article.imageUrl || article.image_url ? (
-        <div
-          style={{
-            width: "80px",
-            height: "80px",
-            borderRadius: "8px",
-            overflow: "hidden",
-            flexShrink: 0,
-            background: "var(--bg-elevated)",
-          }}
-        >
+        <div className="w-20 h-20 rounded-lg overflow-hidden shrink-0 bg-[var(--bg-elevated)]">
           <img
             src={article.imageUrl || article.image_url}
             alt=""
             loading="lazy"
             decoding="async"
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              display: "block",
-            }}
+            className="w-full h-full object-cover block"
             onError={(e) => {
               e.target.style.display = "none";
             }}
@@ -177,43 +99,14 @@ function WorldCard({ article }) {
       ) : null}
 
       {/* Text content */}
-      <div
-        style={{
-          flex: 1,
-          minWidth: 0,
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "space-between",
-        }}
-      >
+      <div className="flex-1 min-w-0 flex flex-col justify-between">
         {/* Source + TR badge */}
-        <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
-          <span
-            style={{
-              fontSize: "9px",
-              fontWeight: 800,
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
-              padding: "2px 6px",
-              borderRadius: "4px",
-              background: "var(--bg-elevated)",
-              color: "var(--text-muted)",
-            }}
-          >
+        <div className="flex items-center gap-1.5 mb-1.5">
+          <span className="text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--bg-elevated)] text-[var(--text-muted)]">
             {article.sourceName || article.source_name || "Kaynak"}
           </span>
           {article.isTranslated && (
-            <span
-              style={{
-                fontSize: "10px",
-                fontWeight: 700,
-                padding: "2px 6px",
-                borderRadius: "4px",
-                background: "rgba(22, 163, 74, 0.15)",
-                color: "var(--success)",
-                border: "1px solid rgba(22, 163, 74, 0.3)",
-              }}
-            >
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-green-500/15 text-green-600 border border-green-500/30">
               TR
             </span>
           )}
@@ -222,45 +115,21 @@ function WorldCard({ article }) {
         {/* Title */}
         <Link
           href={href}
-          style={{
-            fontSize: "13px",
-            fontWeight: 600,
-            lineHeight: 1.4,
-            color: "var(--text-primary)",
-            textDecoration: "none",
-            display: "-webkit-box",
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: "vertical",
-            overflow: "hidden",
-            margin: 0,
-          }}
+          className="text-[13px] font-semibold leading-snug text-[var(--text-primary)] line-clamp-2 m-0 no-underline hover:underline"
         >
           {article.title}
         </Link>
 
         {/* Time + external link */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "6px" }}>
-          <span
-            style={{
-              fontSize: "11px",
-              color: "var(--text-muted)",
-            }}
-          >
-            {timeAgo}
-          </span>
+        <div className="flex items-center justify-between mt-1.5">
+          <span className="text-[11px] text-[var(--text-muted)]">{timeAgo}</span>
           {externalUrl && (
             <a
               href={externalUrl}
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              style={{
-                fontSize: "11px",
-                color: "var(--text-muted)",
-                textDecoration: "none",
-                opacity: 0.6,
-                transition: "opacity 0.2s",
-              }}
+              className="text-[11px] text-[var(--text-muted)] no-underline opacity-60 hover:opacity-100 transition-opacity"
               title="Kaynağa git"
             >
               ↗

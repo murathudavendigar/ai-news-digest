@@ -7,6 +7,16 @@
  * ─────────────────────────────────────────────────────────────
  */
 
+const DEFAULT_SITE_URL = "https://haberai.muratoncu.com";
+
+function resolveSiteUrl() {
+  const raw =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.SITE_URL ||
+    DEFAULT_SITE_URL;
+  return String(raw).replace(/\/$/, "");
+}
+
 export const siteConfig = {
   /** Görünen uygulama adı */
   name: "HaberAI",
@@ -37,8 +47,11 @@ export const siteConfig = {
   descriptionHome:
     "Türkiye ve dünyadan en güncel son dakika haberleri — yapay zeka ile güvenilirlik analizi.",
 
-  /** Canonical domain — env'den okunur, yoksa fallback */
-  url: "https://haberaii.vercel.app",
+  /**
+   * Canonical domain.
+   * Production: NEXT_PUBLIC_SITE_URL=https://haberai.muratoncu.com
+   */
+  url: resolveSiteUrl(),
 
   /** Default OG görseli (Next.js opengraph-image route) */
   ogImage: "/opengraph-image",
@@ -53,7 +66,14 @@ export const siteConfig = {
   creditLine: `© ${new Date().getFullYear()} HaberAI`,
 
   /** İletişim e-postası (footer vs.) */
-  contactEmail: "",
+  contactEmail: "murathoncu@gmail.com",
+
+  /** Eski domainler — middleware 301 için */
+  legacyHosts: [
+    "haberaii.vercel.app",
+    "haberai.vercel.app",
+    "www.haberai.muratoncu.com",
+  ],
 
   /** SEO anahtar kelimeler */
   keywords: [
@@ -64,6 +84,8 @@ export const siteConfig = {
     "Türkiye haberleri",
     "dünya haberleri",
     "son dakika",
+    "günlük özet",
+    "köşe yazısı",
   ],
 };
 
@@ -82,7 +104,7 @@ export const CATEGORIES = [
   { slug: "defense", title: "Savunma", icon: "🛡️" },
   { slug: "lifestyle", title: "Yaşam", icon: "🌿" },
   { slug: "politics", title: "Politika", icon: "🏙️" },
-  { slug: "world", title: "Dünya", icon: "🌍", url: "/world" },
+  { slug: "world", title: "Dünya", icon: "🌍" },
 ];
 
 /**

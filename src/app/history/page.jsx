@@ -89,9 +89,9 @@ export default function HistoryPage() {
   if (!mounted) return null;
 
   return (
-    <div className="min-h-screen bg-stone-50 dark:bg-stone-950 px-4 py-8">
-      <div className="max-w-2xl mx-auto">
-        <h1 className="text-3xl font-black text-stone-900 dark:text-white mb-6" style={{ fontFamily: "var(--font-display, Georgia, serif)" }}>
+    <div className="page-shell min-h-screen px-4 py-8">
+      <div className="mx-auto max-w-2xl">
+        <h1 className="mb-6 font-[family-name:var(--font-display)] text-3xl font-black text-[var(--text-primary)]">
           Okuma Geçmişim
         </h1>
         
@@ -102,16 +102,15 @@ export default function HistoryPage() {
 
         {history.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="text-6xl mb-6 opacity-30">📖</div>
-            <h2 className="text-xl font-bold text-stone-900 dark:text-white mb-2">
+            <p className="mb-2 text-xl font-bold text-[var(--text-primary)]">
               Henüz okuma geçmişi yok
-            </h2>
-            <p className="text-sm text-stone-500 dark:text-stone-400 mb-6 max-w-sm">
+            </p>
+            <p className="mb-6 max-w-sm text-sm text-[var(--text-muted)]">
               Haberleri okudukça geçmişin burada birikmeye başlayacak.
             </p>
             <Link
               href="/"
-              className="px-6 py-2.5 rounded-full bg-stone-900 dark:bg-white text-white dark:text-stone-900 font-bold hover:bg-stone-800 dark:hover:bg-stone-100 transition-colors"
+              className="rounded-full bg-[var(--text-primary)] px-6 py-2.5 font-bold text-[var(--bg-primary)] transition-opacity hover:opacity-90"
             >
               Haber okumaya başla →
             </Link>
@@ -134,28 +133,28 @@ export default function HistoryPage() {
 
               return (
                 <div key={date}>
-                  <h3 className="text-sm font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider mb-4 px-2">
+                  <h3 className="mb-4 px-2 text-sm font-bold uppercase tracking-wider text-[var(--text-muted)]">
                     {displayDate}
                   </h3>
                   <div className="space-y-3">
                     {entries.map((entry, idx) => (
-                      <div key={idx} className="flex gap-4 p-4 bg-white dark:bg-stone-900 rounded-2xl border border-stone-100 dark:border-stone-800 shadow-sm relative overflow-hidden">
-                        <div className="flex-1 min-w-0">
+                      <div key={idx} className="relative flex gap-4 overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] p-4 shadow-sm">
+                        <div className="min-w-0 flex-1">
                           <Link href={`/news/${entry.slug}`}>
-                            <h4 className="text-sm font-bold text-stone-900 dark:text-white line-clamp-2 leading-snug hover:text-amber-600 dark:hover:text-amber-400 transition-colors mb-2" style={{ fontFamily: "var(--font-display, Georgia, serif)" }}>
+                            <h4 className="mb-2 line-clamp-2 font-[family-name:var(--font-display)] text-sm font-bold leading-snug text-[var(--text-primary)] transition-colors hover:text-[var(--accent-brand)]">
                               {entry.title}
                             </h4>
                           </Link>
-                          <div className="flex flex-wrap items-center gap-2 text-xs text-stone-500 dark:text-stone-400 font-medium">
+                          <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-[var(--text-muted)]">
                             {entry.category && (
-                              <span className="px-2 py-0.5 rounded-md bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 uppercase tracking-wider text-[9px] font-black">
+                              <span className="rounded-md bg-[var(--bg-elevated)] px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-[var(--text-secondary)]">
                                 {CATEGORY_LABELS[(Array.isArray(entry.category) ? entry.category[0] : entry.category).toLowerCase()] || (Array.isArray(entry.category) ? entry.category[0] : entry.category)}
                               </span>
                             )}
-                            <span className="truncate max-w-24">{entry.source}</span>
-                            <span className="text-stone-300 dark:text-stone-700">·</span>
-                            <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <span className="max-w-24 truncate">{entry.source}</span>
+                            <span className="text-[var(--border-subtle)]">·</span>
+                            <span className="flex items-center gap-1 text-[var(--success)]">
+                              <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                               </svg>
                               {Math.max(1, Math.round((entry.secondsSpent || 0) / 60))} dk
@@ -169,10 +168,10 @@ export default function HistoryPage() {
               );
             })}
             
-            <div className="pt-8 pb-4 flex justify-center border-t border-stone-200 dark:border-stone-800">
+            <div className="flex justify-center border-t border-[var(--border-subtle)] pb-4 pt-8">
               <button
                 onClick={handleClearHistory}
-                className="px-6 py-2.5 rounded-full text-sm font-bold text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                className="rounded-full px-6 py-2.5 text-sm font-bold text-red-500 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30"
               >
                 Geçmişi Temizle
               </button>

@@ -1,56 +1,39 @@
-
 import Link from "next/link";
-
-const ALL_CATEGORIES = [
-  { slug: "technology", title: "Teknoloji", icon: "💻" },
-  { slug: "sports", title: "Spor", icon: "⚽" },
-  { slug: "business", title: "Ekonomi", icon: "📈" },
-  { slug: "health", title: "Sağlık", icon: "🏥" },
-  { slug: "entertainment", title: "Magazin", icon: "🎬" },
-  { slug: "politics", title: "Politika", icon: "🏛️" },
-  { slug: "world", title: "Dünya", icon: "🌍" },
-];
+import { CATEGORIES } from "@/app/lib/siteConfig";
 
 export default function CategoryNotFound() {
   return (
-    <div className="min-h-[70vh] flex items-center justify-center px-4">
+    <div className="page-shell flex min-h-[70vh] items-center justify-center px-4">
       <div className="max-w-lg text-center">
-        <p className="mb-3 text-6xl">🗂️</p>
-        <div className="h-0.5 w-16 bg-amber-400 mx-auto mb-5" />
-        <h1
-          className="mb-2 text-2xl font-black text-stone-900 dark:text-stone-100"
-          style={{ fontFamily: "Georgia, serif" }}>
-          Kategori Bulunamadı
+        <p className="page-masthead-kicker mb-3">Kategori</p>
+        <div className="mx-auto mb-5 h-0.5 w-16 bg-[var(--accent-brand)]" />
+        <h1 className="page-masthead-title mb-2 !text-[1.75rem]">
+          Kategori bulunamadı
         </h1>
-        <p className="mb-8 text-sm text-stone-500 dark:text-stone-400">
-          Aradığınız kategori mevcut değil. Aşağıdaki kategorilere göz
-          atabilirsiniz.
+        <p className="mb-8 text-sm text-[var(--text-secondary)]">
+          Bu kategori mevcut değil. Aşağıdakilerden birine geçebilirsin.
         </p>
 
-        <div className="grid grid-cols-2 gap-2 mb-8 sm:grid-cols-3">
-          {ALL_CATEGORIES.map((cat) => (
+        <div className="mb-8 grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {CATEGORIES.slice(0, 9).map((cat) => (
             <Link
               key={cat.slug}
               href={`/category/${cat.slug}`}
-              className="flex items-center gap-2 px-3 py-2.5 rounded-xl
-                         bg-stone-50 dark:bg-stone-800/50 border border-stone-200 dark:border-stone-700
-                         hover:border-stone-400 dark:hover:border-stone-500
-                         text-sm font-semibold text-stone-700 dark:text-stone-300
-                         transition-all group">
-              <span>{cat.icon}</span>
-              <span>{cat.title}</span>
-              <span className="ml-auto transition-colors text-stone-300 dark:text-stone-600 group-hover:text-stone-500">
-                ›
-              </span>
+              className="border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-3 py-2.5 text-left text-sm font-semibold text-[var(--text-secondary)] no-underline transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
+            >
+              {cat.title}
             </Link>
           ))}
         </div>
 
-        <Link
-          href="/"
-          className="text-sm font-semibold transition-colors text-stone-500 hover:text-stone-900 dark:hover:text-stone-100">
-          ← Ana sayfaya dön
-        </Link>
+        <div className="flex items-center justify-center gap-4">
+          <Link href="/" className="article-text-link">
+            Ana sayfa
+          </Link>
+          <Link href="/digest" className="article-text-link accent">
+            Günün özeti
+          </Link>
+        </div>
       </div>
     </div>
   );

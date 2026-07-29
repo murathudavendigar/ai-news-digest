@@ -2,6 +2,8 @@
  * Yazar / proje bilgileri
  * Buraya kendi bilgilerini ekle — about sayfasında otomatik görünür.
  */
+import { siteConfig } from "@/app/lib/siteConfig";
+
 export const author = {
   name: "Murat Hudavendigar Öncü",
   title: "Yazılım Geliştirici", // unvan / rol
@@ -21,7 +23,10 @@ export const projectInfo = {
   tagline: "Yapay zeka destekli Türkçe haber analizi",
   description:
     "HaberAI; çeşitli kaynaklardan gelen haberleri toplayıp Gemini yapay zeka modeliyle özetleyen, karşılaştıran ve analiz eden bağımsız bir haber platformudur.",
-  siteUrl: "https://haberaii.vercel.app", // Tek kaynak (site domaini)
+  /** Canonical site URL — siteConfig ile senkron */
+  get siteUrl() {
+    return siteConfig.url;
+  },
 
   // ── Özellikler ──────────────────────────────────────────────────────────
   features: [

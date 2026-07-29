@@ -5,6 +5,7 @@ import Image from "next/image";
 export const metadata = {
   title: `Hakkımda · ${siteConfig.name}`,
   description: `${author.name} — ${author.bio}`,
+  alternates: { canonical: `${siteConfig.url}/about` },
 };
 
 // ── İkonlar ──────────────────────────────────────────────────────────────
@@ -193,6 +194,31 @@ export default function AboutPage() {
             </div>
           </Card>
         )}
+
+        {/* ══ 3b. METODOLOJİ ═══════════════════════════════════════════ */}
+        <Card>
+          <div className="px-8 py-6">
+            <SectionLabel>Nasıl çalışır?</SectionLabel>
+            <ul className="space-y-3 text-sm leading-relaxed text-stone-600 dark:text-stone-300">
+              <li>
+                <span className="font-bold text-stone-800 dark:text-stone-100">RSS toplama — </span>
+                Güvenilir yayınlardan manşetler periyodik olarak toplanır ve tek akışta birleştirilir.
+              </li>
+              <li>
+                <span className="font-bold text-stone-800 dark:text-stone-100">AI özet &amp; analiz — </span>
+                Kısa okuma ve derin analiz yapay zeka ile üretilir; her blokta şeffaflık notu gösterilir.
+              </li>
+              <li>
+                <span className="font-bold text-stone-800 dark:text-stone-100">Kaynak bağlantıları — </span>
+                Telif kaynak yayına aittir; her haberde orijinal kaynağa giden bağlantı bulunur.
+              </li>
+              <li>
+                <span className="font-bold text-stone-800 dark:text-stone-100">Reklam yok — </span>
+                Bağımsız, reklamsız bir okuma deneyimi hedeflenir.
+              </li>
+            </ul>
+          </div>
+        </Card>
 
         {/* ══ 4. PROJE ══════════════════════════════════════════════════ */}
         <Card>

@@ -4,9 +4,24 @@
 
 import { searchNews } from "@/app/lib/news";
 import { findRelatedInFeed } from "@/app/lib/newsSource";
+import { normalizeArticle } from "@/app/lib/newsUtils";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
+
+function buildRelatedQuery(title, keywords = []) {
+  const titleWords = String(title || "")
+    .split(/\s+/)
+    .map((w) => w.replace(/[^\p{L}\p{N}-]/gu, ""))
+    .filter((w) => w.length > 2)
+    .slice(0, 6);
+  if (titleWords.length >= 2) return titleWords.join(" ");
+
+  const kw = (keywords || [])
+    .filter((k) => typeof k === "string" && k.length > 2)
+    .slice(0, 2);
+  return kw.join(" ") || titleWords.join(" ");
+}
 
 export async function POST(req) {
   try {
@@ -16,16 +31,14 @@ export async function POST(req) {
       return NextResponse.json({ articles: [] });
     }
 
-    // Arama terimi: ilk 2 keyword, yoksa başlığın ilk 5 kelimesi
-    const query =
-      keywords.slice(0, 2).join(" ") ||
-      (title || "").split(" ").slice(0, 5).join(" ");
+    // Başlık önce — kategori keyword'leri (politics vb.) Türkçe RSS'te zayıf eşleşir
+    const query = buildRelatedQuery(title, keywords);
 
     if (!query.trim()) return NextResponse.json({ articles: [] });
 
     // ── 1. RSS feed cache'inden tara (API çağrısı yok) ────────────────────
     const rssArticles = await findRelatedInFeed(query, currentId, 4);
-    if (rssArticles.length >= 2) {
+    if (rssArticles.length >= 1) {
       return NextResponse.json({
         articles: rssArticles,
         query,
@@ -37,6 +50,7 @@ export async function POST(req) {
     try {
       const data = await searchNews(query);
       const related = (data.results || [])
+        .map(normalizeArticle)
         .filter((a) => a.article_id !== currentId)
         .slice(0, 4);
 

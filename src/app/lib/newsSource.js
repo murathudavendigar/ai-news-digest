@@ -9,7 +9,10 @@ import {
   getNewsByCategory as getNewsDataByCategory,
 } from "./news";
 import { fetchMultipleRSS } from "./rssParser";
-import { getAllSources, getSourcesByCategory } from "./rssSources";
+import {
+  getSourcesByCategoryAsync,
+  pickSourcesForHomepageAsync,
+} from "./rssSources";
 import { normalizeArticle } from "./newsUtils";
 
 const redis = new Redis({
@@ -27,7 +30,12 @@ async function cacheArticles(articles) {
   const categoryMap = {};
   const ops = articles.map((a) => {
     // Kategori index'i oluştur: rss:cat:{category} → article_id set
-    (a.category || []).forEach((cat) => {
+    const cats = Array.isArray(a.category)
+      ? a.category
+      : a.category
+        ? [a.category]
+        : [];
+    cats.forEach((cat) => {
       if (!categoryMap[cat]) categoryMap[cat] = [];
       categoryMap[cat].push(a.article_id);
     });
@@ -47,12 +55,27 @@ async function cacheArticles(articles) {
   ).catch(() => {});
 }
 
+function coerceCachedArticle(cached) {
+  if (!cached) return null;
+  let value = cached;
+  // Upstash bazen string, bazen object döner; eski intl kodu JSON.stringify yazıyordu
+  for (let i = 0; i < 2 && typeof value === "string"; i++) {
+    try {
+      value = JSON.parse(value);
+    } catch {
+      return null;
+    }
+  }
+  return value && typeof value === "object" ? value : null;
+}
+
 // ── ID ile makale getir ───────────────────────────────────────────────────
 export async function getArticleById(id) {
+  if (!id) return null;
   try {
-    let cached = await redis.get(`article:${id}`);
+    let cached = coerceCachedArticle(await redis.get(`article:${id}`));
     if (cached) return cached;
-    cached = await redis.get(`article:slug:${id}`);
+    cached = coerceCachedArticle(await redis.get(`article:slug:${id}`));
     if (cached) return cached;
   } catch {}
   return null;
@@ -86,7 +109,7 @@ export async function findRelatedInFeed(query, currentId, limit = 4) {
     .filter((w) => w.length > 3);
   if (!queryWords.length) return [];
 
-  const feedKeys = ["rss:feed:all:p1", "rss:feed:all:p2"];
+  const feedKeys = ["rss:feed:all:full:v2"];
   const seen = new Set([currentId]);
   const matches = [];
 
@@ -111,41 +134,53 @@ export async function findRelatedInFeed(query, currentId, limit = 4) {
     } catch {}
   }
 
-  // En fazla eşleşen önce
+  // En fazla eşleşen önce — detay linkleri için normalize (slug/link)
   return matches
     .sort((a, b) => b._relScore - a._relScore)
     .slice(0, limit)
-    .map(({ _relScore: _, ...a }) => a); // _relScore'u döndürme
+    .map(({ _relScore: _, ...a }) => normalizeArticle(a));
 }
 
 // ── Ana feed ─────────────────────────────────────────────────────────────
 export async function getNewsFeed({ category, page = 1, pageSize = 30 } = {}) {
-  const cacheKey = `rss:feed:${category || "all"}:p${page}`;
+  // domestic / gundem → politics (RSS etiketleriyle uyumlu)
+  const resolvedCategory =
+    category === "domestic" || category === "gundem" ? "politics" : category;
+
+  const fullKey = `rss:feed:${resolvedCategory || "all"}:full:v2`;
 
   try {
-    const cached = await redis.get(cacheKey);
-    if (cached) {
-      // ─ Stale-while-revalidate ─────────────────────────────────────
-      // Cache veri eskiyse arka planda yenile, mevcut isteğe stale dön
+    const cached = await redis.get(fullKey);
+    if (cached?.results) {
       const age = Date.now() - new Date(cached.fetchedAt).getTime();
       if (age > 10 * 60 * 1000) {
-        // 10 dakikadan eski → sessizce yenile
-        getNewsFeedFresh({ category, page, pageSize, cacheKey }).catch(
-          () => {},
-        );
+        // stale — arka planda yenile
+        buildFullFeed({ category: resolvedCategory, fullKey }).catch(() => {});
       }
-      return { ...cached, fromCache: true };
+      return paginateFeed(cached, page, pageSize, true);
     }
   } catch {}
 
-  return getNewsFeedFresh({ category, page, pageSize, cacheKey });
+  const full = await buildFullFeed({ category: resolvedCategory, fullKey });
+  return paginateFeed(full, page, pageSize, false);
+}
+
+function paginateFeed(full, page, pageSize, fromCache) {
+  const articles = full.results || [];
+  const start = (page - 1) * pageSize;
+  const pageData = articles.slice(start, start + pageSize);
+  return {
+    results: pageData,
+    totalCount: articles.length,
+    nextPage: articles.length > start + pageSize ? page + 1 : null,
+    source: full.source,
+    fetchedAt: full.fetchedAt,
+    fromCache,
+  };
 }
 
 // ── Kaynak round-robin dağıtımı ───────────────────────────────────────────
-// Aynı kaynaktan gelen haberler arka arkaya gelmesin.
-// Her kaynaktan birer haber alarak yeni bir liste oluşturur.
 function interleaveBySource(articles) {
-  // Kaynağa göre grupla
   const groups = {};
   for (const a of articles) {
     const key = a.source_id || a.source_name || "unknown";
@@ -153,7 +188,6 @@ function interleaveBySource(articles) {
     groups[key].push(a);
   }
 
-  // Her gruptan en fazla haber olan önce sıralanır (büyükten küçüğe)
   const queues = Object.values(groups).sort((a, b) => b.length - a.length);
   const result = [];
 
@@ -166,17 +200,18 @@ function interleaveBySource(articles) {
   return result;
 }
 
-async function getNewsFeedFresh({ category, page, pageSize, cacheKey }) {
+async function buildFullFeed({ category, fullKey }) {
   let articles = [];
   let source = "rss";
 
-  // ── RSS ──────────────────────────────────────────────────────────────
   try {
     const sources = category
-      ? getSourcesByCategory(category)
-      : getAllSources()
-          .filter((s) => s.priority <= 2)
-          .slice(0, 12);
+      ? await getSourcesByCategoryAsync(category)
+      : await pickSourcesForHomepageAsync({
+          perCategory: 2,
+          maxTotal: 18,
+          maxPriority: 2,
+        });
 
     console.log(
       `[newsSource] RSS: ${sources.length} kaynak, kategori: ${category || "all"}`,
@@ -188,7 +223,6 @@ async function getNewsFeedFresh({ category, page, pageSize, cacheKey }) {
     console.error("[newsSource] RSS hatası:", err.message);
   }
 
-  // ── NewsData fallback ─────────────────────────────────────────────────
   if (articles.length < 10) {
     console.log("[newsSource] Fallback: NewsData.io");
     try {
@@ -212,27 +246,17 @@ async function getNewsFeedFresh({ category, page, pageSize, cacheKey }) {
     }
   }
 
-  // Makaleleri Redis'e kaydet (arka planda, await etme)
   cacheArticles(articles).catch(() => {});
-
-  // ── Kaynak karıştırma: aynı kaynağın haberleri arka arkaya gelmesin ──
   articles = interleaveBySource(articles);
 
-  // Sayfalama
-  const start = (page - 1) * pageSize;
-  const pageData = articles.slice(start, start + pageSize);
-
-  const result = {
-    results: pageData,
-    totalCount: articles.length,
-    nextPage: articles.length > start + pageSize ? page + 1 : null,
+  const full = {
+    results: articles,
     source,
     fetchedAt: new Date().toISOString(),
-    fromCache: false,
   };
 
   try {
-    await redis.set(cacheKey, result, { ex: FEED_CACHE_TTL });
+    await redis.set(fullKey, full, { ex: FEED_CACHE_TTL });
   } catch {}
-  return result;
+  return full;
 }

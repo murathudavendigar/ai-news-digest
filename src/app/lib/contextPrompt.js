@@ -1,3 +1,5 @@
+import { AI_JSON_RULES } from "./aiContract";
+
 const CATEGORY_CONTEXT_FRAMEWORK = {
   politics: `POLITICAL CONTEXT FRAMEWORK:
 - Map power landscape: factions, parties, power centers involved
@@ -144,7 +146,10 @@ RULES:
 - relatedTopics: 2-3 entries. Use general topic descriptions, NOT fabricated news headlines.
 - Be analytically specific. Name things, quantify where possible.
 - Use approximate language for uncertain dates ("around 2018", "in recent years") — never fabricate specifics.
-- If a claim in the article itself is suspicious or unverifiable, note it under biggerPicture or rootCause rather than repeating it as fact.`;
+- If a claim in the article itself is suspicious or unverifiable, note it under biggerPicture or rootCause rather than repeating it as fact.
+- Do NOT invent historical dates, actor motives, or related headlines. Prefer null / shorter lists when unsure.
+
+${AI_JSON_RULES}`;
 
   const userPrompt = `Provide deep historical context, actor analysis, future scenarios, and related intelligence for this news story.
 

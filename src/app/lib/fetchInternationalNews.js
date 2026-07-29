@@ -7,6 +7,17 @@ import { redis } from "./redis";
 const CACHE_TTL = 1800; // 30 minutes — international news refreshes less often
 const CACHE_KEY = "intl_news:v1";
 
+function decodeHtmlEntities(str) {
+  if (!str) return "";
+  return String(str)
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'");
+}
+
 /**
  * Fetch + parse a single RSS feed
  * Returns array of raw items: { title, url, description, publishedAt, sourceId, sourceName, category, language }
@@ -40,10 +51,11 @@ async function fetchRSSFeed(source) {
       item.match(/<title>(.*?)<\/title>/)?.[1] ||
       "";
 
-    const url =
+    const url = decodeHtmlEntities(
       item.match(/<link>(.*?)<\/link>/)?.[1] ||
-      item.match(/<guid[^>]*>(.*?)<\/guid>/)?.[1] ||
-      "";
+        item.match(/<guid[^>]*>(.*?)<\/guid>/)?.[1] ||
+        "",
+    ).trim();
 
     const description =
       item.match(/<description><!\[CDATA\[(.*?)\]\]><\/description>/)?.[1] ||
@@ -96,7 +108,7 @@ Aşağıdaki ${batch.length} İngilizce haber başlığı ve açıklamasını T�
 Her haber için:
 - Türkçe başlık: doğal, akıcı, haber dili
 - Özet: 2 cümle, Türkçe, bilgilendirici
-- Kategori tahmini: gundem/ekonomi/dunya/teknoloji/spor/saglik/kultur-sanat/bilim
+- Kategori tahmini: politics/business/world/technology/sports/health/culture/science
 
 Haberler:
 ${batch
@@ -116,7 +128,7 @@ Yanıt YALNIZCA JSON array:
     "index": 1,
     "turkishTitle": "Türkçe başlık",
     "summary": "2 cümle Türkçe özet.",
-    "category": "dunya"
+    "category": "world"
   }
 ]
 `;
@@ -225,18 +237,25 @@ export async function fetchInternationalNews({ forceRefresh = false } = {}) {
     )
     .sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
 
-  // Cache each article individually by slug so detail page can find it
+  // Cache each article individually by slug so detail page can find it.
+  // Upstash Redis objeleri otomatik serileştirir — JSON.stringify yapma.
   for (const article of allArticles) {
-    if (article.slug) {
+    if (!article.slug) continue;
+    const payload = {
+      ...article,
+      link: article.link || article.url,
+      url: article.url || article.link,
+      article_id: article.article_id || `intl:${article.slug}`,
+    };
+    redis
+      .set(`article:slug:${article.slug}`, payload, { ex: 86400 })
+      .catch((err) =>
+        devWarn("[intl-news] Article cache failed:", err.message),
+      );
+    if (payload.article_id) {
       redis
-        .setex(
-          `article:slug:${article.slug}`,
-          86400, // 24 hours
-          JSON.stringify(article)
-        )
-        .catch((err) =>
-          devWarn("[intl-news] Article cache failed:", err.message)
-        );
+        .set(`article:${payload.article_id}`, payload, { ex: 86400 })
+        .catch(() => {});
     }
   }
 

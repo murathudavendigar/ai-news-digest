@@ -1,15 +1,17 @@
 import { devLog, devWarn } from "@/app/lib/devLog";
+import { siteConfig } from "@/app/lib/siteConfig";
 // lib/groq.js
-// Multi-provider AI client — otomatik fallback zinciri
+// Multi-provider AI client — otomatik fallback zinciri (yalnızca ücretsiz modeller)
 //
 // Zincir:
-//   1. Groq        — Llama 4 Scout 17B   — 30K TPM, 500K TPD
-//   2. SambaNova   — Llama 3.3 70B       — ~1M TPD
-//   3. Cerebras    — Llama 3.1 8B        — 1M TPD
-//   4. OpenRouter  — free modeller       — son çare
+//   1. Groq        — Llama free tier
+//   2. Cerebras    — public free/preview models
+//   3. SambaNova   — free tier (402 → uzun cooldown)
+//   4. OpenRouter  — openrouter/free + :free modeller
 //
-// 429 veya SKIP → bir sonraki provider
-// 400 (bad request) → direkt fırlat, retry etme
+// 429 → kısa bekle, sonrakine geç
+// 401/402/404 (model yok) → Redis cooldown, sonrakine geç
+// 400 (bad request) → direkt fırlat
 
 import { Redis } from "@upstash/redis";
 
@@ -18,7 +20,11 @@ const redis = new Redis({
   token: process.env.STORAGE_KV_REST_API_TOKEN,
 });
 
-// Provider sayaçlarını pipeline ile tek roundtrip'te güncelle (fire-and-forget)
+const COOLDOWN_KEY = (providerKey) => `ai:cooldown:${providerKey}`;
+const COOLDOWN_SOFT_SEC = 30 * 60; // 30 dk — 404 model / geçici erişim
+const COOLDOWN_HARD_SEC = 6 * 60 * 60; // 6 saat — 401/402 billing
+const COOLDOWN_RATE_SEC = 45; // 45 sn — 429 rate limit (aynı provider'ı spam etme)
+
 function trackProviderUsage(providerKey) {
   redis
     .pipeline()
@@ -34,17 +40,46 @@ function trackProviderError(providerKey, statusCode) {
   pl.exec().catch(() => {});
 }
 
+async function isProviderCooledDown(providerKey) {
+  try {
+    const until = await redis.get(COOLDOWN_KEY(providerKey));
+    if (!until) return false;
+    const ts = Number(until);
+    if (!Number.isFinite(ts)) return false;
+    if (Date.now() < ts) return true;
+    await redis.del(COOLDOWN_KEY(providerKey)).catch(() => {});
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+async function setProviderCooldown(providerKey, seconds, reason) {
+  const until = Date.now() + seconds * 1000;
+  try {
+    await redis.set(COOLDOWN_KEY(providerKey), String(until), {
+      ex: seconds,
+    });
+    devWarn(
+      `[ai] ${PROVIDERS[providerKey].name} cooldown ${Math.round(seconds / 60)}dk — ${reason}`,
+    );
+  } catch {
+    // Redis yoksa yine de bu request'te skip edilir (caller continue eder)
+  }
+}
+
 const PROVIDERS = {
   groq: {
     name: "Groq",
     baseURL: "https://api.groq.com/openai/v1",
     apiKeyEnv: "GROQ_API_KEY",
     models: {
-      // llama-3.1-8b-instant  → 6K TPM, 500K TPD
-      // llama-4-scout         → 30K TPM, 500K TPD  ← BALANCED için ideal
-      FAST: "llama-3.1-8b-instant",
-      BALANCED: "llama-3.3-70b-versatile",
-      SMART: "meta-llama/llama-4-scout-17b-16e-instruct",
+      FAST: ["llama-3.1-8b-instant"],
+      BALANCED: ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"],
+      SMART: [
+        "meta-llama/llama-4-scout-17b-16e-instruct",
+        "llama-3.3-70b-versatile",
+      ],
     },
   },
 
@@ -53,9 +88,9 @@ const PROVIDERS = {
     baseURL: "https://api.sambanova.ai/v1",
     apiKeyEnv: "SAMBANOVA_API_KEY",
     models: {
-      FAST: "Meta-Llama-3.1-8B-Instruct",
-      BALANCED: "Meta-Llama-3.3-70B-Instruct",
-      SMART: "Meta-Llama-3.3-70B-Instruct",
+      FAST: ["Meta-Llama-3.1-8B-Instruct"],
+      BALANCED: ["Meta-Llama-3.3-70B-Instruct", "Meta-Llama-3.1-8B-Instruct"],
+      SMART: ["Meta-Llama-3.3-70B-Instruct"],
     },
   },
 
@@ -63,10 +98,11 @@ const PROVIDERS = {
     name: "Cerebras",
     baseURL: "https://api.cerebras.ai/v1",
     apiKeyEnv: "CEREBRAS_API_KEY",
+    // Public catalog (2026-07): llama3.1-8b kaldırıldı
     models: {
-      FAST: "llama3.1-8b",
-      BALANCED: "llama3.1-8b",
-      SMART: "llama3.1-8b",
+      FAST: ["gemma-4-31b", "gpt-oss-120b"],
+      BALANCED: ["gemma-4-31b", "gpt-oss-120b"],
+      SMART: ["gpt-oss-120b", "gemma-4-31b"],
     },
   },
 
@@ -74,15 +110,33 @@ const PROVIDERS = {
     name: "OpenRouter",
     baseURL: "https://openrouter.ai/api/v1",
     apiKeyEnv: "OPENROUTER_API_KEY",
+    // free catalog değişir — openrouter/free router + güncel :free slug'lar
     models: {
-      FAST: "meta-llama/llama-3.3-70b-instruct:free",
-      BALANCED: "meta-llama/llama-3.3-70b-instruct:free",
-      SMART: "meta-llama/llama-3.3-70b-instruct:free",
+      FAST: [
+        "openrouter/free",
+        "openai/gpt-oss-20b:free",
+        "nvidia/nemotron-nano-9b-v2:free",
+        "google/gemma-4-31b-it:free",
+      ],
+      BALANCED: [
+        "openrouter/free",
+        "google/gemma-4-31b-it:free",
+        "openai/gpt-oss-20b:free",
+        "nvidia/nemotron-nano-9b-v2:free",
+      ],
+      SMART: [
+        "openrouter/free",
+        "google/gemma-4-31b-it:free",
+        "openai/gpt-oss-20b:free",
+      ],
+    },
+    extraHeaders: {
+      "HTTP-Referer": siteConfig.url,
+      "X-Title": siteConfig.name,
     },
   },
 };
 
-// Öncelik sırası — Groq (Scout 30K TPM) → SambaNova (~1M TPD) → Cerebras (1M TPD) → OpenRouter (son çare)
 const FALLBACK_ORDER = ["groq", "cerebras", "sambanova", "openrouter"];
 
 export const GROQ_MODELS = {
@@ -91,10 +145,14 @@ export const GROQ_MODELS = {
   SMART: "SMART",
 };
 
-// ── Tek provider çağrısı ──────────────────────────────────────────────────
-async function callProvider(
+function resolveModelList(provider, modelTier) {
+  const entry = provider.models[modelTier] || provider.models.BALANCED;
+  return Array.isArray(entry) ? entry : [entry];
+}
+
+async function callProviderOnce(
   providerKey,
-  modelTier,
+  model,
   messages,
   temperature,
   maxTokens,
@@ -109,7 +167,6 @@ async function callProvider(
     );
   }
 
-  const model = provider.models[modelTier] || provider.models.BALANCED;
   devLog(`[ai] → ${provider.name} · ${model}`);
 
   const res = await fetch(`${provider.baseURL}/chat/completions`, {
@@ -131,15 +188,15 @@ async function callProvider(
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     const msg = body?.error?.message || body?.message || `HTTP ${res.status}`;
-    console.error(`[ai] ${provider.name} ${res.status}:`, msg.slice(0, 120));
-    throw Object.assign(new Error(msg), { status: res.status });
+    console.error(`[ai] ${provider.name} ${res.status}:`, msg.slice(0, 160));
+    throw Object.assign(new Error(msg), { status: res.status, model });
   }
 
   const data = await res.json();
   const content = data.choices?.[0]?.message?.content;
   if (!content) throw new Error(`${provider.name} boş yanıt döndürdü`);
 
-  devLog(`[ai] ✓ ${provider.name} başarılı`);
+  devLog(`[ai] ✓ ${provider.name} başarılı (${model})`);
   trackProviderUsage(providerKey);
   return {
     text: content.trim(),
@@ -148,7 +205,46 @@ async function callProvider(
   };
 }
 
-// ── Fallback zinciri ─────────────────────────────────────────────────────
+async function callProvider(
+  providerKey,
+  modelTier,
+  messages,
+  temperature,
+  maxTokens,
+) {
+  const provider = PROVIDERS[providerKey];
+  const models = resolveModelList(provider, modelTier);
+  let lastError;
+
+  for (const model of models) {
+    try {
+      return await callProviderOnce(
+        providerKey,
+        model,
+        messages,
+        temperature,
+        maxTokens,
+      );
+    } catch (err) {
+      if (err.skip) throw err;
+      lastError = err;
+
+      // Model yok / free kalktı → aynı provider'da sonraki modele geç
+      if (err.status === 404) {
+        devWarn(
+          `[ai] ${provider.name} model yok (${model}) — provider içi sonraki deneniyor`,
+        );
+        continue;
+      }
+
+      // Diğer hatalar provider seviyesinde ele alınır
+      throw err;
+    }
+  }
+
+  throw lastError || new Error(`${provider.name}: tüm modeller başarısız`);
+}
+
 export async function generateCompletion(userPrompt, options = {}) {
   const {
     model: modelTier = "BALANCED",
@@ -164,6 +260,11 @@ export async function generateCompletion(userPrompt, options = {}) {
   let lastError;
 
   for (const key of FALLBACK_ORDER) {
+    if (await isProviderCooledDown(key)) {
+      devWarn(`[ai] ${PROVIDERS[key].name} cooldown aktif — atlandı`);
+      continue;
+    }
+
     try {
       return await callProvider(
         key,
@@ -173,24 +274,26 @@ export async function generateCompletion(userPrompt, options = {}) {
         maxTokens,
       );
     } catch (err) {
-      // API key yok — sessizce atla
       if (err.skip) {
         continue;
       }
 
       trackProviderError(key, err.status);
 
-      // Rate limit → kısa bekle, sonra bir sonrakine geç
       if (err.status === 429) {
         devWarn(
-          `[ai] ${PROVIDERS[key].name} rate limit (429) — 1s bekleniyor, sonraki deneniyor`,
+          `[ai] ${PROVIDERS[key].name} rate limit (429) — cooldown ${COOLDOWN_RATE_SEC}s, sonraki deneniyor`,
         );
-        await new Promise((r) => setTimeout(r, 1000));
+        await setProviderCooldown(
+          key,
+          COOLDOWN_RATE_SEC,
+          `429 ${err.message?.slice(0, 60) || "rate limit"}`,
+        );
+        await new Promise((r) => setTimeout(r, 400));
         lastError = err;
         continue;
       }
 
-      // Bad request → büyük ihtimalle prompt/model sorunu, retry etmenin anlamı yok
       if (err.status === 400) {
         console.error(
           `[ai] ${PROVIDERS[key].name} bad request (400) — zincir durduruluyor`,
@@ -198,7 +301,28 @@ export async function generateCompletion(userPrompt, options = {}) {
         throw err;
       }
 
-      // 404, 500, 503 vb. → yine de bir sonrakine geç
+      // Billing / auth / model katalog tamamen ölü
+      if (err.status === 401 || err.status === 402) {
+        await setProviderCooldown(
+          key,
+          COOLDOWN_HARD_SEC,
+          `${err.status} ${err.message?.slice(0, 80) || ""}`,
+        );
+        lastError = err;
+        continue;
+      }
+
+      if (err.status === 404) {
+        await setProviderCooldown(
+          key,
+          COOLDOWN_SOFT_SEC,
+          `404 ${err.message?.slice(0, 80) || "model unavailable"}`,
+        );
+        lastError = err;
+        continue;
+      }
+
+      // 500/503 vb.
       devWarn(
         `[ai] ${PROVIDERS[key].name} hata (${err.status || "?"}) — sonraki deneniyor`,
       );
@@ -209,19 +333,14 @@ export async function generateCompletion(userPrompt, options = {}) {
   throw lastError || new Error("Tüm AI provider'ları başarısız oldu");
 }
 
-// ── JSON onarıcı ─────────────────────────────────────────────────────────
-/**
- * Token limiti nedeniyle kesilmiş veya prefix/suffix içeren JSON'u onarır.
- */
 function repairJSON(raw) {
-  // 1. Fence'leri soy
   let s = raw
     .replace(/^```json\s*/im, "")
     .replace(/^```\s*/m, "")
     .replace(/```\s*$/m, "")
     .trim();
 
-  // 2. İlk { ... son } veya [ ... son ] arasını al
+  // Prose + JSON karışımı: ilk { / [ ile son } / ] arasını al
   const firstBrace = s.indexOf("{");
   const firstBracket = s.indexOf("[");
   let start = -1;
@@ -238,14 +357,11 @@ function repairJSON(raw) {
   if (start !== -1 && end > start) s = s.slice(start, end + 1);
   else if (start !== -1) s = s.slice(start);
 
-  // 3. Token kesilmesi: yarım string'i kapat
   const quotes = (s.match(/(?<!\\)"/g) || []).length;
   if (quotes % 2 !== 0) s += '"';
 
-  // 4. Sondaki yarım property'yi sil: ,"key": veya ,"key":"
   s = s.replace(/,\s*"[^"]*"\s*:\s*"?[^"}\]]*$/, "");
 
-  // 5. Eksik kapanış bracket'larını tamamla
   const stack = [];
   for (const ch of s) {
     if (ch === "{" || ch === "[") stack.push(ch);
@@ -259,8 +375,25 @@ function repairJSON(raw) {
 }
 
 /**
- * String halindeki JSON'u güvenli şekilde ayrıştırır.
+ * Model yanıtından JSON çıkarır. Başarısızsa null döner (throw etmez).
  */
+export function tryParseJSON(raw, label = "") {
+  if (!raw || typeof raw !== "string") return null;
+  const trimmed = raw.trim();
+  // Safety / boş / net JSON olmayan kısa yanıtlar
+  if (
+    trimmed.length < 2 ||
+    /^(user safety|safe|unsafe|blocked)\b/i.test(trimmed)
+  ) {
+    return null;
+  }
+  try {
+    return parseJSON(trimmed, label);
+  } catch {
+    return null;
+  }
+}
+
 export function parseJSON(raw, label = "") {
   const repaired = repairJSON(raw);
   try {
@@ -269,28 +402,24 @@ export function parseJSON(raw, label = "") {
     console.error(
       `[ai] JSON parse hatası${label ? " (" + label + ")" : ""}`,
       "\nOnarım sonrası:\n",
-      repaired.slice(0, 500)
+      repaired.slice(0, 500),
     );
     throw new Error("JSON parse failed: " + e.message);
   }
 }
 
-/**
- * JSON çıktısı garantili üretim.
- */
 export async function generateJSON(prompt, options = {}) {
   const { label = "json-gen", ...rest } = options;
   const jsonPrompt = `${prompt}\n\nZORUNLU: Yanıt YALNIZCA geçerli bir JSON objesi veya dizisi olmalıdır. Açıklama, giriş veya \`\`\` blokları ekleme. İlk karakter { veya [ olmalı.`;
 
   const result = await generateCompletion(jsonPrompt, {
     ...rest,
-    temperature: options.temperature ?? 0.1, // Düşük sıcaklık daha stabil JSON üretir
+    temperature: options.temperature ?? 0.1,
   });
 
   return parseJSON(result.text, label);
 }
 
-// ── Provider listesini dışa aç (admin stats için) ─────────────────────
 export function getProviderKeys() {
   return FALLBACK_ORDER;
 }
@@ -299,8 +428,6 @@ export function getProviderName(key) {
   return PROVIDERS[key]?.name || key;
 }
 
-// ── Streaming — Groq SSE forward ─────────────────────────────────────────
-// Sadece Groq destekliyor. Key yoksa ya da 429 ise generateCompletion'a fallback.
 export async function* streamCompletion(userPrompt, options = {}) {
   const {
     model: modelTier = "FAST",
@@ -312,8 +439,7 @@ export async function* streamCompletion(userPrompt, options = {}) {
   const provider = PROVIDERS.groq;
   const apiKey = process.env[provider.apiKeyEnv];
 
-  if (!apiKey) {
-    // Key yok — non-streaming fallback
+  if (!apiKey || (await isProviderCooledDown("groq"))) {
     const result = await generateCompletion(userPrompt, options);
     yield result.text;
     return;
@@ -323,7 +449,7 @@ export async function* streamCompletion(userPrompt, options = {}) {
   if (systemPrompt) messages.push({ role: "system", content: systemPrompt });
   messages.push({ role: "user", content: userPrompt });
 
-  const model = provider.models[modelTier] || provider.models.FAST;
+  const model = resolveModelList(provider, modelTier)[0];
 
   let res;
   try {
@@ -349,8 +475,10 @@ export async function* streamCompletion(userPrompt, options = {}) {
   }
 
   if (!res.ok || !res.body) {
-    // 429 veya hata — non-streaming fallback
     trackProviderError("groq", res.status);
+    if (res.status === 401 || res.status === 402) {
+      await setProviderCooldown("groq", COOLDOWN_HARD_SEC, `stream ${res.status}`);
+    }
     const result = await generateCompletion(userPrompt, options);
     yield result.text;
     return;

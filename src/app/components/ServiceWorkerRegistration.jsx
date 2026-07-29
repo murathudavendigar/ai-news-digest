@@ -3,40 +3,55 @@
 import { useEffect } from "react";
 
 /**
- * Service Worker'ı kayıt eden client bileşeni.
- * layout.js'e <ServiceWorkerRegistration /> olarak eklenir.
+ * Service Worker kayıt + görünürken güncelleme kontrolü.
  */
 export default function ServiceWorkerRegistration() {
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
 
+    let cancelled = false;
+
     const register = async () => {
       try {
         const reg = await navigator.serviceWorker.register("/sw.js", {
           scope: "/",
+          updateViaCache: "none",
         });
-        reg.addEventListener("updatefound", () => {
-          const newWorker = reg.installing;
-          newWorker?.addEventListener("statechange", () => {
-            if (
-              newWorker.state === "installed" &&
-              navigator.serviceWorker.controller
-            ) {
-              // Yeni sürüm hazır — isteğe bağlı güncelleme bildirimi burada yapılabilir
-            }
-          });
-        });
+        if (cancelled) return;
+
+        const onVisible = () => {
+          if (document.visibilityState === "visible") {
+            reg.update().catch(() => {});
+          }
+        };
+        document.addEventListener("visibilitychange", onVisible);
+
+        // cleanup closure
+        return () => {
+          document.removeEventListener("visibilitychange", onVisible);
+        };
       } catch {
-        // SW kayıt hatası — uygulamayı engelleme
+        return undefined;
       }
     };
 
-    // Sayfanın yavaşlamaması için load sonrası kayıt yap
+    let cleanupFn;
+    const start = () => {
+      register().then((fn) => {
+        cleanupFn = fn;
+      });
+    };
+
     if (document.readyState === "complete") {
-      register();
+      start();
     } else {
-      window.addEventListener("load", register, { once: true });
+      window.addEventListener("load", start, { once: true });
     }
+
+    return () => {
+      cancelled = true;
+      cleanupFn?.();
+    };
   }, []);
 
   return null;

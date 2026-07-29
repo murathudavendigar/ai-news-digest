@@ -343,14 +343,14 @@ export default function Navigation() {
           </Link>
 
           <Link
-            href="/world"
+            href="/category/world"
             onClick={hapticLight}
             className={`flex flex-col items-center justify-center gap-0.5 w-14 h-12 rounded-xl transition-all ${
-              isActive("/world")
+              isActive("/category/world")
                 ? "text-amber-600 dark:text-amber-400"
                 : "text-stone-400 dark:text-stone-500"
             }`}>
-            <GlobeIcon active={isActive("/world")} />
+            <GlobeIcon active={isActive("/category/world")} />
             <span className="text-[9px] font-semibold">Dünya</span>
           </Link>
 

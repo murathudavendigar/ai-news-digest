@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import AiDisclosure from "./AiDisclosure";
 
 /**
  * DeepAnalysis — "Arka Plan" deep analysis component
@@ -16,7 +17,6 @@ export default function DeepAnalysis({ articleSlug, articleTitle, articleUrl }) 
   const [isCached, setIsCached] = useState(false);
 
   const fetchAnalysis = useCallback(async () => {
-    if (state === "loading" || state === "loaded") return;
     setState("loading");
 
     try {
@@ -27,7 +27,7 @@ export default function DeepAnalysis({ articleSlug, articleTitle, articleUrl }) 
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
       const result = await res.json();
-      if (result.error) throw new Error(result.error);
+      if (result.error) throw new Error(result.message || result.error);
 
       setData(result);
       setIsCached(!!result.cached);
@@ -36,33 +36,30 @@ export default function DeepAnalysis({ articleSlug, articleTitle, articleUrl }) 
       console.error("[DeepAnalysis]", err.message);
       setState("error");
     }
-  }, [articleSlug, articleTitle, articleUrl, state]);
+  }, [articleSlug, articleTitle, articleUrl]);
 
-  // ── Idle: Show trigger button ──
   if (state === "idle") {
     return (
-      <div className="my-6">
+      <div className="my-8 py-5 border-y border-[var(--border-subtle)]">
         <button
+          type="button"
           onClick={fetchAnalysis}
-          className="w-full flex items-center justify-center gap-2 py-3.5 px-6 rounded-xl transition-all hover:shadow-md"
-          style={{
-            border: "1px solid var(--border-subtle)",
-            background: "var(--bg-card)",
-            color: "var(--text-primary)",
-          }}
+          className="w-full flex items-center justify-between gap-4 text-left bg-transparent border-0 cursor-pointer group"
         >
-          <span className="text-lg">🔍</span>
-          <div className="text-left">
-            <span className="text-sm font-semibold block">
-              Arka Planı Gör
+          <div>
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] block mb-1">
+              Derinlik
             </span>
-            <span
-              className="text-[11px]"
-              style={{ color: "var(--text-muted)" }}
-            >
-              Yapay zeka destekli derinlemesine analiz
+            <span className="text-sm font-bold text-[var(--text-primary)] block">
+              Arka planı gör
+            </span>
+            <span className="text-[11px] text-[var(--text-muted)]">
+              Yapay zeka destekli bağlam ve kaynak analizi
             </span>
           </div>
+          <span className="text-[11px] font-black uppercase tracking-widest text-[var(--accent-brand)] group-hover:translate-x-0.5 transition-transform">
+            Aç →
+          </span>
         </button>
       </div>
     );
@@ -73,10 +70,9 @@ export default function DeepAnalysis({ articleSlug, articleTitle, articleUrl }) 
     return (
       <div className="my-6 space-y-3">
         <div className="flex items-center gap-2 mb-4">
-          <span className="text-lg">🔍</span>
           <span
-            className="text-sm font-semibold"
-            style={{ color: "var(--text-primary)" }}
+            className="text-[10px] font-black uppercase tracking-[0.2em]"
+            style={{ color: "var(--text-muted)" }}
           >
             Analiz hazırlanıyor
             <LoadingDots />
@@ -106,39 +102,28 @@ export default function DeepAnalysis({ articleSlug, articleTitle, articleUrl }) 
     );
   }
 
-  // ── Error state ──
   if (state === "error") {
     return (
-      <div className="my-6">
-        <div
-          className="flex flex-col items-center justify-center gap-3 py-6 rounded-xl"
-          style={{
-            background: "var(--bg-elevated)",
-            border: "1px solid var(--border-subtle)",
+      <div className="my-8 py-5 border-y border-[var(--border-subtle)]">
+        <p className="mb-1 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">
+          Derinlik
+        </p>
+        <p className="mb-1 text-sm font-bold text-[var(--text-primary)]">
+          Analiz şu an kullanılamıyor
+        </p>
+        <p className="mb-3 text-xs text-[var(--text-secondary)]">
+          Sağlayıcı yoğun olabilir. Biraz sonra tekrar dene.
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            setData(null);
+            fetchAnalysis();
           }}
+          className="text-[11px] font-black uppercase tracking-widest text-[var(--accent-brand)] bg-transparent border-0 cursor-pointer"
         >
-          <span className="text-2xl">⚠️</span>
-          <p
-            className="text-sm font-medium"
-            style={{ color: "var(--text-secondary)" }}
-          >
-            Analiz şu an kullanılamıyor
-          </p>
-          <button
-            onClick={() => {
-              setState("idle");
-              setData(null);
-            }}
-            className="text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
-            style={{
-              color: "var(--accent-primary)",
-              background: "var(--bg-card)",
-              border: "1px solid var(--border-subtle)",
-            }}
-          >
-            Tekrar Dene
-          </button>
-        </div>
+          Tekrar dene
+        </button>
       </div>
     );
   }
@@ -297,12 +282,9 @@ export default function DeepAnalysis({ articleSlug, articleTitle, articleUrl }) 
       )}
 
       {/* Footer */}
-      <div className="flex items-center justify-center gap-2 pt-2 pb-1">
-        <span
-          className="text-[10px]"
-          style={{ color: "var(--text-muted)" }}
-        >
-          🔍 Google Search ile desteklendi
+      <div className="pt-2 pb-1">
+        <p className="mb-2 text-center text-[10px] text-[var(--text-muted)]">
+          Kaynak araması ile desteklendi
           {isCached && " · Önbellekten"}
           {data.generatedAt && (
             <>
@@ -313,7 +295,8 @@ export default function DeepAnalysis({ articleSlug, articleTitle, articleUrl }) 
               })}
             </>
           )}
-        </span>
+        </p>
+        <AiDisclosure sourceUrl={articleUrl} />
       </div>
     </div>
   );

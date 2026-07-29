@@ -1,0 +1,33 @@
+# HaberAI — AI / agent context (llms.txt)
+# Google Search ignores this file; kept for coding agents and optional AI tools.
+# Canonical site: https://haberai.muratoncu.com
+
+> HaberAI, Türkiye ve dünyadan haberleri toplayıp yapay zeka ile özetleyen, güvenilirlik ve arka plan analizi sunan bağımsız bir Türkçe haber platformudur.
+
+## Ana sayfalar
+
+- [Ana sayfa](https://haberai.muratoncu.com/): Güncel manşet ve akış
+- [Günün özeti](https://haberai.muratoncu.com/digest): Editöryal günlük bülten
+- [Köşe yazıları](https://haberai.muratoncu.com/columns): AI yazar köşeleri
+- [Hakkında](https://haberai.muratoncu.com/about): Proje ve yazar bilgisi
+
+## Kategoriler
+
+- [Politika](https://haberai.muratoncu.com/category/politics)
+- [Ekonomi](https://haberai.muratoncu.com/category/business)
+- [Dünya](https://haberai.muratoncu.com/category/world)
+- [Teknoloji](https://haberai.muratoncu.com/category/technology)
+- [Spor](https://haberai.muratoncu.com/category/sports)
+- [Sağlık](https://haberai.muratoncu.com/category/health)
+
+## Önemli notlar
+
+- Kaynak haberlerin telif hakkı orijinal yayıncılara aittir; HaberAI özet ve analiz katmanı sunar.
+- Sitemap: https://haberai.muratoncu.com/sitemap.xml
+- Robots: https://haberai.muratoncu.com/robots.txt
+- İletişim: murathoncu@gmail.com
+
+## Optional
+
+- [Kaydedilenler](https://haberai.muratoncu.com/saved): Kullanıcı yerimleri (kişisel, indexlenmez)
+- [Ayarlar](https://haberai.muratoncu.com/settings): Tercihler (indexlenmez)

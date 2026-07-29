@@ -2,26 +2,31 @@
 "use client";
 
 import { formatDate } from "@/app/lib/news";
-
+import { generateArticleSlug } from "@/app/lib/newsUtils";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-function slugify(article) {
-  if (!article?.title) return article?.article_id || "";
-  return (
-    article.title
-      .toLowerCase()
-      .replace(/[^a-z0-9\u00c0-\u024f\s-]/g, "")
-      .trim()
-      .replace(/\s+/g, "-")
-      .replace(/-+/g, "-")
-      .slice(0, 80) +
-    "--" +
-    article.article_id
-  );
+function resolveHref(article) {
+  const slug =
+    article.slug ||
+    generateArticleSlug(
+      article.title,
+      article.publishedAt || article.published_at || article.pubDate,
+    ) ||
+    "";
+  const id = article.article_id;
+  // slug--id → detay sayfası article_id ile Redis'ten bulur (slug drift'e dayanıklı)
+  if (slug && id) return `/news/${slug}--${id}`;
+  if (slug) return `/news/${slug}`;
+  if (id) return `/news/${id}`;
+  return null;
 }
 
-export default function RelatedArticles({ keywords = [], currentId, title }) {
+export default function RelatedArticles({
+  keywords = [],
+  currentId,
+  title,
+}) {
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -37,7 +42,7 @@ export default function RelatedArticles({ keywords = [], currentId, title }) {
         const data = await res.json();
         if (!cancelled) setArticles(data.articles || []);
       } catch {
-        // sessizce geç — ilgili haber opsiyonel
+        // optional
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -50,41 +55,43 @@ export default function RelatedArticles({ keywords = [], currentId, title }) {
   if (loading || !articles.length) return null;
 
   return (
-    <div className="mt-8 pt-8 border-t border-stone-100 dark:border-stone-800">
-      <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-4">
-        🔗 Bu Konudaki Diğer Haberler
-      </p>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {articles.map((article) => (
-          <Link
-            key={article.article_id}
-            href={`/news/${slugify(article)}`}
-            className="flex gap-3 p-3 rounded-xl border border-stone-100 dark:border-stone-800
-                       bg-stone-50 dark:bg-stone-900 hover:border-stone-300 dark:hover:border-stone-600
-                       transition-all group">
-            {article.image_url && (
-              <div className="relative w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-stone-100 dark:bg-stone-800">
-                <img
-                  src={article.image_url}
-                  alt=""
-                  loading="lazy"
-                  decoding="async"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            )}
-            <div className="min-w-0">
-              <p className="text-xs font-bold leading-snug text-stone-800 dark:text-stone-200 line-clamp-2 group-hover:text-stone-950 dark:group-hover:text-white transition-colors">
-                {article.title}
-              </p>
-              <p className="text-[10px] text-stone-400 mt-1">
-                {article.source_name}
-                {article.pubDate && ` · ${formatDate(article.pubDate)}`}
-              </p>
-            </div>
-          </Link>
-        ))}
+    <section className="article-related" aria-label="İlgili haberler">
+      <div className="article-section-label">
+        <span>Bu konuda</span>
+        <span className="article-section-rule" aria-hidden="true" />
       </div>
-    </div>
+      <div className="article-related-grid">
+        {articles.map((article) => {
+          const href = resolveHref(article);
+          if (!href) return null;
+          return (
+            <Link
+              key={article.article_id || href}
+              href={href}
+              className="article-related-card group"
+            >
+              {article.image_url && (
+                <div className="article-related-thumb">
+                  <img
+                    src={article.image_url}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </div>
+              )}
+              <div className="min-w-0">
+                <p className="article-related-title">{article.title}</p>
+                <p className="article-related-meta">
+                  {article.source_name || article.source}
+                  {(article.pubDate || article.publishedAt) &&
+                    ` · ${formatDate(article.pubDate || article.publishedAt)}`}
+                </p>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+    </section>
   );
 }

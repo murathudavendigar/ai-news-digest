@@ -197,6 +197,7 @@ export async function generateWithGrounding(
 
 /**
  * JSON üretimi — responseMimeType YOK (keser), manuel parse + onarım
+ * systemPrompt varsa Gemini systemInstruction olarak gönderilir.
  */
 export async function generateJSON(
   prompt,
@@ -205,16 +206,25 @@ export async function generateJSON(
     temperature = 0.15,
     maxTokens = 4000,
     label = "",
+    systemPrompt = "",
   } = {},
 ) {
   const fullPrompt = `${prompt}
 
 ZORUNLU: Yanıt YALNIZCA geçerli JSON. Hiçbir açıklama veya \`\`\` olmayacak. İlk karakter { son karakter }.`;
 
-  const buildBody = () => ({
-    contents: [{ role: "user", parts: [{ text: fullPrompt }] }],
-    generationConfig: { temperature, maxOutputTokens: maxTokens },
-  });
+  const buildBody = () => {
+    const body = {
+      contents: [{ role: "user", parts: [{ text: fullPrompt }] }],
+      generationConfig: { temperature, maxOutputTokens: maxTokens },
+    };
+    if (systemPrompt) {
+      body.systemInstruction = {
+        parts: [{ text: systemPrompt }],
+      };
+    }
+    return body;
+  };
 
   const { text } = await callWithFallback(buildBody, model);
   return parseGeminiJSON(text, label);

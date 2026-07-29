@@ -5,33 +5,62 @@ import { useEffect, useState } from "react";
 import PushNotificationToggle from "./PushNotificationToggle";
 
 const DISMISSED_KEY = "haberai:push-prompt-dismissed";
+const SNOOZE_KEY = "haberai:push-prompt-snooze";
+const SNOOZE_MS = 3 * 24 * 60 * 60 * 1000; // 3 gün
+
+function shouldShowPrompt() {
+  if (
+    typeof window === "undefined" ||
+    !("Notification" in window) ||
+    !("serviceWorker" in navigator) ||
+    !("PushManager" in window)
+  ) {
+    return false;
+  }
+  if (Notification.permission !== "default") return false;
+  if (localStorage.getItem(DISMISSED_KEY) === "1") return false;
+  const snoozeUntil = Number(localStorage.getItem(SNOOZE_KEY) || 0);
+  if (snoozeUntil && Date.now() < snoozeUntil) return false;
+  return true;
+}
 
 export default function PushPrompt() {
   const [show, setShow] = useState(false);
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    // Bildirim desteği yok veya zaten izin verilmiş/reddedilmişse gösterme
-    if (
-      typeof window === "undefined" ||
-      !("Notification" in window) ||
-      !("serviceWorker" in navigator) ||
-      !("PushManager" in window)
-    )
-      return;
+    if (!shouldShowPrompt()) return;
 
-    if (Notification.permission !== "default") return;
+    // Engagement: biraz gezindikten sonra göster (agresif değil)
+    let shown = false;
+    const reveal = () => {
+      if (shown || !shouldShowPrompt()) return;
+      shown = true;
+      setShow(true);
+      cleanup();
+    };
 
-    // Daha önce kapatıldıysa gösterme
-    if (localStorage.getItem(DISMISSED_KEY)) return;
+    const timer = setTimeout(reveal, 18000);
+    const onScroll = () => {
+      if (window.scrollY > 320) reveal();
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
 
-    // Sayfa açıldıktan 4 saniye sonra göster
-    const timer = setTimeout(() => setShow(true), 4000);
-    return () => clearTimeout(timer);
+    const cleanup = () => {
+      clearTimeout(timer);
+      window.removeEventListener("scroll", onScroll);
+    };
+    return cleanup;
   }, []);
 
-  const dismiss = () => {
+  const dismissForever = () => {
     localStorage.setItem(DISMISSED_KEY, "1");
+    localStorage.removeItem(SNOOZE_KEY);
+    setShow(false);
+  };
+
+  const snooze = () => {
+    localStorage.setItem(SNOOZE_KEY, String(Date.now() + SNOOZE_MS));
     setShow(false);
   };
 
@@ -40,7 +69,7 @@ export default function PushPrompt() {
     setTimeout(() => {
       localStorage.setItem(DISMISSED_KEY, "1");
       setShow(false);
-    }, 2500);
+    }, 2200);
   };
 
   if (!show) return null;
@@ -49,65 +78,69 @@ export default function PushPrompt() {
 
   return (
     <div
-      className={`fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] md:bottom-6
-                  left-1/2 -translate-x-1/2
-                  w-[calc(100%-2rem)] max-w-sm
-                  z-50
-                  bg-white dark:bg-stone-900
-                  border border-stone-200 dark:border-stone-700
-                  rounded-2xl shadow-xl shadow-stone-900/10 dark:shadow-stone-950/40
-                  p-4
-                  animate-in slide-in-from-bottom-4 duration-300`}>
-      <div className="flex items-start gap-3">
+      role="dialog"
+      aria-label="Bildirim önerisi"
+      className="push-prompt fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] md:bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-md z-50"
+    >
+      <div className="push-prompt-card">
         {success ? (
-          <>
-            <div className="text-2xl mt-0.5 shrink-0">✅</div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-stone-900 dark:text-stone-100">
-                Bildirimler aktif!
-              </p>
-              <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
-                Artık günlük özetleri ve önemli haberleri anında alacaksın. 👌
-              </p>
-            </div>
-          </>
+          <div>
+            <p className="push-prompt-kicker">Bildirimler</p>
+            <p className="push-prompt-title">Abonelik aktif</p>
+            <p className="push-prompt-body">
+              Her akşam {pushTime} civarı günün özeti bildirimi gelecek.
+            </p>
+          </div>
         ) : (
           <>
-            <div className="text-2xl mt-0.5 shrink-0">🔔</div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-stone-900 dark:text-stone-100">
-                Günlük özetleri kaçırma
-              </p>
-              <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
-                Her akşam {pushTime}&apos;da manşetler ve önemli haberler
-                doğrudan sana gelsin.
-              </p>
-              <div className="flex items-center gap-2 mt-3">
-                <PushNotificationToggle onSubscribed={handleSubscribed} />
-                <button
-                  onClick={dismiss}
-                  className="px-2 py-1 text-xs transition-colors text-stone-400 hover:text-stone-600 dark:hover:text-stone-300">
-                  Hayır, istemiyorum
-                </button>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="push-prompt-kicker">Akşam baskısı</p>
+                <p className="push-prompt-title">Günün özetini kaçırma</p>
+                <p className="push-prompt-body">
+                  Her akşam {pushTime}&apos;da manşetler ve en kritik başlıklar
+                  tek bildirimde gelsin. İstediğin an ayarlardan kapatırsın.
+                </p>
               </div>
+              <button
+                type="button"
+                onClick={snooze}
+                aria-label="Sonra hatırlat"
+                className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors shrink-0"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
             </div>
-            <button
-              onClick={dismiss}
-              aria-label="Kapat"
-              className="transition-colors shrink-0 text-stone-400 hover:text-stone-600 dark:hover:text-stone-300">
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
+
+            <div className="push-prompt-actions">
+              <PushNotificationToggle onSubscribed={handleSubscribed} />
+              <button
+                type="button"
+                onClick={snooze}
+                className="push-prompt-secondary"
+              >
+                Sonra
+              </button>
+              <button
+                type="button"
+                onClick={dismissForever}
+                className="push-prompt-ghost"
+              >
+                İstemiyorum
+              </button>
+            </div>
           </>
         )}
       </div>

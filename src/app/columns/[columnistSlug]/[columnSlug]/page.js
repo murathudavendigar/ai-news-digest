@@ -31,7 +31,7 @@ export async function generateMetadata({ params }) {
   const baseUrl = projectInfo.siteUrl;
 
   return {
-    title: `${column.title} — ${columnist?.name || 'HaberAI'} | HaberAI`,
+    title: `${column.title} — ${columnist?.name || "HaberAI"} | HaberAI`,
     description: column.subtitle || column.topic_summary,
     metadataBase: new URL(baseUrl),
     openGraph: {
@@ -54,7 +54,6 @@ export async function generateMetadata({ params }) {
 export default async function SingleColumnPage({ params }) {
   const { columnistSlug, columnSlug } = await params;
 
-  // Get columnist
   const { data: columnist } = await supabase
     .from("columnists")
     .select("*")
@@ -63,7 +62,6 @@ export default async function SingleColumnPage({ params }) {
 
   if (!columnist) notFound();
 
-  // Get column
   const { data: col } = await supabase
     .from("columns")
     .select("*")
@@ -73,11 +71,7 @@ export default async function SingleColumnPage({ params }) {
 
   if (!col) notFound();
 
-  // Parallelize initial column and columnist fetches if possible, but actually poll and other columns can be parallelized
-  const [
-    { data: pollData },
-    { data: otherColumns }
-  ] = await Promise.all([
+  const [{ data: pollData }, { data: otherColumns }] = await Promise.all([
     supabase.from("column_polls").select("id").eq("column_id", col.id).maybeSingle(),
     supabase
       .from("columns")
@@ -85,7 +79,7 @@ export default async function SingleColumnPage({ params }) {
       .eq("columnist_id", columnist.id)
       .neq("id", col.id)
       .order("published_at", { ascending: false })
-      .limit(3)
+      .limit(3),
   ]);
 
   const initials = columnist.name
@@ -104,7 +98,8 @@ export default async function SingleColumnPage({ params }) {
         return (
           <h2
             key={i}
-            className="text-2xl font-bold mt-8 mb-4 text-stone-900 dark:text-white">
+            className="mb-4 mt-8 text-2xl font-bold text-[var(--text-primary)]"
+          >
             {trimmed.replace("## ", "")}
           </h2>
         );
@@ -112,7 +107,8 @@ export default async function SingleColumnPage({ params }) {
       return (
         <p
           key={i}
-          className="mb-6 leading-relaxed text-lg text-stone-800 dark:text-stone-200">
+          className="mb-6 text-lg leading-relaxed text-[var(--text-secondary)]"
+        >
           {trimmed}
         </p>
       );
@@ -126,176 +122,203 @@ export default async function SingleColumnPage({ params }) {
     headline: col.title,
     image: [`${baseUrl}/columns/${columnist.slug}/${col.slug}/opengraph-image`],
     datePublished: col.published_at,
-    author: [{
+    author: [
+      {
         "@type": "Person",
         name: columnist.name,
-        url: `${baseUrl}/columns/${columnist.slug}`
-    }]
+        url: `${baseUrl}/columns/${columnist.slug}`,
+      },
+    ],
   };
 
   return (
-    <main className="container mx-auto px-4 py-8 max-w-3xl">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <ArticleViewTracker columnistSlug={columnist.slug} columnSlug={col.slug} />
-      <article className="bg-white dark:bg-stone-800 rounded-3xl p-6 md:p-12 shadow-sm border border-stone-100 dark:border-stone-700 relative overflow-hidden">
-        {/* Accent top bar */}
-        <div 
-          className="absolute top-0 left-0 right-0 h-1.5 opacity-80" 
-          style={{ backgroundColor: accent.primary }} 
+    <main className="page-shell">
+      <div className="page-container-narrow max-w-3xl">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
-        
-        <header className="mb-10 text-center pb-10 relative">
-          <div className="mb-6 inline-flex flex-col items-center">
-            <Link href={`/columns/${columnist.slug}`} className="group">
-              <div 
-                className="w-20 h-20 rounded-full mx-auto mb-3 flex items-center justify-center text-2xl font-black text-white shadow-sm border-2 border-transparent transition-transform group-hover:scale-105"
-                style={{ backgroundColor: accent.primary }}>
-                {initials}
-              </div>
-              <div 
-                className="font-bold transition-colors"
-                style={{ color: accent.primary }}>
-                {columnist.name}
-              </div>
-            </Link>
-            <div className="text-sm text-stone-500 mt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
-              <div className="flex items-center gap-2">
-                <span>
-                  {new Date(col.published_at).toLocaleDateString("tr-TR", {
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  })}
-                </span>
-                <span className="text-stone-300 dark:text-stone-600">•</span>
-                <span>{col.read_time_minutes} dk okuma</span>
-                {col.view_count > 0 && (
-                  <>
-                    <span className="text-stone-300 dark:text-stone-600">•</span>
-                    <span>{col.view_count.toLocaleString('tr-TR')} okuma</span>
-                  </>
-                )}
-              </div>
-              <div className="hidden sm:block text-stone-300 dark:text-stone-600">•</div>
-              <ArticleShareButton 
-                url={`${baseUrl}/columns/${columnist.slug}/${col.slug}`} 
-                title={col.title} 
-                columnistName={columnist.name} 
-              />
-            </div>
-          </div>
-
-          <h1
-            className="text-4xl md:text-5xl font-black text-stone-900 dark:text-white leading-tight mb-4"
-            style={{ fontFamily: "var(--font-display, Georgia, serif)" }}>
-            {col.title}
-          </h1>
-          {col.subtitle && (
-            <h2 className="text-xl md:text-2xl text-stone-600 dark:text-stone-400 font-medium">
-              {col.subtitle}
-            </h2>
-          )}
-        </header>
-
-        <div
-          className="prose-container"
-          style={{ fontFamily: "var(--font-body, Georgia, serif)" }}>
-          {formatContent(col.content)}
-        </div>
-
-        {pollData?.id && (
-          <ColumnPoll pollId={pollData.id} columnistAccent={accent.primary} />
-        )}
-
-        {/* Signature + Divider */}
-        <div className="mt-12 mb-8 border-t border-b py-8 border-stone-100 dark:border-stone-700 flex flex-col items-center gap-6">
-          <ColumnistSignature name={columnist.name} accentColor={accent.primary} size="md" />
-          {col.featured_quote && (
-            <QuoteShareButton 
-              columnistSlug={columnist.slug}
-              columnSlug={col.slug}
-              columnTitle={col.title}
-              columnistName={columnist.name}
-              quote={col.featured_quote}
-            />
-          )}
-        </div>
-
-        <ColumnReactions
-          columnId={col.id}
-          columnSlug={col.slug}
+        <ArticleViewTracker
           columnistSlug={columnist.slug}
-          initialCounts={col.reaction_counts}
+          columnSlug={col.slug}
         />
 
-        {/* Tomorrow Teaser */}
-        <TomorrowTeaser currentColumnistSlug={columnist.slug} />
+        <nav className="page-crumb" aria-label="Sayfa yolu">
+          <Link href="/columns">Köşe yazıları</Link>
+          <span aria-hidden="true">/</span>
+          <Link href={`/columns/${columnist.slug}`}>{columnist.name}</Link>
+          <span aria-hidden="true">/</span>
+          <span className="truncate text-[var(--text-secondary)]">Yazı</span>
+        </nav>
 
-        {/* Author card */}
-        <div className="mt-12 bg-stone-50 dark:bg-stone-900/50 rounded-2xl p-6 sm:p-8 flex flex-col sm:flex-row gap-6 items-center sm:items-start text-center sm:text-left border border-stone-100 dark:border-stone-800">
-          <div 
-            className="w-24 h-24 rounded-full shrink-0 flex items-center justify-center text-3xl font-black text-white shadow-sm"
-            style={{ backgroundColor: accent.primary }}>
-            {initials}
-          </div>
-          <div className="flex-1">
-            <h4 className="text-xl font-bold text-stone-900 dark:text-white mb-2">
-              {columnist.name}
-            </h4>
-            <p className="text-stone-600 dark:text-stone-400 text-sm mb-5 leading-relaxed">
-              {columnist.bio_short}
-            </p>
-            <div className="flex flex-col sm:flex-row items-center gap-4">
-              <Link
-                href={`/columns/${columnist.slug}`}
-                className="font-semibold text-sm hover:underline"
-                style={{ color: accent.primary }}>
-                Yazarın tüm yazılarını gör →
+        <article className="relative overflow-hidden border border-[var(--border-subtle)] bg-[var(--bg-card)] p-6 md:p-10">
+          <div
+            className="absolute left-0 right-0 top-0 h-1.5 opacity-80"
+            style={{ backgroundColor: accent.primary }}
+          />
+
+          <header className="relative mb-10 pb-10 text-center">
+            <div className="mb-6 inline-flex flex-col items-center">
+              <Link href={`/columns/${columnist.slug}`} className="group">
+                <div
+                  className="mx-auto mb-3 flex h-20 w-20 items-center justify-center rounded-full text-2xl font-black text-white transition-transform group-hover:scale-105"
+                  style={{ backgroundColor: accent.primary }}
+                >
+                  {initials}
+                </div>
+                <div
+                  className="font-bold transition-opacity group-hover:opacity-80"
+                  style={{ color: accent.primary }}
+                >
+                  {columnist.name}
+                </div>
               </Link>
-              <FollowColumnistButton 
-                columnistSlug={columnist.slug} 
-                columnistName={columnist.name} 
-                accentColor={accent.primary} 
+              <div className="mt-2 flex flex-col items-center justify-center gap-3 text-sm text-[var(--text-muted)] sm:flex-row">
+                <div className="flex items-center gap-2">
+                  <span>
+                    {new Date(col.published_at).toLocaleDateString("tr-TR", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </span>
+                  <span>·</span>
+                  <span>{col.read_time_minutes} dk okuma</span>
+                  {col.view_count > 0 && (
+                    <>
+                      <span>·</span>
+                      <span>
+                        {col.view_count.toLocaleString("tr-TR")} okuma
+                      </span>
+                    </>
+                  )}
+                </div>
+                <div className="hidden text-[var(--border-strong)] sm:block">
+                  ·
+                </div>
+                <ArticleShareButton
+                  url={`${baseUrl}/columns/${columnist.slug}/${col.slug}`}
+                  title={col.title}
+                  columnistName={columnist.name}
+                />
+              </div>
+            </div>
+
+            <h1
+              className="mb-4 text-4xl font-black leading-tight text-[var(--text-primary)] md:text-5xl"
+              style={{ fontFamily: "var(--font-display), Georgia, serif" }}
+            >
+              {col.title}
+            </h1>
+            {col.subtitle && (
+              <h2 className="text-xl font-medium text-[var(--text-secondary)] md:text-2xl">
+                {col.subtitle}
+              </h2>
+            )}
+          </header>
+
+          <div
+            className="prose-container"
+            style={{ fontFamily: "var(--font-body), Georgia, serif" }}
+          >
+            {formatContent(col.content)}
+          </div>
+
+          {pollData?.id && (
+            <ColumnPoll pollId={pollData.id} columnistAccent={accent.primary} />
+          )}
+
+          <div className="mb-8 mt-12 flex flex-col items-center gap-6 border-b border-t border-[var(--border-subtle)] py-8">
+            <ColumnistSignature
+              name={columnist.name}
+              accentColor={accent.primary}
+              size="md"
+            />
+            {col.featured_quote && (
+              <QuoteShareButton
+                columnistSlug={columnist.slug}
+                columnSlug={col.slug}
+                columnTitle={col.title}
+                columnistName={columnist.name}
+                quote={col.featured_quote}
               />
+            )}
+          </div>
+
+          <ColumnReactions
+            columnId={col.id}
+            columnSlug={col.slug}
+            columnistSlug={columnist.slug}
+            initialCounts={col.reaction_counts}
+          />
+
+          <TomorrowTeaser currentColumnistSlug={columnist.slug} />
+
+          <div className="mt-12 flex flex-col items-center gap-6 border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-6 text-center sm:flex-row sm:items-start sm:p-8 sm:text-left">
+            <div
+              className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full text-3xl font-black text-white"
+              style={{ backgroundColor: accent.primary }}
+            >
+              {initials}
+            </div>
+            <div className="flex-1">
+              <h4 className="mb-2 text-xl font-bold text-[var(--text-primary)]">
+                {columnist.name}
+              </h4>
+              <p className="mb-5 text-sm leading-relaxed text-[var(--text-secondary)]">
+                {columnist.bio_short}
+              </p>
+              <div className="flex flex-col items-center gap-4 sm:flex-row">
+                <Link
+                  href={`/columns/${columnist.slug}`}
+                  className="text-sm font-semibold no-underline hover:underline"
+                  style={{ color: accent.primary }}
+                >
+                  Yazarın tüm yazılarını gör →
+                </Link>
+                <FollowColumnistButton
+                  columnistSlug={columnist.slug}
+                  columnistName={columnist.name}
+                  accentColor={accent.primary}
+                />
+              </div>
             </div>
           </div>
-        </div>
-      </article>
+        </article>
 
-      {/* Other columns */}
-      {otherColumns && otherColumns.length > 0 && (
-        <section className="mt-12">
-          <h3
-            className="text-2xl font-bold mb-6 pl-4 border-l-4 border-stone-300 dark:border-stone-600"
-            style={{ fontFamily: "var(--font-display, Georgia, serif)" }}>
-            Diğer Yazıları
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {otherColumns.map((other) => (
-              <Link
-                key={other.slug}
-                href={`/columns/${columnist.slug}/${other.slug}`}
-                className="bg-white dark:bg-stone-800 rounded-xl p-5 shadow-sm border border-stone-100 dark:border-stone-700 hover:shadow-md transition-all group"
-                style={{ borderTopWidth: 3, borderTopColor: getColumnistAccent(columnist.slug).primary }}>
-                <time className="text-xs text-stone-500 mb-2 block">
-                  {new Date(other.published_at).toLocaleDateString("tr-TR", {
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  })}
-                </time>
-                <h4 
-                  className="font-bold text-lg text-stone-900 dark:text-white transition-colors leading-snug"
-                  style={{ '--tw-group-hover-color': getColumnistAccent(columnist.slug).primary }}>
-                  <span className="hover:opacity-80 transition-opacity">
+        {otherColumns && otherColumns.length > 0 && (
+          <section className="mt-12">
+            <div className="page-section-label mb-6">
+              <span>Diğer yazıları</span>
+              <span className="page-section-rule" aria-hidden="true" />
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              {otherColumns.map((other) => (
+                <Link
+                  key={other.slug}
+                  href={`/columns/${columnist.slug}/${other.slug}`}
+                  className="border border-[var(--border-subtle)] bg-[var(--bg-card)] p-5 no-underline transition-colors hover:border-[var(--border-strong)]"
+                  style={{
+                    borderTopWidth: 3,
+                    borderTopColor: accent.primary,
+                  }}
+                >
+                  <time className="mb-2 block text-xs text-[var(--text-muted)]">
+                    {new Date(other.published_at).toLocaleDateString("tr-TR", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </time>
+                  <h4 className="text-lg font-bold leading-snug text-[var(--text-primary)] transition-opacity hover:opacity-80">
                     {other.title}
-                  </span>
-                </h4>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
+                  </h4>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
     </main>
   );
 }

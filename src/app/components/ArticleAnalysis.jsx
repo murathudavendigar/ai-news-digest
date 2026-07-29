@@ -185,28 +185,27 @@ export default function ArticleAnalysis({ article }) {
       </div>
     );
 
-  /* ── Error ── */
   if (state === "error")
     return (
-      <div className="p-5 border border-red-200 rounded-2xl dark:border-red-900 bg-red-50 dark:bg-red-950/20">
-        <div className="flex items-start gap-3">
-          <span className="text-red-500 shrink-0">⚠</span>
-          <div className="flex-1">
-            <p className="mb-1 text-sm font-bold text-red-800 dark:text-red-300">
-              Analiz Yapılamadı
-            </p>
-            <p className="mb-3 text-xs text-red-600 dark:text-red-400">
-              {process.env.NODE_ENV === "production"
-                ? "Bir sorun oluştu. Lütfen tekrar deneyin."
-                : error}
-            </p>
-            <button
-              onClick={() => run(false)}
-              className="text-xs font-bold px-3 py-1.5 rounded-lg bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 hover:bg-red-200 transition-colors">
-              Tekrar Dene
-            </button>
-          </div>
-        </div>
+      <div className="py-5 border-y border-[var(--border-subtle)]">
+        <p className="mb-1 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">
+          Analiz
+        </p>
+        <p className="mb-1 text-sm font-bold text-[var(--text-primary)]">
+          Analiz şu an hazırlanamadı
+        </p>
+        <p className="mb-3 text-xs text-[var(--text-secondary)]">
+          {process.env.NODE_ENV === "production"
+            ? "Sağlayıcı yoğun veya geçici olarak kullanılamıyor. Biraz sonra tekrar dene."
+            : error}
+        </p>
+        <button
+          type="button"
+          onClick={() => run(false)}
+          className="text-[11px] font-black uppercase tracking-widest text-[var(--accent-brand)] bg-transparent border-0 cursor-pointer"
+        >
+          Tekrar dene
+        </button>
       </div>
     );
 

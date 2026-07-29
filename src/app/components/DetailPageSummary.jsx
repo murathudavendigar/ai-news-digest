@@ -1,105 +1,171 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import AiDisclosure from "./AiDisclosure";
 
-function Skeleton({ className = "", colorClass = "bg-[#e7e5e4] dark:bg-stone-800" }) {
+function Skeleton({ className = "" }) {
   return (
-    <div className={`rounded-lg animate-pulse ${colorClass} ${className}`} />
+    <div className={`animate-pulse bg-[var(--bg-elevated)] ${className}`} />
   );
 }
 
+function estimateMinutes(text) {
+  const words = (text || "").trim().split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.round(words / 200));
+}
+
 /**
- * Client component that fetches AI summary + bullets from /api/reader
- * and displays them on the detail page.
+ * Editorial reading block: AI deck + why + bullets + body paragraphs.
  */
 export default function DetailPageSummary({ url, description }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [failed, setFailed] = useState(false);
   const fetched = useRef(false);
 
   useEffect(() => {
     if (!url || fetched.current) return;
     fetched.current = true;
-    
+
     let isMounted = true;
     const doFetch = async () => {
       setLoading(true);
+      setFailed(false);
       try {
         const r = await fetch(`/api/reader?url=${encodeURIComponent(url)}`);
         const result = await r.json();
-        if (isMounted) setData(result);
-      } catch (err) {
-        if (isMounted) setData(null);
+        if (!isMounted) return;
+        if (result?.error && !result?.summary && !result?.bodyText) {
+          setFailed(true);
+          setData(null);
+        } else {
+          setData(result);
+        }
+      } catch {
+        if (isMounted) {
+          setFailed(true);
+          setData(null);
+        }
       } finally {
         if (isMounted) setLoading(false);
       }
     };
 
     doFetch();
-    
     return () => {
       isMounted = false;
     };
   }, [url]);
 
+  if (!url) {
+    if (!description) return null;
+    return (
+      <div className="article-prose">
+        <p>{description}</p>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
-      <>
-        <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30 mb-4">
-          <Skeleton className="h-4 w-1/3 mb-3" colorClass="bg-amber-200 dark:bg-amber-900/40" />
-          <Skeleton className="h-3 w-full mb-2" colorClass="bg-amber-200 dark:bg-amber-900/40" />
-          <Skeleton className="h-3 w-full mb-2" colorClass="bg-amber-200 dark:bg-amber-900/40" />
-          <Skeleton className="h-3 w-2/3" colorClass="bg-amber-200 dark:bg-amber-900/40" />
+      <div className="space-y-6">
+        <div className="article-deck">
+          <Skeleton className="h-3 w-24 mb-4" />
+          <Skeleton className="h-4 w-full mb-2" />
+          <Skeleton className="h-4 w-full mb-2" />
+          <Skeleton className="h-4 w-2/3" />
         </div>
-        <div className="space-y-2">
+        <div className="space-y-3">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-11/12" />
           <Skeleton className="h-4 w-4/5" />
-          <Skeleton className="h-4 w-3/5" />
-          <Skeleton className="h-4 w-9/12" />
         </div>
-      </>
+      </div>
     );
   }
 
   const summary = data?.summary || description;
+  const whyMatters = data?.whyMatters || null;
   const bullets = data?.bullets || [];
+  const paragraphs =
+    data?.paragraphs?.length > 0
+      ? data.paragraphs
+      : data?.bodyText
+        ? data.bodyText
+            .split(/\n{2,}|\n/)
+            .map((p) => p.trim())
+            .filter((p) => p.length > 40)
+        : [];
+  const minutes =
+    data?.readingMinutes ||
+    estimateMinutes(data?.bodyText || summary || description || "");
 
-  if (!summary && bullets.length === 0) return null;
+  if (!summary && bullets.length === 0 && paragraphs.length === 0) {
+    if (failed) {
+      return (
+        <p className="text-sm text-[var(--text-muted)]">
+          Haber metni şu an çekilemedi. Kaynak bağlantısından okuyabilirsin.
+        </p>
+      );
+    }
+    return null;
+  }
 
   return (
-    <>
-      {/* AI Summary */}
-      {summary && (
-        <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30 mb-4">
-          <div className="flex items-center gap-1.5 mb-2">
-            <span className="text-sm">🤖</span>
-            <span className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">
-              AI Özeti
-            </span>
+    <div className="space-y-8">
+      {(summary || whyMatters || bullets.length > 0) && (
+        <aside className="article-deck" aria-label="Haber özeti">
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <p className="article-kicker">Kısa okuma</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
+              ~{minutes} dk
+            </p>
           </div>
-          <p
-            className="text-sm leading-relaxed text-stone-700 dark:text-stone-300"
-            style={{ fontFamily: "var(--font-body, Georgia, serif)" }}>
-            {summary}
-          </p>
+
+          {summary && (
+            <p
+              className="article-deck-summary"
+              style={{ fontFamily: "var(--font-body), Georgia, serif" }}
+            >
+              {summary}
+            </p>
+          )}
+
+          {whyMatters && (
+            <p className="article-why">
+              <span>Neden önemli — </span>
+              {whyMatters}
+            </p>
+          )}
+
+          {bullets.length > 0 && (
+            <ul className="article-bullets">
+              {bullets.map((b, i) => (
+                <li key={i}>{b}</li>
+              ))}
+            </ul>
+          )}
+        </aside>
+      )}
+
+      {paragraphs.length > 0 && (
+        <div className="article-prose">
+          {paragraphs.map((p, i) => (
+            <p key={i}>{p}</p>
+          ))}
         </div>
       )}
 
-      {/* Bullet Points */}
-      {bullets.length > 0 && (
-        <div className="mt-2">
-          <p className="text-xs font-bold text-stone-600 dark:text-stone-300 uppercase tracking-wider mb-3">
-            Önemli Noktalar
-          </p>
-          <ul className="space-y-2.5">
-            {bullets.map((b, i) => (
-              <li key={i} className="flex items-start gap-2.5 text-sm text-stone-700 dark:text-stone-300">
-                <span className="mt-1 w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
-                <span className="leading-relaxed">{b}</span>
-              </li>
-            ))}
-          </ul>
+      {!paragraphs.length && description && description !== summary && (
+        <div className="article-prose">
+          <p>{description}</p>
         </div>
       )}
-    </>
+
+      <AiDisclosure
+        sourceUrl={data?.sourceUrl || url}
+        sourceName={data?.sourceName}
+      />
+    </div>
   );
 }

@@ -47,9 +47,13 @@ const {
 } = siteConfig;
 
 export const viewport = {
-  themeColor: "#1c1917",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#fafaf9" },
+    { media: "(prefers-color-scheme: dark)", color: "#1c1917" },
+  ],
   width: "device-width",
   initialScale: 1,
+  viewportFit: "cover",
 };
 
 export const metadata = {
@@ -59,7 +63,33 @@ export const metadata = {
     template: `%s — ${nameShort}`,
   },
   description,
-  keywords: ["Haber", "Yapay Zeka", "Yapay Zeka Haberleri", "HaberAI", "Günlük Özet", "AI Analiz", "Son Dakika", "Köşe Yazıları", "Bağımsız Haber", "Teknoloji", "Siyaset"],
+  keywords: [
+    "Haber",
+    "Yapay Zeka",
+    "Yapay Zeka Haberleri",
+    "HaberAI",
+    "Günlük Özet",
+    "AI Analiz",
+    "Son Dakika",
+    "Köşe Yazıları",
+    "Bağımsız Haber",
+    "Teknoloji",
+    "Siyaset",
+  ],
+  alternates: {
+    canonical: SITE_URL,
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -86,6 +116,47 @@ export const metadata = {
   },
 };
 
+const websiteJsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": `${SITE_URL}/#website`,
+      url: SITE_URL,
+      name,
+      description,
+      inLanguage: "tr-TR",
+      publisher: { "@id": `${SITE_URL}/#organization` },
+      potentialAction: {
+        "@type": "SearchAction",
+        target: {
+          "@type": "EntryPoint",
+          urlTemplate: `${SITE_URL}/search?q={search_term_string}`,
+        },
+        "query-input": "required name=search_term_string",
+      },
+    },
+    {
+      "@type": "Organization",
+      "@id": `${SITE_URL}/#organization`,
+      name,
+      url: SITE_URL,
+      logo: `${SITE_URL}/icon-512.png`,
+      sameAs: [],
+    },
+    {
+      "@type": "NewsMediaOrganization",
+      "@id": `${SITE_URL}/#publisher`,
+      name,
+      url: SITE_URL,
+      logo: {
+        "@type": "ImageObject",
+        url: `${SITE_URL}/icon-512.png`,
+      },
+    },
+  ],
+};
+
 export default function RootLayout({ children }) {
   const now = new Date().toLocaleDateString("tr-TR", {
     weekday: "long",
@@ -100,6 +171,10 @@ export default function RootLayout({ children }) {
       className={`${playfair.variable} ${sourceSerif.variable} ${caveat.variable}`}
       suppressHydrationWarning>
       <body className="antialiased bg-stone-50 dark:bg-stone-950 text-stone-900 dark:text-stone-100">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+        />
         <AnalyticsProvider />
         <ThemeProvider>
           {/* ── Header ── */}

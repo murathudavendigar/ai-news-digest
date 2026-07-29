@@ -6,7 +6,7 @@ export const INTERNATIONAL_SOURCES = [
     language: "en",
     rssUrl: "https://feeds.reuters.com/reuters/topNews",
     fallbackUrl: "https://rss.reuters.com/news/topNews",
-    category: "dunya",
+    category: "world",
     priority: 1,
   },
   {
@@ -14,7 +14,7 @@ export const INTERNATIONAL_SOURCES = [
     name: "AP News",
     language: "en",
     rssUrl: "https://feeds.apnews.com/rss/apf-topnews",
-    category: "dunya",
+    category: "world",
     priority: 1,
   },
   {
@@ -22,7 +22,7 @@ export const INTERNATIONAL_SOURCES = [
     name: "BBC Dünya",
     language: "en",
     rssUrl: "https://feeds.bbci.co.uk/news/world/rss.xml",
-    category: "dunya",
+    category: "world",
     priority: 2,
   },
   {
@@ -30,7 +30,7 @@ export const INTERNATIONAL_SOURCES = [
     name: "Bloomberg",
     language: "en",
     rssUrl: "https://feeds.bloomberg.com/markets/news.rss",
-    category: "ekonomi", // Bloomberg goes to ekonomi category
+    category: "business",
     priority: 2,
   },
   {
@@ -38,7 +38,7 @@ export const INTERNATIONAL_SOURCES = [
     name: "The Guardian",
     language: "en",
     rssUrl: "https://www.theguardian.com/world/rss",
-    category: "dunya",
+    category: "world",
     priority: 3,
   },
   {
@@ -46,16 +46,16 @@ export const INTERNATIONAL_SOURCES = [
     name: "DW Türkçe",
     language: "tr", // already Turkish — no translation needed
     rssUrl: "https://rss.dw.com/rdf/rss-tur-all",
-    category: "dunya",
+    category: "world",
     priority: 1,
     noTranslation: true, // skip Gemini translation
   },
 ];
 
 export const SOURCES_NEEDING_TRANSLATION = INTERNATIONAL_SOURCES.filter(
-  (s) => !s.noTranslation
+  (s) => !s.noTranslation,
 );
 
 export const SOURCES_ALREADY_TURKISH = INTERNATIONAL_SOURCES.filter(
-  (s) => s.noTranslation
+  (s) => s.noTranslation,
 );

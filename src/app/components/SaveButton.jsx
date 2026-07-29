@@ -35,12 +35,17 @@ export default function SaveButton({ article, showLabel = false }) {
 
   return (
     <button
+      type="button"
       onClick={toggleSave}
       aria-label={saved ? "Kaydedilenlerden çıkar" : "Haberi kaydet"}
       className={`
-        flex items-center justify-center transition-opacity hover:opacity-80
-        ${showLabel ? "gap-1.5 px-3 py-1.5 rounded-full border bg-stone-900 border-stone-800" : "w-8 h-8"}
-        ${saved ? "text-emerald-400" : "text-stone-400"}
+        flex items-center justify-center transition-colors
+        ${
+          showLabel
+            ? "gap-1.5 px-3 py-1.5 border border-[var(--border-subtle)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)]"
+            : "w-8 h-8"
+        }
+        ${saved ? "text-emerald-600 dark:text-emerald-400" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"}
       `}
     >
       <style dangerouslySetInnerHTML={{__html: `

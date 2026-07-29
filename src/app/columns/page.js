@@ -1,16 +1,36 @@
 import { Suspense } from "react";
 import { supabase } from "@/app/lib/supabase";
-import { getTodaysColumnistSlug, getColumnistAccent, getSevenDaysAgoISO } from "@/app/lib/columnistConfig";
+import {
+  getTodaysColumnistSlug,
+  getColumnistAccent,
+  getSevenDaysAgoISO,
+} from "@/app/lib/columnistConfig";
 import Link from "next/link";
 import FollowColumnistButton from "@/app/components/FollowColumnistButton";
+import { siteConfig } from "@/app/lib/siteConfig";
 
 export const metadata = {
   title: "Köşe Yazıları | HaberAI",
   description:
     "7 bağımsız AI yazarından her gün yeni bir köşe yazısı. Politikadan spora, teknolojiden kültüre.",
+  alternates: { canonical: `${siteConfig.url}/columns` },
+  openGraph: {
+    title: "Köşe Yazıları — HaberAI",
+    description:
+      "7 bağımsız AI yazarından her gün yeni bir köşe yazısı.",
+    url: `${siteConfig.url}/columns`,
+  },
 };
 
-const DAYS_TR = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
+const DAYS_TR = [
+  "Pazar",
+  "Pazartesi",
+  "Salı",
+  "Çarşamba",
+  "Perşembe",
+  "Cuma",
+  "Cumartesi",
+];
 
 const getInitials = (name) =>
   name
@@ -19,29 +39,34 @@ const getInitials = (name) =>
     .join("")
     .toUpperCase();
 
+function SectionLabel({ children }) {
+  return (
+    <div className="page-section-label">
+      <span>{children}</span>
+      <span className="page-section-rule" aria-hidden="true" />
+    </div>
+  );
+}
 
 function TodaysColumnSkeleton() {
   return (
-    <div className="mb-16">
-      <div className="flex items-center gap-3 mb-6">
-        <h2 className="text-2xl font-bold uppercase tracking-widest text-stone-400 dark:text-stone-500" style={{ fontFamily: "var(--font-display, Georgia, serif)" }}>BUGÜN</h2>
-        <div className="h-px bg-stone-200 dark:bg-stone-800 flex-1"></div>
-      </div>
-      <div className="h-100 bg-stone-100 dark:bg-stone-800 animate-pulse rounded-3xl border border-stone-200 dark:border-stone-700"></div>
+    <div className="mb-14">
+      <SectionLabel>Bugün</SectionLabel>
+      <div className="h-64 animate-pulse border border-[var(--border-subtle)] bg-[var(--bg-elevated)]" />
     </div>
   );
 }
 
 function ThisWeekSkeleton() {
   return (
-    <div className="mb-16">
-      <div className="flex items-center gap-3 mb-6">
-        <h2 className="text-xl font-bold uppercase tracking-widest text-stone-400 dark:text-stone-500" style={{ fontFamily: "var(--font-display, Georgia, serif)" }}>BU HAFTA</h2>
-        <div className="h-px bg-stone-200 dark:bg-stone-800 flex-1"></div>
-      </div>
+    <div className="mb-14">
+      <SectionLabel>Bu hafta</SectionLabel>
       <div className="flex gap-4">
-        {[1, 2, 3].map(i => (
-          <div key={i} className="h-64 sm:w-[320px] w-70 bg-stone-100 dark:bg-stone-800 animate-pulse rounded-2xl border border-stone-200 dark:border-stone-700"></div>
+        {[1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className="h-56 w-70 shrink-0 animate-pulse border border-[var(--border-subtle)] bg-[var(--bg-elevated)] sm:w-[320px]"
+          />
         ))}
       </div>
     </div>
@@ -50,14 +75,14 @@ function ThisWeekSkeleton() {
 
 function TopColumnsSkeleton() {
   return (
-    <div className="mb-16">
-      <div className="flex items-center gap-3 mb-6">
-        <h2 className="text-xl font-bold uppercase tracking-widest text-stone-400 dark:text-stone-500" style={{ fontFamily: "var(--font-display, Georgia, serif)" }}>Haftanın En Çok Okunanları</h2>
-        <div className="h-px bg-stone-200 dark:bg-stone-800 flex-1"></div>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {[1, 2, 3].map(i => (
-          <div key={i} className="h-24 bg-stone-100 dark:bg-stone-800 animate-pulse rounded-xl"></div>
+    <div className="mb-14">
+      <SectionLabel>Haftanın en çok okunanları</SectionLabel>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        {[1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className="h-24 animate-pulse border border-[var(--border-subtle)] bg-[var(--bg-elevated)]"
+          />
         ))}
       </div>
     </div>
@@ -67,74 +92,95 @@ function TopColumnsSkeleton() {
 function AllColumnistsSkeleton() {
   return (
     <div className="mb-12">
-      <div className="flex items-center gap-3 mb-8">
-        <h2 className="text-xl font-bold uppercase tracking-widest text-stone-400 dark:text-stone-500" style={{ fontFamily: "var(--font-display, Georgia, serif)" }}>Tüm Yazarlar</h2>
-        <div className="h-px bg-stone-200 dark:bg-stone-800 flex-1"></div>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {[1, 2, 3, 4, 5, 6].map(i => (
-          <div key={i} className="h-32 bg-stone-100 dark:bg-stone-800 animate-pulse rounded-2xl"></div>
+      <SectionLabel>Tüm yazarlar</SectionLabel>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {[1, 2, 3, 4, 5, 6].map((i) => (
+          <div
+            key={i}
+            className="h-32 animate-pulse border border-[var(--border-subtle)] bg-[var(--bg-elevated)]"
+          />
         ))}
       </div>
     </div>
   );
 }
 
-async function TodaysColumnSection({ columnistsPromise, recentColumnsPromise, todaySlug }) {
-  const [{ data: columnists }, { data: recentColumns }] = await Promise.all([columnistsPromise, recentColumnsPromise]);
+async function TodaysColumnSection({
+  columnistsPromise,
+  recentColumnsPromise,
+  todaySlug,
+}) {
+  const [{ data: columnists }, { data: recentColumns }] = await Promise.all([
+    columnistsPromise,
+    recentColumnsPromise,
+  ]);
   const todayColumnist = columnists?.find((c) => c.slug === todaySlug);
-  const todayColumn = recentColumns?.find(c => c.columnist_id === todayColumnist?.id);
+  const todayColumn = recentColumns?.find(
+    (c) => c.columnist_id === todayColumnist?.id,
+  );
 
-  if (!todayColumnist || !todayColumn) return null;
+  if (!todayColumnist || !todayColumn) {
+    return (
+      <section className="mb-14">
+        <SectionLabel>Bugün</SectionLabel>
+        <div className="page-empty">
+          <h3>Bugünün yazısı henüz hazır değil</h3>
+          <p>Yazarlar sırayla yayınlanır. Bu haftanın yazılarına göz at.</p>
+          <a href="#bu-hafta" className="article-text-link accent">
+            Bu haftaya in →
+          </a>
+        </div>
+      </section>
+    );
+  }
+
+  const accent = getColumnistAccent(todaySlug);
 
   return (
-    <section className="mb-16">
-      <div className="flex items-center gap-3 mb-6">
-        <h2
-          className="text-2xl font-bold uppercase tracking-widest text-stone-400 dark:text-stone-500"
-          style={{ fontFamily: "var(--font-display, Georgia, serif)" }}>
-          BUGÜN
-        </h2>
-        <div className="h-px bg-stone-200 dark:bg-stone-800 flex-1"></div>
-      </div>
-      
-      <div
-        className="group block relative bg-white dark:bg-stone-900 rounded-3xl p-8 md:p-12 shadow-sm hover:shadow-lg transition-all border border-stone-100 dark:border-stone-800 overflow-hidden"
-      >
-        <div 
-          className="absolute top-0 left-0 right-0 h-2 opacity-90 transition-opacity" 
-          style={{ backgroundColor: getColumnistAccent(todaySlug).primary }} 
+    <section className="mb-14">
+      <SectionLabel>Bugün</SectionLabel>
+
+      <div className="group relative overflow-hidden border border-[var(--border-subtle)] bg-[var(--bg-card)]">
+        <div
+          className="absolute left-0 right-0 top-0 h-1.5 opacity-90"
+          style={{ backgroundColor: accent.primary }}
         />
-        
-        <div className="flex flex-col md:flex-row gap-8 items-start relative z-10">
-          <div className="shrink-0 flex flex-col items-center gap-3">
+
+        <div className="relative z-10 flex flex-col items-start gap-8 p-7 md:flex-row md:p-10">
+          <div className="flex shrink-0 flex-col items-center gap-3">
             <Link href={`/columns/${todayColumnist.slug}`}>
               <div
-                className="w-24 h-24 rounded-full flex items-center justify-center text-3xl font-black text-white shadow-inner hover:scale-105 transition-transform"
-                style={{ backgroundColor: getColumnistAccent(todaySlug).primary }}>
+                className="flex h-20 w-20 items-center justify-center rounded-full text-2xl font-black text-white transition-transform hover:scale-105 md:h-24 md:w-24 md:text-3xl"
+                style={{ backgroundColor: accent.primary }}
+              >
                 {getInitials(todayColumnist.name)}
               </div>
             </Link>
             <div className="text-center">
-              <Link href={`/columns/${todayColumnist.slug}`} className="font-bold text-lg hover:underline block text-stone-900 dark:text-white">
+              <Link
+                href={`/columns/${todayColumnist.slug}`}
+                className="block text-base font-bold text-[var(--text-primary)] no-underline hover:underline"
+              >
                 {todayColumnist.name}
               </Link>
-              <p className="text-xs text-stone-500 max-w-30 mx-auto leading-tight mt-1">
+              <p className="mx-auto mt-1 max-w-30 text-xs leading-tight text-[var(--text-muted)]">
                 {todayColumnist.title}
               </p>
             </div>
           </div>
 
-          <div className="flex-1 flex flex-col h-full">
-            <Link href={`/columns/${todayColumnist.slug}/${todayColumn.slug}`} className="flex-1">
-              <h3 
-                className="text-3xl md:text-5xl font-bold text-stone-900 dark:text-white mb-4 leading-tight group-hover:opacity-80 transition-opacity"
-                style={{ fontFamily: "var(--font-display, Georgia, serif)" }}
+          <div className="flex h-full flex-1 flex-col">
+            <Link
+              href={`/columns/${todayColumnist.slug}/${todayColumn.slug}`}
+              className="flex-1 no-underline"
+            >
+              <h3
+                className="mb-4 text-3xl font-bold leading-tight text-[var(--text-primary)] transition-opacity group-hover:opacity-80 md:text-4xl"
+                style={{ fontFamily: "var(--font-display), Georgia, serif" }}
               >
                 {todayColumn.title}
               </h3>
-              
-              <p className="text-stone-600 dark:text-stone-300 text-lg leading-relaxed mb-6 line-clamp-3 md:line-clamp-2">
+              <p className="mb-6 line-clamp-3 text-base leading-relaxed text-[var(--text-secondary)] md:line-clamp-2">
                 {todayColumn.content
                   ?.split("\n")
                   .find((l) => l.trim() && !l.startsWith("#"))
@@ -142,21 +188,23 @@ async function TodaysColumnSection({ columnistsPromise, recentColumnsPromise, to
               </p>
             </Link>
 
-            <div className="flex flex-wrap items-center justify-between gap-4 mt-auto pt-6 border-t border-stone-100 dark:border-stone-800 w-full">
-              <div className="flex items-center gap-3 text-sm text-stone-500 font-medium">
+            <div className="mt-auto flex w-full flex-wrap items-center justify-between gap-4 border-t border-[var(--border-subtle)] pt-5">
+              <div className="flex items-center gap-3 text-sm font-medium text-[var(--text-muted)]">
                 <span>{todayColumn.read_time_minutes} dk okuma</span>
                 {todayColumn.view_count > 0 && (
                   <>
-                    <span>•</span>
-                    <span>{todayColumn.view_count.toLocaleString('tr-TR')} okuyucu</span>
+                    <span>·</span>
+                    <span>
+                      {todayColumn.view_count.toLocaleString("tr-TR")} okuyucu
+                    </span>
                   </>
                 )}
               </div>
               <Link
                 href={`/columns/${todayColumnist.slug}/${todayColumn.slug}`}
-                className="inline-flex items-center justify-center px-6 py-2.5 bg-stone-900 dark:bg-stone-100 hover:bg-stone-800 dark:hover:bg-white text-white dark:text-stone-900 font-bold rounded-full transition-colors text-sm"
+                className="inline-flex items-center justify-center border border-[var(--text-primary)] bg-[var(--text-primary)] px-5 py-2.5 text-[11px] font-black uppercase tracking-widest text-[var(--bg-primary)] no-underline transition-opacity hover:opacity-90"
               >
-                Oku <span className="ml-1">→</span>
+                Oku →
               </Link>
             </div>
           </div>
@@ -166,14 +214,23 @@ async function TodaysColumnSection({ columnistsPromise, recentColumnsPromise, to
   );
 }
 
-async function ThisWeekColumnsSection({ recentColumnsPromise, columnistsPromise, todaySlug }) {
-  const [{ data: recentColumns }, { data: columnists }] = await Promise.all([recentColumnsPromise, columnistsPromise]);
+async function ThisWeekColumnsSection({
+  recentColumnsPromise,
+  columnistsPromise,
+  todaySlug,
+}) {
+  const [{ data: recentColumns }, { data: columnists }] = await Promise.all([
+    recentColumnsPromise,
+    columnistsPromise,
+  ]);
   const todayColumnist = columnists?.find((c) => c.slug === todaySlug);
-  const todayColumn = recentColumns?.find(c => c.columnist_id === todayColumnist?.id);
+  const todayColumn = recentColumns?.find(
+    (c) => c.columnist_id === todayColumnist?.id,
+  );
 
   const thisWeekColumns = [];
   const seenColumnists = new Set();
-  
+
   if (recentColumns) {
     for (const col of recentColumns) {
       if (!seenColumnists.has(col.columnist_id) && col.id !== todayColumn?.id) {
@@ -186,46 +243,46 @@ async function ThisWeekColumnsSection({ recentColumnsPromise, columnistsPromise,
   if (thisWeekColumns.length === 0) return null;
 
   return (
-    <section className="mb-16">
-      <div className="flex items-center gap-3 mb-6">
-        <h2
-          className="text-xl font-bold uppercase tracking-widest text-stone-400 dark:text-stone-500"
-          style={{ fontFamily: "var(--font-display, Georgia, serif)" }}>
-          BU HAFTA
-        </h2>
-        <div className="h-px bg-stone-200 dark:bg-stone-800 flex-1"></div>
-      </div>
+    <section id="bu-hafta" className="mb-14 scroll-mt-8">
+      <SectionLabel>Bu hafta</SectionLabel>
 
-      <div className="flex overflow-x-auto pb-6 -mx-4 px-4 snap-x gap-4 scrollbar-hide">
+      <div className="scrollbar-hide -mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-4">
         {thisWeekColumns.map((col) => {
           const accent = getColumnistAccent(col.columnist.slug);
           return (
             <Link
               key={col.id}
               href={`/columns/${col.columnist.slug}/${col.slug}`}
-              className="w-70 sm:w-[320px] shrink-0 snap-start bg-white dark:bg-stone-900 rounded-2xl p-6 border border-stone-100 dark:border-stone-800 flex flex-col group hover:shadow-md transition-shadow relative overflow-hidden"
-              style={{ borderTopWidth: 4, borderTopColor: accent.primary }}
+              className="group relative flex w-70 shrink-0 snap-start flex-col overflow-hidden border border-[var(--border-subtle)] bg-[var(--bg-card)] p-5 no-underline transition-colors hover:border-[var(--border-strong)] sm:w-[320px]"
+              style={{ borderTopWidth: 3, borderTopColor: accent.primary }}
             >
-              <div className="flex items-center gap-3 mb-4">
+              <div className="mb-4 flex items-center gap-3">
                 <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black text-white"
-                  style={{ backgroundColor: accent.primary }}>
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-black text-white"
+                  style={{ backgroundColor: accent.primary }}
+                >
                   {getInitials(col.columnist.name)}
                 </div>
                 <div className="flex flex-col">
-                  <span className="font-bold text-sm text-stone-900 dark:text-white leading-tight">
+                  <span className="text-sm font-bold leading-tight text-[var(--text-primary)]">
                     {col.columnist.name}
                   </span>
-                  <time className="text-xs text-stone-500">
-                     {new Date(col.published_at).toLocaleDateString("tr-TR", { day: "numeric", month: "long" })}
+                  <time className="text-xs text-[var(--text-muted)]">
+                    {new Date(col.published_at).toLocaleDateString("tr-TR", {
+                      day: "numeric",
+                      month: "long",
+                    })}
                   </time>
                 </div>
               </div>
-              <h3 className="font-bold text-lg leading-snug mb-3 group-hover:opacity-80 transition-opacity">
+              <h3 className="mb-3 text-lg font-bold leading-snug text-[var(--text-primary)] transition-opacity group-hover:opacity-80">
                 {col.title}
               </h3>
-              <p className="text-sm text-stone-500 dark:text-stone-400 line-clamp-3 mt-auto">
-                {col.content?.split("\n").find((l) => l.trim() && !l.startsWith("#"))?.trim()}
+              <p className="mt-auto line-clamp-3 text-sm text-[var(--text-muted)]">
+                {col.content
+                  ?.split("\n")
+                  .find((l) => l.trim() && !l.startsWith("#"))
+                  ?.trim()}
               </p>
             </Link>
           );
@@ -237,40 +294,37 @@ async function ThisWeekColumnsSection({ recentColumnsPromise, columnistsPromise,
 
 async function TopColumnsSection({ topColumnsPromise }) {
   const { data: topColumns } = await topColumnsPromise;
-
   if (!topColumns || topColumns.length === 0) return null;
 
   return (
-    <section className="mb-16">
-      <div className="flex items-center gap-3 mb-6">
-        <h2
-          className="text-xl font-bold uppercase tracking-widest text-stone-400 dark:text-stone-500"
-          style={{ fontFamily: "var(--font-display, Georgia, serif)" }}>
-          Haftanın En Çok Okunanları
-        </h2>
-        <div className="h-px bg-stone-200 dark:bg-stone-800 flex-1"></div>
-      </div>
+    <section className="mb-14">
+      <SectionLabel>Haftanın en çok okunanları</SectionLabel>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
         {topColumns.map((col, idx) => (
           <Link
             key={col.id}
             href={`/columns/${col.columnist.slug}/${col.slug}`}
-            className="flex items-start gap-4 p-4 rounded-xl hover:bg-stone-50 dark:hover:bg-stone-900/50 transition-colors group"
+            className="group flex items-start gap-4 border border-[var(--border-subtle)] bg-[var(--bg-card)] p-4 no-underline transition-colors hover:border-[var(--border-strong)]"
           >
-            <div className="text-4xl font-black text-stone-200 dark:text-stone-800 font-serif leading-none mt-1 group-hover:text-stone-300 dark:group-hover:text-stone-700 transition-colors">
+            <div className="mt-0.5 font-serif text-3xl font-black leading-none text-[var(--border-strong)] transition-colors group-hover:text-[var(--text-muted)]">
               0{idx + 1}
             </div>
             <div>
-              <h4 className="font-bold text-stone-900 dark:text-white leading-snug mb-1 group-hover:underline decoration-stone-300">
+              <h4 className="mb-1 font-bold leading-snug text-[var(--text-primary)] group-hover:underline decoration-[var(--border-subtle)]">
                 {col.title}
               </h4>
-              <div className="text-sm text-stone-500 flex items-center gap-2">
-                <span className="font-medium" style={{ color: getColumnistAccent(col.columnist.slug).primary }}>
+              <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
+                <span
+                  className="font-medium"
+                  style={{
+                    color: getColumnistAccent(col.columnist.slug).primary,
+                  }}
+                >
                   {col.columnist.name}
                 </span>
-                <span>•</span>
-                <span>{col.view_count?.toLocaleString('tr-TR')} okuma</span>
+                <span>·</span>
+                <span>{col.view_count?.toLocaleString("tr-TR")} okuma</span>
               </div>
             </div>
           </Link>
@@ -282,46 +336,50 @@ async function TopColumnsSection({ topColumnsPromise }) {
 
 async function AllColumnistsSection({ columnistsPromise }) {
   const { data: columnists } = await columnistsPromise;
-
-  if (!columnists) return null;
+  if (!columnists?.length) {
+    return (
+      <section id="tum-yazarlar" className="mb-12 scroll-mt-8">
+        <SectionLabel>Tüm yazarlar</SectionLabel>
+        <div className="page-empty">
+          <h3>Yazar listesi yüklenemedi</h3>
+          <p>Biraz sonra tekrar dene.</p>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section id="tum-yazarlar" className="mb-12 scroll-mt-8">
-      <div className="flex items-center gap-3 mb-8">
-        <h2
-          className="text-xl font-bold uppercase tracking-widest text-stone-400 dark:text-stone-500"
-          style={{ fontFamily: "var(--font-display, Georgia, serif)" }}>
-          Tüm Yazarlar
-        </h2>
-        <div className="h-px bg-stone-200 dark:bg-stone-800 flex-1"></div>
-      </div>
+      <SectionLabel>Tüm yazarlar</SectionLabel>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {columnists.map((col) => {
           const accent = getColumnistAccent(col.slug);
           return (
             <div
               key={col.id}
-              className="flex flex-col bg-white dark:bg-stone-900 p-6 rounded-2xl border border-stone-100 dark:border-stone-800 hover:shadow-md transition-shadow"
+              className="flex flex-col border border-[var(--border-subtle)] bg-[var(--bg-card)] p-5"
             >
-              <Link href={`/columns/${col.slug}`} className="flex items-center gap-4 mb-5 group">
+              <Link
+                href={`/columns/${col.slug}`}
+                className="group mb-5 flex items-center gap-4 no-underline"
+              >
                 <div
-                  className="w-16 h-16 rounded-full shrink-0 flex items-center justify-center text-xl font-black text-white group-hover:scale-105 transition-transform"
-                  style={{ backgroundColor: accent.primary }}>
+                  className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-lg font-black text-white transition-transform group-hover:scale-105"
+                  style={{ backgroundColor: accent.primary }}
+                >
                   {getInitials(col.name)}
                 </div>
                 <div>
-                  <h4 className="font-bold text-lg text-stone-900 dark:text-white group-hover:opacity-80 transition-opacity">
+                  <h4 className="text-lg font-bold text-[var(--text-primary)] transition-opacity group-hover:opacity-80">
                     {col.name}
                   </h4>
-                  <p className="text-sm text-stone-500 dark:text-stone-400">
-                    {col.title}
-                  </p>
+                  <p className="text-sm text-[var(--text-muted)]">{col.title}</p>
                 </div>
               </Link>
-              
-              <div className="mt-auto pt-4 border-t border-stone-100 dark:border-stone-800 flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wider text-stone-400">
+
+              <div className="mt-auto flex items-center justify-between border-t border-[var(--border-subtle)] pt-4">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
                   {DAYS_TR[col.publish_day]}
                 </span>
                 <FollowColumnistButton
@@ -343,7 +401,6 @@ export default function ColumnsIndexPage() {
   const todaySlug = getTodaysColumnistSlug();
   const sevenDaysAgo = getSevenDaysAgoISO();
 
-  // Create promises at the top level
   const columnistsPromise = supabase
     .from("columnists")
     .select("*")
@@ -364,47 +421,56 @@ export default function ColumnsIndexPage() {
     .limit(3);
 
   return (
-    <main className="container mx-auto px-4 py-8 max-w-5xl">
-      <header className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-stone-200 dark:border-stone-800 pb-6">
-        <div>
-          <h1
-            className="text-4xl md:text-5xl font-bold mb-2 text-stone-900 dark:text-stone-100 tracking-tight"
-            style={{ fontFamily: "var(--font-display, Georgia, serif)" }}>
-            Köşe Yazıları
-          </h1>
-          <p className="text-xl text-stone-600 dark:text-stone-400">
-            Her gün yeni bir yazar, yeni bir bakış açısı.
-          </p>
-        </div>
-        <a href="#tum-yazarlar" className="text-stone-500 hover:text-stone-900 dark:hover:text-white font-medium transition-colors inline-flex items-center gap-1">
-          Tüm Yazarlar
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>
-        </a>
-      </header>
+    <main className="page-shell">
+      <div className="page-container max-w-5xl">
+        <nav className="page-crumb" aria-label="Sayfa yolu">
+          <Link href="/">Ana sayfa</Link>
+          <span aria-hidden="true">/</span>
+          <Link href="/digest">Özet</Link>
+          <span aria-hidden="true">/</span>
+          <span className="text-[var(--text-secondary)]">Köşe yazıları</span>
+        </nav>
 
-      <Suspense fallback={<TodaysColumnSkeleton />}>
-        <TodaysColumnSection 
-          columnistsPromise={columnistsPromise} 
-          recentColumnsPromise={recentColumnsPromise} 
-          todaySlug={todaySlug} 
-        />
-      </Suspense>
+        <header className="page-masthead mb-12 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+          <div>
+            <p className="page-masthead-kicker">Editoryal</p>
+            <h1 className="page-masthead-title">Köşe Yazıları</h1>
+            <p className="page-masthead-lede">
+              Her gün yeni bir yazar, yeni bir bakış açısı.
+            </p>
+          </div>
+          <a
+            href="#tum-yazarlar"
+            className="article-text-link inline-flex items-center gap-1"
+          >
+            Tüm yazarlar ↓
+          </a>
+        </header>
 
-      <Suspense fallback={<ThisWeekSkeleton />}>
-        <ThisWeekColumnsSection 
-          columnistsPromise={columnistsPromise} 
-          recentColumnsPromise={recentColumnsPromise} 
-          todaySlug={todaySlug} 
-        />
-      </Suspense>
+        <Suspense fallback={<TodaysColumnSkeleton />}>
+          <TodaysColumnSection
+            columnistsPromise={columnistsPromise}
+            recentColumnsPromise={recentColumnsPromise}
+            todaySlug={todaySlug}
+          />
+        </Suspense>
 
-      <Suspense fallback={<TopColumnsSkeleton />}>
-        <TopColumnsSection topColumnsPromise={topColumnsPromise} />
-      </Suspense>
+        <Suspense fallback={<ThisWeekSkeleton />}>
+          <ThisWeekColumnsSection
+            columnistsPromise={columnistsPromise}
+            recentColumnsPromise={recentColumnsPromise}
+            todaySlug={todaySlug}
+          />
+        </Suspense>
 
-      <Suspense fallback={<AllColumnistsSkeleton />}>
-        <AllColumnistsSection columnistsPromise={columnistsPromise} />
-      </Suspense>
+        <Suspense fallback={<TopColumnsSkeleton />}>
+          <TopColumnsSection topColumnsPromise={topColumnsPromise} />
+        </Suspense>
+
+        <Suspense fallback={<AllColumnistsSkeleton />}>
+          <AllColumnistsSection columnistsPromise={columnistsPromise} />
+        </Suspense>
+      </div>
     </main>
   );
 }

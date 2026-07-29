@@ -1,3 +1,5 @@
+import { AI_JSON_RULES } from "./aiContract";
+
 const CATEGORY_SCORE_CONTEXT = {
   politics: `
 POLITICAL SCORING NOTES:
@@ -103,7 +105,10 @@ RULES:
 - Respond entirely in ${langName}.
 - manipulationTactics: empty array [] if none clearly detected — never fabricate.
 - redFlags: empty array [] if none — do not invent flags from absence of information.
-- Be fair. A missing source in a brief news alert is normal, not a red flag.`;
+- Be fair. A missing source in a brief news alert is normal, not a red flag.
+- Do NOT invent redFlags, tactics, or quotes. If uncertain, use empty arrays / null.
+
+${AI_JSON_RULES}`;
 
   const userPrompt = `Evaluate this news article's credibility fairly.
 

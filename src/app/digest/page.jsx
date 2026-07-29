@@ -21,10 +21,12 @@ export const dynamic = "force-dynamic";
 export const metadata = {
   title: "Günün Özeti",
   description: `${siteConfig.name} yapay zekası tarafından hazırlanan günlük haber özeti — bugün ne oldu, tek sayfada.`,
+  alternates: { canonical: `${siteConfig.url}/digest` },
   openGraph: {
     title: `Günün Özeti — ${siteConfig.name}`,
     description:
       "Yapay zeka tarafından hazırlanan günlük haber özeti. Bugün ne oldu, tek sayfada.",
+    url: `${siteConfig.url}/digest`,
   },
 };
 

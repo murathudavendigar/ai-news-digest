@@ -2,15 +2,18 @@
 import CredibilityBadge from "@/app/components/CredibilityBadge";
 import DeepAnalysis from "@/app/components/DeepAnalysis";
 import DetailPageSummary from "@/app/components/DetailPageSummary";
+import RelatedArticles from "@/app/components/RelatedArticles";
 import ShareButton from "@/app/components/ShareButton";
-import { CATEGORIES_WITHOUT_CONTEXT, CATEGORY_LABELS } from "@/app/lib/categoryConfig";
+import {
+  CATEGORY_LABELS,
+} from "@/app/lib/categoryConfig";
 import { getArticleForDetail } from "@/app/lib/newsSource";
 import { siteConfig } from "@/app/lib/siteConfig";
 
 import Link from "next/link";
-import { notFound } from "next/navigation";
 
 import ArticleReactions from "@/app/components/ArticleReactions";
+import ReadingModeToggle from "@/app/components/ReadingModeToggle";
 import SaveButton from "@/app/components/SaveButton";
 import ArticleTracker from "@/app/components/ArticleTracker";
 
@@ -19,6 +22,13 @@ const SITE_URL = siteConfig.url;
 function extractId(slug) {
   const idx = slug.lastIndexOf("--");
   return idx !== -1 ? slug.slice(idx + 2) : slug;
+}
+
+function estimateMinutes(article) {
+  const text = [article.title, article.description, article.summary]
+    .filter(Boolean)
+    .join(" ");
+  return Math.max(1, Math.round(text.trim().split(/\s+/).length / 200));
 }
 
 export async function generateMetadata({ params }) {
@@ -62,25 +72,37 @@ export default async function NewsDetailPage({ params }) {
   const { slug } = await params;
   const id = extractId(slug);
   const article = await getArticleForDetail(id);
-  
+
   if (!article) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 text-center">
-        <div className="mb-6 text-6xl opacity-50">📰</div>
-        <h1 className="mb-2 text-2xl font-bold text-stone-900 dark:text-white">Haber Bulunamadı</h1>
-        <p className="mb-8 text-stone-500 dark:text-stone-400">
-          Bu haber artık önbellekte bulunmuyor veya link geçersiz.
+      <div className="article-detail flex flex-col items-center justify-center min-h-[70vh] px-6 text-center">
+        <p className="article-kicker mb-4">Arşiv</p>
+        <h1
+          className="mb-3 text-3xl md:text-4xl font-black text-[var(--text-primary)]"
+          style={{ fontFamily: "var(--font-display), Georgia, serif" }}
+        >
+          Bu haber baskıda yok
+        </h1>
+        <p className="mb-8 max-w-md text-sm leading-relaxed text-[var(--text-secondary)]">
+          Önbellekte bulunamadı veya bağlantı geçersiz. Ana sayfadan güncel
+          manşetlere dönebilirsin.
         </p>
-        <Link
-          href="/"
-          className="px-6 py-2.5 font-bold text-white transition-colors bg-stone-900 dark:bg-white dark:text-stone-900 rounded-full hover:bg-stone-800 dark:hover:bg-stone-200">
-          Ana Sayfaya Dön
-        </Link>
+        <div className="flex flex-wrap items-center justify-center gap-4">
+          <Link href="/" className="article-text-link">
+            Ana sayfa
+          </Link>
+          <Link href="/digest" className="article-text-link accent">
+            Günün özeti
+          </Link>
+        </div>
       </div>
     );
   }
 
   const articleUrl = `${SITE_URL}/news/${slug}`;
+  const sourceLink = article.link || article.url || null;
+  const published = article.pubDate || article.publishedAt;
+  const minutes = estimateMinutes(article);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -88,7 +110,7 @@ export default async function NewsDetailPage({ params }) {
     headline: article.title,
     description: article.description ?? undefined,
     image: article.image_url ? [article.image_url] : undefined,
-    datePublished: article.pubDate,
+    datePublished: published,
     author: (article.creator ?? []).map((name) => ({
       "@type": "Person",
       name,
@@ -98,18 +120,26 @@ export default async function NewsDetailPage({ params }) {
       name: article.source_name ?? siteConfig.name,
       url: article.source_url ?? undefined,
     },
-    url: article.link,
+    url: sourceLink || articleUrl,
     mainEntityOfPage: {
       "@type": "WebPage",
       "@id": articleUrl,
     },
   };
 
-  // Determine if this category should show context blocks
-  const categories = Array.isArray(article.category) ? article.category : [];
-  const showContextBlock = categories.length > 0 && !categories.some((c) =>
-    CATEGORIES_WITHOUT_CONTEXT.includes(c?.toLowerCase())
-  );
+  const categories = Array.isArray(article.category)
+    ? article.category
+    : article.category
+      ? [article.category]
+      : [];
+  const categorySlug = Array.isArray(article.category)
+    ? article.category[0]
+    : article.category;
+
+  const keywords = [
+    ...(Array.isArray(article.keywords) ? article.keywords : []),
+    ...categories.filter((c) => typeof c === "string"),
+  ].slice(0, 6);
 
   return (
     <>
@@ -118,131 +148,150 @@ export default async function NewsDetailPage({ params }) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <div className="min-h-screen">
-        <div className="max-w-3xl px-4 py-8 mx-auto sm:px-6">
-          {/* Breadcrumb */}
-          <div className="flex items-center gap-2 mb-6 text-sm text-stone-500 dark:text-stone-400">
-            <Link
-              href="/"
-              className="transition-colors hover:text-stone-900 dark:hover:text-stone-100">
-              ← Geri
-            </Link>
-            <span className="flex-1" />
-            {categories.map((cat) => (
-              <span
-                key={cat}
-                className="px-3 py-1 text-xs font-bold tracking-wider uppercase rounded-md bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300">
-                {CATEGORY_LABELS[cat?.toLowerCase()] ?? cat}
-              </span>
-            ))}
+
+      <div className="article-detail">
+        <header className="article-topbar">
+          <Link href="/" className="article-text-link">
+            ← Geri
+          </Link>
+          <span className="article-topbar-rule" aria-hidden="true" />
+          <Link href="/digest" className="article-text-link accent">
+            Günün özeti
+          </Link>
+          <div className="article-topbar-actions">
+            <ReadingModeToggle />
             <SaveButton article={article} showLabel={false} />
             <ShareButton title={article.title} url={articleUrl} />
           </div>
+        </header>
 
-          <article className="overflow-hidden bg-white shadow-xl dark:bg-stone-900 rounded-2xl">
-            {/* Thumbnail */}
-            {article.image_url && (
-              <div className="relative w-full aspect-video overflow-hidden">
-                <img
-                  src={article.image_url}
-                  alt={article.title}
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-              </div>
-            )}
-
-            <div className="p-6 md:p-8">
-              {/* Headline */}
-              <h1
-                className="mb-4 text-3xl font-black leading-tight md:text-4xl text-stone-900 dark:text-white"
-                style={{ fontFamily: "var(--font-display), Georgia, serif" }}>
-                {article.title}
-              </h1>
-
-              {/* Source + time + credibility */}
-              <div className="flex flex-wrap items-center gap-3 pb-5 mb-6 border-b border-stone-100 dark:border-stone-800">
-                <div className="flex items-center gap-2">
-                  {article.source_icon && (
-                    <img
-                      src={article.source_icon}
-                      alt={article.source_name ?? ""}
-                      width={20}
-                      height={20}
-                      loading="lazy"
-                      decoding="async"
-                      style={{
-                        width: "20px",
-                        height: "20px",
-                        borderRadius: "50%",
-                        border: "1px solid var(--border-subtle)",
-                        objectFit: "cover",
-                      }}
-                    />
-                  )}
-                  <span className="text-sm font-bold text-stone-700 dark:text-stone-300">
-                    {article.source_name}
+        <div className="article-shell">
+          <article>
+            <div className="article-meta-row">
+              {categories.slice(0, 2).map((cat) => (
+                <span key={cat} className="article-kicker">
+                  {CATEGORY_LABELS[cat?.toLowerCase?.() ?? cat] ?? cat}
+                </span>
+              ))}
+              <span className="article-meta-dot" aria-hidden="true">
+                ·
+              </span>
+              <span className="article-meta-text">
+                {article.source_name}
+              </span>
+              {published && (
+                <>
+                  <span className="article-meta-dot" aria-hidden="true">
+                    ·
                   </span>
-                  <span className="text-stone-300 dark:text-stone-600">·</span>
-                  <span className="text-sm text-stone-400">
-                    {new Date(article.pubDate).toLocaleDateString("tr-TR", {
+                  <time
+                    className="article-meta-text"
+                    dateTime={new Date(published).toISOString()}
+                  >
+                    {new Date(published).toLocaleDateString("tr-TR", {
                       day: "numeric",
                       month: "long",
                       year: "numeric",
                       hour: "2-digit",
                       minute: "2-digit",
                     })}
-                  </span>
-                </div>
-                <CredibilityBadge sourceName={article.source_name} />
-              </div>
-
-              {/* AI Summary + Bullet Points (client component) */}
-              <DetailPageSummary url={article.link} description={article.description} />
-
-              {/* Context block — only for certain categories */}
-              {showContextBlock && article.description && (
-                <div className="mt-6 p-4 rounded-xl bg-stone-50 dark:bg-stone-800/50 border border-stone-200 dark:border-stone-700">
-                  <p className="text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">
-                    Bağlam
-                  </p>
-                  <p className="text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
-                    {article.description}
-                  </p>
-                </div>
+                  </time>
+                </>
               )}
-
-              {/* Deep Analysis — Arka Plan */}
-              <DeepAnalysis
-                articleSlug={slug}
-                articleTitle={article.title}
-                articleUrl={article.link}
-              />
-
-              {/* Article Reactions & Save */}
-              <div className="flex flex-col gap-4 mt-6 mb-4">
-                <ArticleReactions articleSlug={slug} categorySlug={article.category?.[0]} compact={false} />
-                <div className="flex items-center gap-3">
-                  <SaveButton article={article} showLabel={true} />
-                </div>
-              </div>
-
-              {/* Fallback to direct external link */}
-              <a
-                href={article.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 w-full py-4 px-6 mt-4
-                           bg-stone-900 dark:bg-white text-white dark:text-stone-900
-                           font-bold text-base rounded-xl
-                           hover:bg-stone-800 dark:hover:bg-stone-100
-                           transition-colors shadow-lg"
-              >
-                Kaynağa Git
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
-              </a>
+              <span className="article-meta-dot" aria-hidden="true">
+                ·
+              </span>
+              <span className="article-meta-text">~{minutes} dk</span>
+              <CredibilityBadge sourceName={article.source_name} />
             </div>
+
+            <h1 className="article-headline">{article.title}</h1>
+
+            {(article.description || article.summary) && (
+              <p className="article-dek">
+                {(article.description || article.summary).slice(0, 220)}
+                {(article.description || article.summary).length > 220
+                  ? "…"
+                  : ""}
+              </p>
+            )}
+
+            {article.image_url && (
+              <figure className="article-figure">
+                <img
+                  src={article.image_url}
+                  alt={article.title}
+                  loading="eager"
+                  decoding="async"
+                />
+                <figcaption>
+                  {article.source_name
+                    ? `${article.source_name} görseli`
+                    : "Haber görseli"}
+                </figcaption>
+              </figure>
+            )}
+
+            <DetailPageSummary
+              url={sourceLink}
+              description={article.description || article.summary}
+            />
+
+            <DeepAnalysis
+              articleSlug={slug}
+              articleTitle={article.title}
+              articleUrl={sourceLink}
+            />
+
+            <RelatedArticles
+              keywords={keywords}
+              currentId={article.article_id}
+              title={article.title}
+            />
+
+            <footer className="article-footer">
+              <p className="mb-4 text-[11px] leading-relaxed text-[var(--text-muted)]">
+                Haber metni özet/AI desteklidir; telif kaynak yayına aittir.
+                {sourceLink ? (
+                  <>
+                    {" "}
+                    <a
+                      href={sourceLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-semibold text-[var(--accent-brand)] no-underline hover:underline"
+                    >
+                      Kaynağa git ↗
+                    </a>
+                  </>
+                ) : null}
+              </p>
+              <div className="article-section-label">
+                <span>Senin tepkin</span>
+                <span className="article-section-rule" aria-hidden="true" />
+              </div>
+              <ArticleReactions
+                articleSlug={slug}
+                categorySlug={categorySlug}
+                compact={false}
+              />
+              <div className="article-footer-actions">
+                <SaveButton article={article} showLabel={true} />
+                {sourceLink && (
+                  <a
+                    href={sourceLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="article-text-link"
+                  >
+                    Kaynağa git ↗
+                  </a>
+                )}
+                <Link href="/digest" className="article-text-link accent">
+                  Günün özetine dön
+                </Link>
+              </div>
+            </footer>
           </article>
         </div>
       </div>

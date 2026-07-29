@@ -24,12 +24,13 @@ export default function ShareButton({ title, url }) {
 
   return (
     <button
+      type="button"
       onClick={handleShare}
-      className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all
+      className={`inline-flex items-center gap-2 px-3 py-1.5 text-sm font-semibold transition-all border
         ${
           state !== "idle"
-            ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800"
-            : "bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700 border border-stone-200 dark:border-stone-700"
+            ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
+            : "bg-[var(--bg-card)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"
         }`}>
       {state === "copied" ? (
         <>

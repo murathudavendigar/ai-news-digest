@@ -3,9 +3,11 @@
 export default function RetryButton() {
   return (
     <button
+      type="button"
       onClick={() => window.location.reload()}
-      className="px-5 py-2.5 bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 text-sm font-bold rounded-xl hover:opacity-90 transition-opacity">
-      Tekrar Dene
+      className="border border-[var(--text-primary)] bg-[var(--text-primary)] px-5 py-2.5 text-[11px] font-black uppercase tracking-widest text-[var(--bg-primary)]"
+    >
+      Tekrar dene
     </button>
   );
 }

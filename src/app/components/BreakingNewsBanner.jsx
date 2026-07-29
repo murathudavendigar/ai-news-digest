@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { generateArticleSlug } from "@/app/lib/newsUtils";
 
 /**
- * BreakingNewsBanner — "🔴 SON DAKİKA" ticker banner
+ * BreakingNewsBanner — "SON DAKİKA" ticker banner
  *
  * Self-fetching: queries /api/news for recent articles,
  * filters by breaking keywords. Shows nothing if none found.
@@ -54,7 +54,7 @@ export default function BreakingNewsBanner({ stories: externalStories }) {
     article.slug ||
     generateArticleSlug(
       article.title,
-      article.publishedAt || article.published_at || article.pubDate
+      article.publishedAt || article.published_at || article.pubDate,
     );
 
   // Single story — static banner
@@ -63,61 +63,19 @@ export default function BreakingNewsBanner({ stories: externalStories }) {
     const slug = getSlug(story);
 
     return (
-      <div
-        style={{
-          width: "100%",
-          overflow: "hidden",
-          background: "var(--accent-primary)",
-          height: "44px",
-        }}
-      >
+      <div className="w-full overflow-hidden bg-[var(--bg-elevated)] h-[44px] border-b border-[var(--border-subtle)]">
         <Link
           href={slug ? `/news/${slug}` : "#"}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            height: "100%",
-            padding: "0 16px",
-            gap: "12px",
-            maxWidth: "1200px",
-            margin: "0 auto",
-            textDecoration: "none",
-          }}
+          className="flex items-center h-full px-8 gap-4 max-w-[1200px] mx-auto no-underline animate-in fade-in duration-1000"
         >
-          <span style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
-            <span
-              className="animate-blink"
-              style={{
-                display: "inline-block",
-                width: "8px",
-                height: "8px",
-                borderRadius: "50%",
-                backgroundColor: "#fff",
-              }}
-            />
-            <span
-              style={{
-                fontSize: "11px",
-                fontWeight: 900,
-                letterSpacing: "0.05em",
-                textTransform: "uppercase",
-                color: "var(--text-inverted)",
-              }}
-            >
+          <span className="flex items-center gap-2 shrink-0">
+            <span className="animate-pulse inline-block w-2 h-2 rounded-full bg-[var(--danger,#ef4444)]" />
+            <span className="text-[11px] font-black tracking-widest uppercase text-[var(--danger,#ef4444)]">
               SON DAKİKA
             </span>
           </span>
-          <span style={{ width: "1px", height: "20px", flexShrink: 0, background: "rgba(255,255,255,0.3)" }} />
-          <span
-            style={{
-              fontSize: "14px",
-              fontWeight: 600,
-              color: "var(--text-inverted)",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
+          <span className="w-px h-4 shrink-0 bg-[var(--border-subtle)]" />
+          <span className="text-sm font-medium text-[var(--text-secondary)] truncate">
             {story.title}
           </span>
         </Link>
@@ -125,99 +83,36 @@ export default function BreakingNewsBanner({ stories: externalStories }) {
     );
   }
 
-  // Multiple stories — ticker animation
-  const doubled = [...stories, ...stories];
-
+  // Multiple stories
   return (
-    <div
-      style={{
-        width: "100%",
-        overflow: "hidden",
-        background: "var(--accent-primary)",
-        height: "44px",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", height: "100%" }}>
-        {/* Fixed badge */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "0 16px",
-            flexShrink: 0,
-            height: "100%",
-            background: "var(--accent-primary)",
-            zIndex: 2,
-            boxShadow: "4px 0 12px var(--accent-primary)",
-          }}
-        >
-          <span
-            className="animate-blink"
-            style={{
-              display: "inline-block",
-              width: "8px",
-              height: "8px",
-              borderRadius: "50%",
-              backgroundColor: "#fff",
-            }}
-          />
-          <span
-            style={{
-              fontSize: "11px",
-              fontWeight: 900,
-              letterSpacing: "0.05em",
-              textTransform: "uppercase",
-              color: "var(--text-inverted)",
-            }}
-          >
-            SON DAKİKA
-          </span>
-          <span style={{ width: "1px", height: "20px", background: "rgba(255,255,255,0.3)" }} />
-        </div>
+    <div className="w-full flex overflow-hidden bg-[var(--bg-elevated)] h-[44px] items-center relative border-b border-[var(--border-subtle)]">
+      <div className="flex items-center gap-2 px-8 shrink-0 h-full bg-[var(--bg-elevated)] z-10 relative">
+        <span className="animate-pulse inline-block w-2 h-2 rounded-full bg-[var(--danger,#ef4444)]" />
+        <span className="text-[11px] font-black tracking-widest uppercase text-[var(--danger,#ef4444)]">
+          SON DAKİKA
+        </span>
+        <span className="w-px h-4 bg-[var(--border-subtle)] ml-4" />
+      </div>
 
-        {/* Scrolling ticker */}
-        <div style={{ overflow: "hidden", flex: 1, height: "100%" }}>
-          <div
-            className="animate-ticker"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              height: "100%",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {doubled.map((story, idx) => {
-              const slug = getSlug(story);
-              return (
-                <Link
-                  key={`${story.article_id || story.title}-${idx}`}
-                  href={slug ? `/news/${slug}` : "#"}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    padding: "0 24px",
-                    height: "100%",
-                    flexShrink: 0,
-                    textDecoration: "none",
-                    transition: "opacity 0.2s",
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: "14px",
-                      fontWeight: 600,
-                      color: "var(--text-inverted)",
-                    }}
-                  >
-                    {story.title}
-                  </span>
-                  <span style={{ color: "rgba(255,255,255,0.4)" }}>•</span>
-                </Link>
-              );
-            })}
-          </div>
+      <div className="flex-1 h-full flex items-center overflow-x-auto scrollbar-hide pr-8">
+        <div className="flex items-center gap-8 whitespace-nowrap animate-in fade-in duration-1000">
+          {stories.map((story, idx) => {
+            const slug = getSlug(story);
+            return (
+              <Link
+                key={`${story.article_id || story.title}-${idx}`}
+                href={slug ? `/news/${slug}` : "#"}
+                className="inline-flex items-center gap-2 h-full shrink-0 no-underline transition-opacity hover:opacity-80"
+              >
+                <span className="text-sm font-medium text-[var(--text-secondary)]">
+                  {story.title}
+                </span>
+                {idx !== stories.length - 1 && (
+                  <span className="text-[var(--text-muted)] ml-8">•</span>
+                )}
+              </Link>
+            );
+          })}
         </div>
       </div>
     </div>

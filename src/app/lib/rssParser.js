@@ -136,7 +136,7 @@ export async function fetchRSS(source) {
     const res = await fetch(source.url, {
       signal: controller.signal,
       headers: {
-        "User-Agent": "HaberAI RSS Reader/1.0 (+https://haberai.vercel.app)",
+        "User-Agent": "HaberAI RSS Reader/1.0 (+https://haberai.muratoncu.com)",
         Accept: "application/rss+xml, application/xml, text/xml, */*",
       },
       cache: "no-store",
@@ -202,6 +202,7 @@ function parseRSSXML(xml, source) {
       language: source.lang,
       _fromRSS: true,
       _hasFullContent: !!fullContent,
+      _sourcePriority: source.priority ?? 99,
     });
   }
 
@@ -219,16 +220,43 @@ export async function fetchMultipleRSS(sources, { maxConcurrent = 5 } = {}) {
     all.push(...results.flat());
   }
 
-  // Başlık benzerliğiyle deduplicate
-  const seen = new Set();
-  const unique = [];
+  // Başlık + URL ile deduplicate (yüksek öncelikli kaynak kazanır)
+  const byKey = new Map();
   for (const a of all) {
-    const key = a.title.toLowerCase().slice(0, 60);
-    if (!seen.has(key)) {
-      seen.add(key);
-      unique.push(a);
+    const titleKey = (a.title || "").toLowerCase().slice(0, 60);
+    let urlKey = "";
+    try {
+      if (a.link) {
+        const u = new URL(a.link);
+        urlKey = `${u.hostname.replace(/^www\./, "")}${u.pathname}`.toLowerCase();
+      }
+    } catch {
+      urlKey = (a.link || "").split("?")[0].toLowerCase();
+    }
+
+    const keys = [titleKey, urlKey].filter(Boolean);
+    const existingKey = keys.find((k) => byKey.has(k));
+    if (!existingKey) {
+      for (const k of keys) byKey.set(k, a);
+      continue;
+    }
+    // Aynı haber — daha iyi öncelik / daha dolu açıklama kazanır
+    const prev = byKey.get(existingKey);
+    const prevPri = prev._sourcePriority ?? 99;
+    const nextPri = a._sourcePriority ?? 99;
+    const preferNext =
+      nextPri < prevPri ||
+      ((a.description || "").length > (prev.description || "").length &&
+        nextPri <= prevPri);
+    if (preferNext) {
+      for (const [k, v] of byKey) {
+        if (v === prev) byKey.delete(k);
+      }
+      for (const k of keys) byKey.set(k, a);
     }
   }
+
+  const unique = [...new Set(byKey.values())];
 
   // En yeni önce
   return unique.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));

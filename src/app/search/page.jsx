@@ -1,37 +1,47 @@
 import SearchResults from "@/app/components/SearchResults";
 import { getLatest } from "@/app/lib/news";
+import { getNewsFeed } from "@/app/lib/newsSource";
 
 export function generateMetadata({ searchParams }) {
   const q = searchParams?.q || "";
   return {
     title: q ? `"${q}" — Arama` : "Arama",
+    robots: q ? { index: true, follow: true } : { index: false, follow: true },
   };
+}
+
+function filterByQuery(results, query) {
+  const q = query.toLowerCase();
+  const words = q.split(/\s+/).filter(Boolean);
+  return (results || []).filter((a) => {
+    const haystack = [
+      a.title,
+      a.description,
+      a.source_name,
+      Array.isArray(a.category) ? a.category.join(" ") : a.category,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    return words.every((word) => haystack.includes(word));
+  });
 }
 
 export default async function SearchPage({ searchParams }) {
   const params = await searchParams;
   const query = params?.q?.trim() || "";
 
-  // Tüm güncel haberleri çek, client'ta filtrele
-  // (NewsData API'nin search endpoint'i limitsiz ücretsiz plan gerektiriyor)
   let articles = [];
   if (query) {
     try {
-      const data = await getLatest("tr");
-      const q = query.toLowerCase();
-      articles = (data.results || []).filter((a) => {
-        const haystack = [
-          a.title,
-          a.description,
-          a.source_name,
-          a.category?.join(" "),
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-        return q.split(/\s+/).every((word) => haystack.includes(word));
-      });
-    } catch {}
+      const feed = await getNewsFeed({ page: 1, pageSize: 50 });
+      articles = filterByQuery(feed.results || [], query);
+    } catch {
+      try {
+        const data = await getLatest("tr");
+        articles = filterByQuery(data.results || [], query);
+      } catch {}
+    }
   }
 
   return (

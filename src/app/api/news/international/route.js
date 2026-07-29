@@ -1,10 +1,11 @@
 // GET /api/news/international
 // Query params:
-//   ?category=dunya|ekonomi (optional filter)
+//   ?category=world|business (optional filter; TR aliases: dunya|ekonomi)
 //   ?limit=20 (default 20, max 50)
 //   ?refresh=true (force cache refresh, admin only)
 
 import { fetchInternationalNews } from "@/app/lib/fetchInternationalNews";
+import { normalizeCategories } from "@/app/lib/newsUtils";
 
 export const runtime = "nodejs"; // NOT edge — needs full Node.js for RSS parsing
 
@@ -19,7 +20,6 @@ export async function GET(request) {
     if (forceRefresh) {
       const auth = request.headers.get("authorization");
       const secret = process.env.CRON_SECRET;
-      // also check NEXT_PUBLIC for safety if admin calls from client
       const secretPublic = process.env.NEXT_PUBLIC_CRON_SECRET;
       if (auth !== `Bearer ${secret}` && auth !== `Bearer ${secretPublic}`) {
         return Response.json({ error: "Unauthorized" }, { status: 401 });
@@ -29,7 +29,11 @@ export async function GET(request) {
     let articles = await fetchInternationalNews({ forceRefresh });
 
     if (category) {
-      articles = articles.filter((a) => a.category === category);
+      const wanted = new Set(normalizeCategories(category, "world"));
+      articles = articles.filter((a) => {
+        const cats = normalizeCategories(a.category, "world");
+        return cats.some((c) => wanted.has(c));
+      });
     }
 
     return Response.json({
@@ -41,7 +45,7 @@ export async function GET(request) {
     console.error("[api/news/international]", err);
     return Response.json(
       { error: "Failed to fetch international news" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

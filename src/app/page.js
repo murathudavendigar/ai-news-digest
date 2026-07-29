@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { siteConfig } from "@/app/lib/siteConfig";
 import BreakingNewsBanner from "@/app/components/BreakingNewsBanner";
 import DailyDigestCard from "@/app/components/DailyDigestCard";
@@ -15,33 +16,20 @@ export const metadata = {
   alternates: { canonical: siteConfig.url },
 };
 
-/* ── Skeleton placeholders ─────────────────────────────── */
-
 function DigestSkeleton() {
   return (
-    <div
-      style={{
-        height: "120px",
-        borderRadius: "var(--radius-lg)",
-        background: "var(--bg-elevated)",
-        animation: "pulse 2s infinite",
-      }}
-    />
+    <div className="h-[140px] border border-[var(--border-subtle)] bg-[var(--bg-elevated)] animate-pulse" />
   );
 }
 
 function FeedSkeleton() {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+    <div className="flex flex-col gap-4">
       {[0, 1, 2].map((i) => (
         <div
           key={i}
-          style={{
-            height: i === 0 ? "240px" : "120px",
-            borderRadius: "var(--radius-md)",
-            background: "var(--bg-elevated)",
-            animation: "pulse 2s infinite",
-          }}
+          className="border border-[var(--border-subtle)] bg-[var(--bg-elevated)] animate-pulse"
+          style={{ height: i === 0 ? "220px" : "112px" }}
         />
       ))}
     </div>
@@ -50,83 +38,82 @@ function FeedSkeleton() {
 
 export default async function HomePage() {
   const today = new Date().toLocaleDateString("tr-TR", {
-    day: "2-digit",
+    weekday: "long",
+    day: "numeric",
     month: "long",
     year: "numeric",
   });
 
   return (
-    <main className="homepage-v2">
-      <div className="homepage-v2-glow" aria-hidden="true" />
-
-      {/* 1. Breaking news — full width, shows only when breaking exists */}
+    <main className="homepage-editorial">
       <Suspense fallback={null}>
         <BreakingNewsBanner />
       </Suspense>
 
-      <section className="homepage-v2-hero" aria-label="Gunun manseti">
-        <div className="homepage-v2-hero-grid">
-          <div className="homepage-v2-hero-copy">
-            <p className="homepage-v2-kicker">AI News Digest • {today}</p>
-            <h1 className="homepage-v2-title">
-              Gunun hikayesini sadece okumayin, anlayin.
-            </h1>
-            <p className="homepage-v2-subtitle">
-              Son dakika akisini, derin analizleri ve kose yazilarini tek bir
-              ritimde sunan yeni nesil haber deneyimi.
-            </p>
-            <div className="homepage-v2-badges">
-              <span>Canli Piyasa</span>
-              <span>AI Ozet</span>
-              <span>Dunya Gundemi</span>
-            </div>
-          </div>
-
-          <div className="homepage-v2-hero-panel" aria-hidden="true">
-            <div className="homepage-v2-scanline" />
-            <p>Signal</p>
-            <strong>08.4</strong>
-            <small>Gunun haber yogunlugu</small>
-          </div>
+      <header className="homepage-masthead">
+        <div className="homepage-masthead-meta">
+          <span>{today}</span>
+          <span className="homepage-masthead-rule" aria-hidden="true" />
+          <span>{siteConfig.subtitle}</span>
         </div>
-      </section>
 
-      {/* 2. Main content area */}
+        <h1 className="homepage-masthead-brand">
+          {siteConfig.logoPrimary}
+          <span className="homepage-masthead-accent">{siteConfig.logoAccent}</span>
+        </h1>
+
+        <p className="homepage-masthead-lede">
+          Günün haberlerini oku, güvenilirliğini ölç, arka planı anla.
+        </p>
+
+        <div className="homepage-masthead-actions">
+          <Link href="/digest" className="homepage-cta-primary">
+            Günün özeti
+          </Link>
+          <Link href="/columns" className="homepage-cta-secondary">
+            Köşe yazıları
+          </Link>
+        </div>
+      </header>
+
       <div className="home-layout">
-        {/* LEFT / MAIN column */}
         <div className="home-main">
-          {/* Daily digest card */}
-          <section className="homepage-v2-section homepage-v2-section-digest">
-            <Suspense fallback={<DigestSkeleton />}>
-              <DailyDigestCard />
-            </Suspense>
-          </section>
+          <div className="homepage-feature-row">
+            <section className="homepage-feature-cell homepage-feature-digest">
+              <Suspense fallback={<DigestSkeleton />}>
+                <DailyDigestCard />
+              </Suspense>
+            </section>
 
-          {/* Today's columnist teaser */}
-          <section className="homepage-v2-section">
-            <Suspense fallback={null}>
-              <TodaysColumnistCard />
-            </Suspense>
-          </section>
+            <section className="homepage-feature-cell">
+              <Suspense fallback={null}>
+                <TodaysColumnistCard />
+              </Suspense>
+            </section>
+          </div>
 
-          {/* Main news feed with category tabs */}
-          <section className="homepage-v2-section">
+          <section className="homepage-feed-block">
+            <div className="homepage-section-label">
+              <span>Manşet & akış</span>
+              <span className="homepage-section-rule" aria-hidden="true" />
+            </div>
             <Suspense fallback={<FeedSkeleton />}>
               <HomeNewsFeed />
             </Suspense>
           </section>
 
-          {/* World news strip */}
-          <section className="homepage-v2-section">
+          <section className="homepage-feed-block">
             <Suspense fallback={null}>
               <WorldNewsStrip />
             </Suspense>
           </section>
         </div>
 
-        {/* RIGHT / SIDEBAR — desktop only */}
         <aside className="home-sidebar">
-          <div className="homepage-v2-section homepage-v2-market">
+          <div className="homepage-sidebar-panel sticky top-24">
+            <p className="homepage-section-label mb-3">
+              <span>Piyasalar</span>
+            </p>
             <Suspense fallback={null}>
               <MarketWidget />
             </Suspense>

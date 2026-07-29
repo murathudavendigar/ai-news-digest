@@ -13,6 +13,23 @@
       "maxDuration": 60
     }
   },
+  "redirects": [
+    {
+      "source": "/summary",
+      "destination": "/digest",
+      "permanent": true
+    },
+    {
+      "source": "/world",
+      "destination": "/category/world",
+      "permanent": true
+    },
+    {
+      "source": "/international",
+      "destination": "/category/world",
+      "permanent": true
+    }
+  ],
   "crons": [
     {
       "path": "/api/cron/generate-column",
@@ -37,6 +54,10 @@
     {
       "path": "/api/cron/refresh-international",
       "schedule": "0/30 * * * *"
+    },
+    {
+      "path": "/api/cron/rss-health",
+      "schedule": "0 */6 * * *"
     }
   ]
 }
