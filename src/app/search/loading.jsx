@@ -1,16 +1,16 @@
 export default function SearchLoading() {
   return (
-    <div className="min-h-screen">
-      <div className="px-4 py-8 mx-auto max-w-7xl sm:px-6">
-        <div className="pb-6 mb-8 border-b border-stone-200 dark:border-stone-700 animate-pulse">
-          <div className="h-2.5 w-24 bg-stone-200 dark:bg-stone-700 rounded mb-3" />
-          <div className="w-64 h-8 rounded bg-stone-200 dark:bg-stone-700" />
+    <div className="page-shell">
+      <div className="page-container">
+        <div className="page-masthead animate-pulse">
+          <div className="mb-3 h-2.5 w-24 bg-[var(--bg-elevated)]" />
+          <div className="h-8 w-64 max-w-full bg-[var(--bg-elevated)]" />
         </div>
-        <div className="flex gap-2 mb-6">
+        <div className="mb-6 flex gap-2">
           {[60, 80, 70, 90].map((w, i) => (
             <div
               key={i}
-              className="rounded-full h-7 bg-stone-100 dark:bg-stone-800 animate-pulse"
+              className="h-7 animate-pulse rounded-full bg-[var(--bg-elevated)]"
               style={{ width: `${w}px`, animationDelay: `${i * 50}ms` }}
             />
           ))}
@@ -19,13 +19,14 @@ export default function SearchLoading() {
           {[...Array(6)].map((_, i) => (
             <div
               key={i}
-              className="overflow-hidden bg-white border dark:bg-stone-900 border-stone-200 dark:border-stone-800 rounded-2xl animate-pulse"
-              style={{ animationDelay: `${i * 60}ms` }}>
-              <div className="h-44 bg-stone-100 dark:bg-stone-800" />
-              <div className="p-4 space-y-2.5">
-                <div className="h-3.5 bg-stone-200 dark:bg-stone-700 rounded w-full" />
-                <div className="h-3.5 bg-stone-200 dark:bg-stone-700 rounded w-4/5" />
-                <div className="w-3/4 h-3 rounded bg-stone-100 dark:bg-stone-800" />
+              className="animate-pulse overflow-hidden border border-[var(--border-subtle)] bg-[var(--bg-card)]"
+              style={{ animationDelay: `${i * 60}ms` }}
+            >
+              <div className="h-44 bg-[var(--bg-elevated)]" />
+              <div className="space-y-2.5 p-4">
+                <div className="h-3.5 w-full bg-[var(--bg-elevated)]" />
+                <div className="h-3.5 w-4/5 bg-[var(--bg-elevated)]" />
+                <div className="h-3 w-3/4 bg-[var(--border-subtle)]" />
               </div>
             </div>
           ))}

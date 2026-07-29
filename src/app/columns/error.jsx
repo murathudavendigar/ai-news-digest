@@ -3,29 +3,26 @@
 import { useEffect } from "react";
 import {
   StatusActions,
-  StatusDevDetail,
   StatusPrimaryButton,
   StatusScreen,
   StatusSecondaryLink,
 } from "@/app/components/StatusScreen";
 
-export default function Error({ error, reset }) {
+export default function ColumnsError({ error, reset }) {
   useEffect(() => {
-    console.error("[app] Hata:", error);
+    console.error("[columns] Hata:", error);
   }, [error]);
 
   return (
     <StatusScreen
-      mark="!"
-      kicker="Sistem"
+      kicker="Köşe"
       accent="danger"
-      title="Bir şeyler ters gitti"
-      lede="Beklenmedik bir hata oluştu. Sayfayı yenilemeyi dene."
+      title="Köşe yüklenemedi"
+      lede="Bu yazıyı getirirken bir sorun oluştu. Lütfen tekrar dene."
     >
-      <StatusDevDetail error={error} />
       <StatusActions>
         <StatusPrimaryButton onClick={reset}>Tekrar dene</StatusPrimaryButton>
-        <StatusSecondaryLink href="/">Ana sayfa</StatusSecondaryLink>
+        <StatusSecondaryLink href="/columns">Köşe yazıları</StatusSecondaryLink>
       </StatusActions>
     </StatusScreen>
   );

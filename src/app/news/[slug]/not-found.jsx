@@ -1,4 +1,3 @@
-import Link from "next/link";
 import {
   StatusActions,
   StatusPrimaryLink,
@@ -6,23 +5,18 @@ import {
   StatusSecondaryLink,
 } from "@/app/components/StatusScreen";
 
-export default function NotFound() {
+export default function NewsNotFound() {
   return (
     <StatusScreen
       mark="404"
-      kicker="HaberAI"
-      title="Sayfa bulunamadı"
-      lede="Aradığın sayfa kaldırılmış, taşınmış ya da hiç var olmamış olabilir."
+      kicker="Arşiv"
+      title="Bu haber baskıda yok"
+      lede="Önbellekte bulunamadı veya bağlantı geçersiz. Ana sayfadan güncel manşetlere dönebilirsin."
     >
       <StatusActions>
         <StatusPrimaryLink href="/">Ana sayfa</StatusPrimaryLink>
         <StatusSecondaryLink href="/digest">Günün özeti</StatusSecondaryLink>
       </StatusActions>
-      <p className="mt-6">
-        <Link href="/search" className="article-text-link accent">
-          Haber ara →
-        </Link>
-      </p>
     </StatusScreen>
   );
 }

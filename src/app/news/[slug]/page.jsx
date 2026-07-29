@@ -11,6 +11,7 @@ import { getArticleForDetail } from "@/app/lib/newsSource";
 import { siteConfig } from "@/app/lib/siteConfig";
 
 import Link from "next/link";
+import { notFound } from "next/navigation";
 
 import ArticleReactions from "@/app/components/ArticleReactions";
 import ReadingModeToggle from "@/app/components/ReadingModeToggle";
@@ -73,31 +74,7 @@ export default async function NewsDetailPage({ params }) {
   const id = extractId(slug);
   const article = await getArticleForDetail(id);
 
-  if (!article) {
-    return (
-      <div className="article-detail flex flex-col items-center justify-center min-h-[70vh] px-6 text-center">
-        <p className="article-kicker mb-4">Arşiv</p>
-        <h1
-          className="mb-3 text-3xl md:text-4xl font-black text-[var(--text-primary)]"
-          style={{ fontFamily: "var(--font-display), Georgia, serif" }}
-        >
-          Bu haber baskıda yok
-        </h1>
-        <p className="mb-8 max-w-md text-sm leading-relaxed text-[var(--text-secondary)]">
-          Önbellekte bulunamadı veya bağlantı geçersiz. Ana sayfadan güncel
-          manşetlere dönebilirsin.
-        </p>
-        <div className="flex flex-wrap items-center justify-center gap-4">
-          <Link href="/" className="article-text-link">
-            Ana sayfa
-          </Link>
-          <Link href="/digest" className="article-text-link accent">
-            Günün özeti
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  if (!article) notFound();
 
   const articleUrl = `${SITE_URL}/news/${slug}`;
   const sourceLink = article.link || article.url || null;
