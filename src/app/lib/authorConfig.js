@@ -122,7 +122,7 @@ export const projectInfo = {
   },
 
   contact: {
-    email: "murathoncu@gmail.com",
+    email: "contact@muratoncu.com",
     formUrl: "",
     note: "Kaynak önerisi, hata bildirimi ve geri bildirim için yazın. Yanıtlamaya çalışırım.",
   },

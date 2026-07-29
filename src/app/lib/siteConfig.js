@@ -66,7 +66,7 @@ export const siteConfig = {
   creditLine: `© ${new Date().getFullYear()} HaberAI`,
 
   /** İletişim e-postası (footer vs.) */
-  contactEmail: "murathoncu@gmail.com",
+  contactEmail: "contact@muratoncu.com",
 
   /** Eski domainler — middleware 301 için */
   legacyHosts: [

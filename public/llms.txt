@@ -25,7 +25,7 @@
 - Kaynak haberlerin telif hakkı orijinal yayıncılara aittir; HaberAI özet ve analiz katmanı sunar.
 - Sitemap: https://haberai.muratoncu.com/sitemap.xml
 - Robots: https://haberai.muratoncu.com/robots.txt
-- İletişim: murathoncu@gmail.com
+- İletişim: contact@muratoncu.com
 
 ## Optional
 
