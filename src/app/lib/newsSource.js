@@ -21,15 +21,38 @@ const redis = new Redis({
 });
 
 const FEED_CACHE_TTL = 15 * 60; // 15 dk — feed listesi
-const ARTICLE_CACHE_TTL = 7 * 24 * 3600; // 7 gün — makale detayı (48 saat yetersizdi)
+const ARTICLE_CACHE_TTL = 7 * 24 * 3600; // 7 gün — makale detayı
+const LOCK_TTL_SEC = 120;
+const STALE_MS = 10 * 60 * 1000;
+
+/** Cron warmer — kritik feed'ler (Hobby günde 1) */
+export const WARM_FEED_CATEGORIES = [
+  null, // all / homepage
+  "politics",
+  "world",
+  "business",
+  "sports",
+  "technology",
+  "health",
+];
+
+function feedKey(category) {
+  return `rss:feed:${category || "all"}:full:v2`;
+}
+
+function lockKey(fullKey) {
+  return `rss:lock:${fullKey}`;
+}
+
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
 
 // ── Makaleyi Redis'e kaydet (detay sayfası için) ──────────────────────────
 async function cacheArticles(articles) {
   if (!articles.length) return;
-  // Her makaleyi article:{id} olarak sakla + kategori index'lerini güncelle
   const categoryMap = {};
   const ops = articles.map((a) => {
-    // Kategori index'i oluştur: rss:cat:{category} → article_id set
     const cats = Array.isArray(a.category)
       ? a.category
       : a.category
@@ -40,12 +63,13 @@ async function cacheArticles(articles) {
       categoryMap[cat].push(a.article_id);
     });
     if (a.slug) {
-      redis.set(`article:slug:${a.slug}`, a, { ex: ARTICLE_CACHE_TTL }).catch(() => {});
+      redis
+        .set(`article:slug:${a.slug}`, a, { ex: ARTICLE_CACHE_TTL })
+        .catch(() => {});
     }
     return redis.set(`article:${a.article_id}`, a, { ex: ARTICLE_CACHE_TTL });
   });
   await Promise.allSettled(ops);
-  // Kategori setlerini güncelle (arka planda)
   Promise.allSettled(
     Object.entries(categoryMap).map(([cat, ids]) =>
       redis
@@ -58,7 +82,6 @@ async function cacheArticles(articles) {
 function coerceCachedArticle(cached) {
   if (!cached) return null;
   let value = cached;
-  // Upstash bazen string, bazen object döner; eski intl kodu JSON.stringify yazıyordu
   for (let i = 0; i < 2 && typeof value === "string"; i++) {
     try {
       value = JSON.parse(value);
@@ -69,7 +92,6 @@ function coerceCachedArticle(cached) {
   return value && typeof value === "object" ? value : null;
 }
 
-// ── ID ile makale getir ───────────────────────────────────────────────────
 export async function getArticleById(id) {
   if (!id) return null;
   try {
@@ -81,14 +103,10 @@ export async function getArticleById(id) {
   return null;
 }
 
-// ── Detay sayfası için makale getir (RSS cache → NewsData fallback) ───────
-// Her iki kaynaktan gelen makaleyi tek formata normalize eder.
 export async function getArticleForDetail(id) {
-  // 1. RSS / feed cache (en hızlı, API harcamaz)
   const cached = await getArticleById(id);
-  if (cached) return normalizeArticle(cached); // Ensure normalized even from cache
+  if (cached) return normalizeArticle(cached);
 
-  // 2. NewsData API fallback — eski haberler veya doğrudan paylaşılan linkler
   try {
     const data = await getNewsByArticleID(id);
     const article = data.results?.[0] ?? null;
@@ -98,8 +116,6 @@ export async function getArticleForDetail(id) {
   }
 }
 
-// ── RSS feed cache'inden alakalı makaleler bul ────────────────────────────
-// API çağrısı yapmadan sadece Redis'teki aktif feed'leri tarar.
 export async function findRelatedInFeed(query, currentId, limit = 4) {
   if (!query?.trim()) return [];
 
@@ -109,7 +125,11 @@ export async function findRelatedInFeed(query, currentId, limit = 4) {
     .filter((w) => w.length > 3);
   if (!queryWords.length) return [];
 
-  const feedKeys = ["rss:feed:all:full:v2"];
+  const feedKeys = [
+    "rss:feed:all:full:v2",
+    "rss:feed:politics:full:v2",
+    "rss:feed:world:full:v2",
+  ];
   const seen = new Set([currentId]);
   const matches = [];
 
@@ -128,13 +148,12 @@ export async function findRelatedInFeed(query, currentId, limit = 4) {
         if (score > 0) {
           seen.add(a.article_id);
           matches.push({ ...a, _relScore: score });
-          if (matches.length >= limit * 2) break; // fazla topla, sonra sırala
+          if (matches.length >= limit * 2) break;
         }
       }
     } catch {}
   }
 
-  // En fazla eşleşen önce — detay linkleri için normalize (slug/link)
   return matches
     .sort((a, b) => b._relScore - a._relScore)
     .slice(0, limit)
@@ -143,43 +162,48 @@ export async function findRelatedInFeed(query, currentId, limit = 4) {
 
 // ── Ana feed ─────────────────────────────────────────────────────────────
 export async function getNewsFeed({ category, page = 1, pageSize = 30 } = {}) {
-  // domestic / gundem → politics (RSS etiketleriyle uyumlu)
   const resolvedCategory =
     category === "domestic" || category === "gundem" ? "politics" : category;
 
-  const fullKey = `rss:feed:${resolvedCategory || "all"}:full:v2`;
+  const fullKey = feedKey(resolvedCategory);
 
   try {
     const cached = await redis.get(fullKey);
     if (cached?.results) {
       const age = Date.now() - new Date(cached.fetchedAt).getTime();
-      if (age > 10 * 60 * 1000) {
-        // stale — arka planda yenile
-        buildFullFeed({ category: resolvedCategory, fullKey }).catch(() => {});
+      if (age > STALE_MS) {
+        // stale — arka planda tek uçuş (lock içinde)
+        rebuildFeedInBackground(resolvedCategory, fullKey);
       }
       return paginateFeed(cached, page, pageSize, true);
     }
   } catch {}
 
-  const full = await buildFullFeed({ category: resolvedCategory, fullKey });
+  const full = await buildFullFeed({
+    category: resolvedCategory,
+    fullKey,
+  });
   return paginateFeed(full, page, pageSize, false);
 }
 
+function rebuildFeedInBackground(category, fullKey) {
+  buildFullFeed({ category, fullKey, background: true }).catch(() => {});
+}
+
 function paginateFeed(full, page, pageSize, fromCache) {
-  const articles = full.results || [];
+  const articles = full?.results || [];
   const start = (page - 1) * pageSize;
   const pageData = articles.slice(start, start + pageSize);
   return {
     results: pageData,
     totalCount: articles.length,
     nextPage: articles.length > start + pageSize ? page + 1 : null,
-    source: full.source,
-    fetchedAt: full.fetchedAt,
+    source: full?.source || "rss",
+    fetchedAt: full?.fetchedAt || null,
     fromCache,
   };
 }
 
-// ── Kaynak round-robin dağıtımı ───────────────────────────────────────────
 function interleaveBySource(articles) {
   const groups = {};
   for (const a of articles) {
@@ -200,7 +224,53 @@ function interleaveBySource(articles) {
   return result;
 }
 
-async function buildFullFeed({ category, fullKey }) {
+/**
+ * Single-flight rebuild — aynı fullKey için paralel rebuild engellenir.
+ */
+export async function buildFullFeed({
+  category,
+  fullKey,
+  background = false,
+} = {}) {
+  const key = fullKey || feedKey(category);
+  const lk = lockKey(key);
+
+  let acquired = false;
+  try {
+    const got = await redis.set(lk, String(Date.now()), {
+      nx: true,
+      ex: LOCK_TTL_SEC,
+    });
+    acquired = Boolean(got);
+  } catch {
+    acquired = true; // Redis yoksa kilitsiz devam
+  }
+
+  if (!acquired) {
+    // Başka worker çalışıyor — cache dolmasını bekle
+    for (let i = 0; i < 10; i++) {
+      await sleep(400);
+      try {
+        const cached = await redis.get(key);
+        if (cached?.results?.length) return cached;
+      } catch {}
+    }
+    if (background) {
+      return { results: [], source: "rss", fetchedAt: new Date().toISOString() };
+    }
+    // Cold path: hâlâ boşsa yine de dene (kilidi beklemeden — nadir)
+  }
+
+  try {
+    return await buildFullFeedUnlocked({ category, fullKey: key });
+  } finally {
+    if (acquired) {
+      await redis.del(lk).catch(() => {});
+    }
+  }
+}
+
+async function buildFullFeedUnlocked({ category, fullKey }) {
   let articles = [];
   let source = "rss";
 
@@ -259,4 +329,40 @@ async function buildFullFeed({ category, fullKey }) {
     await redis.set(fullKey, full, { ex: FEED_CACHE_TTL });
   } catch {}
   return full;
+}
+
+/**
+ * Kritik feed'leri ısıt (cron). Zaman bütçesi ~50s — kalanlar sonraki güne.
+ */
+export async function warmCriticalFeeds({ budgetMs = 50_000 } = {}) {
+  const started = Date.now();
+  const out = [];
+
+  for (const category of WARM_FEED_CATEGORIES) {
+    if (Date.now() - started > budgetMs) {
+      out.push({
+        category: category || "all",
+        skipped: true,
+        reason: "time_budget",
+      });
+      continue;
+    }
+    const fullKey = feedKey(category);
+    try {
+      const full = await buildFullFeed({ category, fullKey });
+      out.push({
+        category: category || "all",
+        count: full.results?.length || 0,
+        source: full.source,
+        ms: Date.now() - started,
+      });
+    } catch (err) {
+      out.push({
+        category: category || "all",
+        error: err.message,
+      });
+    }
+  }
+
+  return { warmed: out, elapsedMs: Date.now() - started };
 }

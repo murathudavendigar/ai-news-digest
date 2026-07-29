@@ -1,10 +1,15 @@
 import { GEMINI_MODELS } from "@/app/lib/gemini";
+import {
+  scrubPromoNoise,
+  toCleanParagraphs,
+  isJunkParagraph,
+} from "@/app/lib/cleanArticleText";
 import { Redis } from "@upstash/redis";
 import * as cheerio from "cheerio";
 import { NextResponse } from "next/server";
 
 export const maxDuration = 30;
-export const runtime = 'nodejs';
+export const runtime = "nodejs";
 
 const redis = new Redis({
   url: process.env.STORAGE_KV_REST_API_URL,
@@ -12,22 +17,71 @@ const redis = new Redis({
 });
 
 const CACHE_TTL = 6 * 60 * 60; // 6 hours
+const CACHE_VER = "v3"; // bump: promo scrub
 const MAX_BODY_CHARS = 8000;
 
 const ARTICLE_SELECTORS = [
   // Turkish news sites
-  '.article-body', '.news-detail-text', '.haber-detay-icerik',
-  '.detay-icerik', '.haberMetni', '.articleContent', '.news-content',
-  '.icerik', '.article-content', '.haber-icerik', '.detay-metin',
+  ".article-body",
+  ".news-detail-text",
+  ".haber-detay-icerik",
+  ".detay-icerik",
+  ".haberMetni",
+  ".articleContent",
+  ".news-content",
+  ".icerik",
+  ".article-content",
+  ".haber-icerik",
+  ".detay-metin",
   // International
-  'article', '[itemprop="articleBody"]', '.story-body',
-  '.post-content', '.entry-content', 'main p',
+  "article",
+  '[itemprop="articleBody"]',
+  ".story-body",
+  ".post-content",
+  ".entry-content",
+  "main p",
 ];
+
+const STRIP_SELECTORS = [
+  "script",
+  "style",
+  "nav",
+  "header",
+  "footer",
+  "aside",
+  "form",
+  "button",
+  "noscript",
+  "iframe",
+  ".ad",
+  ".ads",
+  ".reklam",
+  ".advertisement",
+  ".social-share",
+  ".related",
+  ".newsletter",
+  ".subscribe",
+  '[class*="reklam"]',
+  '[class*="banner"]',
+  '[class*="social"]',
+  '[class*="google"]',
+  '[class*="follow"]',
+  '[class*="newsletter"]',
+  '[class*="subscribe"]',
+  '[class*="paywall"]',
+  '[class*="cookie"]',
+  '[class*="kvkk"]',
+  '[id*="google"]',
+  '[id*="newsletter"]',
+].join(", ");
 
 function extractSource(url) {
   try {
     const hostname = new URL(url).hostname.replace(/^www\./, "");
-    return hostname.split(".")[0].charAt(0).toUpperCase() + hostname.split(".")[0].slice(1);
+    return (
+      hostname.split(".")[0].charAt(0).toUpperCase() +
+      hostname.split(".")[0].slice(1)
+    );
   } catch {
     return "Bilinmiyor";
   }
@@ -36,11 +90,13 @@ function extractSource(url) {
 async function scrapeArticle(url) {
   const res = await fetch(url, {
     headers: {
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      'Accept': 'text/html,application/xhtml+xml,application/xhtml;q=0.9,*/*;q=0.8',
-      'Accept-Language': 'tr-TR,tr;q=0.9,en;q=0.8',
-      'Accept-Encoding': 'gzip, deflate, br',
-      'Cache-Control': 'no-cache',
+      "User-Agent":
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      Accept:
+        "text/html,application/xhtml+xml,application/xhtml;q=0.9,*/*;q=0.8",
+      "Accept-Language": "tr-TR,tr;q=0.9,en;q=0.8",
+      "Accept-Encoding": "gzip, deflate, br",
+      "Cache-Control": "no-cache",
     },
     signal: AbortSignal.timeout(8000),
   });
@@ -50,7 +106,6 @@ async function scrapeArticle(url) {
   const html = await res.text();
   const $ = cheerio.load(html);
 
-  // Extract metadata
   const title =
     $('meta[property="og:title"]').attr("content") ||
     $("title").text().trim() ||
@@ -68,34 +123,34 @@ async function scrapeArticle(url) {
     $("time").first().attr("datetime") ||
     null;
 
-  const mainImage =
-    $('meta[property="og:image"]').attr("content") || null;
+  const mainImage = $('meta[property="og:image"]').attr("content") || null;
 
   let bodyText = "";
   for (const selector of ARTICLE_SELECTORS) {
-    const el = $(selector);
+    const el = $(selector).first();
     if (el.length && el.text().trim().length > 200) {
-      // Remove unwanted elements
-      el.find('script, style, nav, header, footer, aside').remove();
-      el.find('.ad, .reklam, .advertisement, .social-share, .related').remove();
-      el.find('[class*="reklam"], [class*="banner"], [class*="social"]').remove();
+      el.find(STRIP_SELECTORS).remove();
       bodyText = el.text().trim();
       break;
     }
   }
 
-  // Last resort: grab all <p> tags
   if (!bodyText || bodyText.length < 200) {
-    $('script, style, nav, header, footer, aside, .ad, .reklam').remove();
-    bodyText = $('p').map((_, el) => $(el).text().trim())
+    $("script, style, nav, header, footer, aside, form, button").remove();
+    $(STRIP_SELECTORS).remove();
+    bodyText = $("p")
+      .map((_, el) => $(el).text().trim())
       .get()
-      .filter(t => t.length > 50)
-      .join('\n\n');
+      .filter((t) => t.length > 50 && !isJunkParagraph(t))
+      .join("\n\n");
   }
 
-  // Limit length
+  bodyText = scrubPromoNoise(bodyText);
+
   if (bodyText.length > MAX_BODY_CHARS) {
-    bodyText = bodyText.slice(0, MAX_BODY_CHARS).trimEnd() + "\n\n… devamını kaynakta oku";
+    bodyText =
+      bodyText.slice(0, MAX_BODY_CHARS).trimEnd() +
+      "\n\n… devamını kaynakta oku";
   }
 
   return { title, author, publishedAt, mainImage, bodyText };
@@ -116,7 +171,7 @@ Yanıt YALNIZCA JSON (başka hiçbir şey yazma):
   ]
 }
 
-Haber metni:
+Haber metni (CTA / “Google’da takip edin” gibi site gürültüsünü yok say; yalnızca haber olayını özetle):
 ${bodyText.slice(0, 3000)}`);
 
   const BASE = "https://generativelanguage.googleapis.com/v1beta/models";
@@ -176,12 +231,7 @@ ${bodyText.slice(0, 3000)}`);
 }
 
 function toParagraphs(bodyText) {
-  if (!bodyText) return [];
-  return bodyText
-    .replace(/\r\n/g, "\n")
-    .split(/\n{2,}|\n/)
-    .map((p) => p.replace(/\s+/g, " ").trim())
-    .filter((p) => p.length > 40);
+  return toCleanParagraphs(bodyText);
 }
 
 export async function GET(request) {
@@ -217,8 +267,8 @@ export async function GET(request) {
   }
 
   try {
-    // Check Redis cache
-    const cacheKey = `reader:${Buffer.from(url).toString('base64').slice(0, 100)}`;
+    // Check Redis cache (v3 = promo scrub)
+    const cacheKey = `reader:${CACHE_VER}:${Buffer.from(url).toString("base64").slice(0, 100)}`;
     const cached = await redis.get(cacheKey).catch(() => null);
     if (cached) {
       return NextResponse.json({ ...cached, fromCache: true });
@@ -231,10 +281,9 @@ export async function GET(request) {
     const scrapingFailed = !bodyText || bodyText.length < 200;
 
     // Generate AI summary (even if scraping partially worked)
-    const textForSummary = scrapingFailed
-      ? title || url
-      : bodyText;
-    const { summary, whyMatters, bullets } = await generateSummary(textForSummary);
+    const textForSummary = scrapingFailed ? title || url : bodyText;
+    const { summary, whyMatters, bullets } =
+      await generateSummary(textForSummary);
     const paragraphs = scrapingFailed ? [] : toParagraphs(bodyText);
 
     const result = {

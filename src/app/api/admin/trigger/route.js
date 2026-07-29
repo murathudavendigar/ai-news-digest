@@ -15,6 +15,7 @@ const ALLOWED = new Set([
   "breaking-news",
   "refresh-international",
   "rss-health",
+  "warm-feeds",
 ]);
 
 export async function POST(request) {

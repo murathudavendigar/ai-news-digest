@@ -1,6 +1,5 @@
 "use client";
 
-import { CATEGORY_LABELS, CATEGORY_COLORS } from "@/app/lib/categoryConfig";
 import { getPersonalizedCategoryOrder } from "@/app/lib/categoryStats";
 import {
   sortByPreferredCategories,
@@ -24,6 +23,13 @@ const TABS = [
   { key: "health", label: "Sağlık" },
 ];
 
+/** UI tab → API category */
+function apiCategoryForTab(tab) {
+  if (!tab || tab === "all") return null;
+  if (tab === "domestic") return "politics";
+  return tab;
+}
+
 export default function HomeNewsFeed() {
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -35,9 +41,12 @@ export default function HomeNewsFeed() {
   const [fetchError, setFetchError] = useState(false);
   const { prefs } = useUserPreferences();
 
-  // Reader bottom sheet
   const [readerArticle, setReaderArticle] = useState(null);
   const [readerOpen, setReaderOpen] = useState(false);
+
+  /** Tab başına son başarılı sonuç — geri dönüşlerde anında göster */
+  const tabCache = useRef(new Map());
+  const fetchGen = useRef(0);
 
   const handleReaderOpen = useCallback((article) => {
     setReaderArticle(article);
@@ -48,33 +57,58 @@ export default function HomeNewsFeed() {
     setReaderOpen(false);
   }, []);
 
-  const fetchInitial = useCallback(async () => {
-    setLoading(true);
+  const fetchForTab = useCallback(async (tab, { soft = false } = {}) => {
+    const gen = ++fetchGen.current;
+    const cached = tabCache.current.get(tab);
+    if (cached?.articles?.length && soft) {
+      setArticles(cached.articles);
+      setNextPage(cached.nextPage);
+      setExhausted(!cached.nextPage);
+      setFetchError(false);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     setFetchError(false);
+
     try {
-      const res = await fetch("/api/news?page=1&pageSize=30");
+      const cat = apiCategoryForTab(tab);
+      const qs = new URLSearchParams({ page: "1", pageSize: "30" });
+      if (cat) qs.set("category", cat);
+      const res = await fetch(`/api/news?${qs}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
+      if (gen !== fetchGen.current) return;
+
       const results = (data.results || []).map(normalizeArticle);
+      const payload = {
+        articles: results,
+        nextPage: data.nextPage || null,
+      };
+      tabCache.current.set(tab, payload);
       setArticles(results);
-      setNextPage(data.nextPage || null);
-      setExhausted(!data.nextPage);
+      setNextPage(payload.nextPage);
+      setExhausted(!payload.nextPage);
       if (!results.length) setFetchError(true);
     } catch (err) {
-      console.error("[HomeNewsFeed] Initial fetch failed:", err);
-      setArticles([]);
-      setFetchError(true);
+      console.error("[HomeNewsFeed] fetch failed:", err);
+      if (gen !== fetchGen.current) return;
+      if (!tabCache.current.get(tab)?.articles?.length) {
+        setArticles([]);
+        setFetchError(true);
+      }
     } finally {
-      setLoading(false);
+      if (gen === fetchGen.current) setLoading(false);
     }
   }, []);
 
-  // Initial fetch
+  // İlk yükleme + tab değişimi → kategori feed
   useEffect(() => {
-    fetchInitial();
-  }, [fetchInitial]);
+    const soft = tabCache.current.has(activeTab);
+    fetchForTab(activeTab, { soft });
+  }, [activeTab, fetchForTab]);
 
-  // Personalization — reorder tabs based on reading stats
+  // Personalization — reorder tabs
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -85,7 +119,6 @@ export default function HomeNewsFeed() {
     const order = getPersonalizedCategoryOrder();
     if (!order || order.length < 3) return;
 
-    // Build personalized tab order
     const personalizedTabs = [{ key: "all", label: "Senin için" }];
     const seen = new Set(["all"]);
 
@@ -97,7 +130,6 @@ export default function HomeNewsFeed() {
       }
     }
 
-    // Add remaining tabs
     for (const tab of TABS) {
       if (!seen.has(tab.key)) {
         personalizedTabs.push(tab);
@@ -108,56 +140,46 @@ export default function HomeNewsFeed() {
     setTabs(personalizedTabs);
   }, []);
 
-  // Filter articles by active tab (domestic ≡ politics)
-  const filteredArticles = useMemo(() => {
-    let list;
+  const displayArticles = useMemo(() => {
     if (activeTab === "all") {
-      list = articles;
-    } else {
-      const aliases =
-        activeTab === "domestic"
-          ? ["domestic", "politics", "gundem"]
-          : [activeTab];
-      list = articles.filter((a) => {
-        const cats = Array.isArray(a.category)
-          ? a.category
-          : a.category
-            ? [a.category]
-            : [];
-        return cats.some((c) =>
-          aliases.includes(String(c).toLowerCase()),
-        );
-      });
+      return sortByPreferredCategories(articles, prefs.preferredCategories);
     }
-    if (activeTab === "all") {
-      return sortByPreferredCategories(list, prefs.preferredCategories);
-    }
-    return list;
+    return articles;
   }, [articles, activeTab, prefs.preferredCategories]);
 
-  // Load more
   const loadMore = useCallback(async () => {
     if (!nextPage || loadingMore) return;
     setLoadingMore(true);
 
     try {
-      const res = await fetch(`/api/news?page=${nextPage}`);
+      const cat = apiCategoryForTab(activeTab);
+      const qs = new URLSearchParams({
+        page: String(nextPage),
+        pageSize: "30",
+      });
+      if (cat) qs.set("category", cat);
+      const res = await fetch(`/api/news?${qs}`);
       const data = await res.json();
       const existingIds = new Set(articles.map((a) => a.article_id));
       const fresh = (data.results || [])
         .map(normalizeArticle)
         .filter((a) => !existingIds.has(a.article_id));
-      setArticles((prev) => [...prev, ...fresh]);
+      const merged = [...articles, ...fresh];
+      setArticles(merged);
       setNextPage(data.nextPage || null);
       if (!data.nextPage) setExhausted(true);
+      tabCache.current.set(activeTab, {
+        articles: merged,
+        nextPage: data.nextPage || null,
+      });
     } catch (err) {
       console.error("[HomeNewsFeed] Load more error:", err);
     } finally {
       setLoadingMore(false);
     }
-  }, [nextPage, loadingMore, articles]);
+  }, [nextPage, loadingMore, articles, activeTab]);
 
-  if (loading) {
+  if (loading && articles.length === 0) {
     return (
       <div className="flex flex-col gap-4">
         {[0, 1, 2, 3, 4].map((i) => (
@@ -181,8 +203,8 @@ export default function HomeNewsFeed() {
         </p>
         <button
           type="button"
-          onClick={fetchInitial}
-          className="px-5 py-2.5 text-[11px] font-black uppercase tracking-widest bg-[var(--text-primary)] text-[var(--bg-primary)] border-0 cursor-pointer"
+          onClick={() => fetchForTab(activeTab)}
+          className="cursor-pointer border-0 bg-[var(--text-primary)] px-5 py-2.5 text-[11px] font-black uppercase tracking-widest text-[var(--bg-primary)]"
         >
           Yeniden dene
         </button>
@@ -190,22 +212,22 @@ export default function HomeNewsFeed() {
     );
   }
 
-  const heroArticle = filteredArticles[0] || null;
-  const gridArticles = filteredArticles.slice(1, 7);
-  const listArticles = filteredArticles.slice(7);
+  const heroArticle = displayArticles[0] || null;
+  const gridArticles = displayArticles.slice(1, 7);
+  const listArticles = displayArticles.slice(7);
 
   return (
     <div>
-      <div className="scrollbar-hide flex gap-0 overflow-x-auto border-b border-[var(--border-subtle)] mb-5">
+      <div className="scrollbar-hide mb-5 flex gap-0 overflow-x-auto border-b border-[var(--border-subtle)]">
         {tabs.map((tab) => (
           <button
             key={tab.key}
             type="button"
             onClick={() => setActiveTab(tab.key)}
-            className={`shrink-0 px-3.5 py-2.5 text-[11px] font-black uppercase tracking-widest border-r border-[var(--border-subtle)] transition-colors ${
+            className={`shrink-0 border-r border-[var(--border-subtle)] px-3.5 py-2.5 text-[11px] font-black uppercase tracking-widest transition-colors ${
               activeTab === tab.key
-                ? "text-[var(--text-primary)] bg-[var(--bg-secondary)]"
-                : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]"
+                ? "bg-[var(--bg-secondary)] text-[var(--text-primary)]"
+                : "text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"
             }`}
           >
             {tab.label}
@@ -213,18 +235,24 @@ export default function HomeNewsFeed() {
         ))}
       </div>
 
-      {filteredArticles.length === 0 && (
-        <div className="text-center py-12 px-4 text-[var(--text-muted)]">
-          <p className="text-sm font-medium mb-3">
+      {loading && articles.length > 0 && (
+        <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
+          Güncelleniyor…
+        </p>
+      )}
+
+      {displayArticles.length === 0 && (
+        <div className="px-4 py-12 text-center text-[var(--text-muted)]">
+          <p className="mb-3 text-sm font-medium">
             {activeTab === "world"
               ? "Uluslararası masa şu an boş — biraz sonra yenile."
               : "Bu kategoride haber bulunamadı"}
           </p>
-          {activeTab !== "world" && (
+          {activeTab !== "all" && (
             <button
               type="button"
               onClick={() => setActiveTab("all")}
-              className="text-[11px] font-black uppercase tracking-widest text-[var(--accent-brand)] bg-transparent border-0 cursor-pointer"
+              className="cursor-pointer border-0 bg-transparent text-[11px] font-black uppercase tracking-widest text-[var(--accent-brand)]"
             >
               Tüm haberlere bak →
             </button>
@@ -232,10 +260,9 @@ export default function HomeNewsFeed() {
         </div>
       )}
 
-      {/* Hero — first article */}
       {heroArticle && (
         <BlurFade delay={0.1} inView>
-          <div style={{ marginBottom: "20px" }}>
+          <div className="mb-5">
             {activeTab === "world" && (
               <p className="homepage-section-label mb-3">
                 Uluslararası masa
@@ -247,18 +274,14 @@ export default function HomeNewsFeed() {
         </BlurFade>
       )}
 
-      {/* 2-column grid — articles 2-7 */}
       {gridArticles.length > 0 && (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-            gap: "16px",
-            marginBottom: "20px",
-          }}
-        >
+        <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {gridArticles.map((article, idx) => (
-            <BlurFade key={article.article_id || `grid-${idx}`} delay={0.15 + idx * 0.05} inView>
+            <BlurFade
+              key={article.article_id || `grid-${idx}`}
+              delay={0.15 + idx * 0.05}
+              inView
+            >
               <NewsCard
                 article={article}
                 priority={idx < 2}
@@ -269,15 +292,8 @@ export default function HomeNewsFeed() {
         </div>
       )}
 
-      {/* List — remaining articles */}
       {listArticles.length > 0 && (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "12px",
-          }}
-        >
+        <div className="flex flex-col gap-3">
           {listArticles.map((article, idx) => (
             <NewsCard
               key={article.article_id || `list-${idx}`}
@@ -288,9 +304,8 @@ export default function HomeNewsFeed() {
         </div>
       )}
 
-      {/* Loading skeletons */}
       {loadingMore && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "16px" }}>
+        <div className="mt-4 flex flex-col gap-3">
           {[0, 1, 2].map((i) => (
             <NewsCardSkeleton key={`sk-${i}`} index={i} />
           ))}
@@ -303,18 +318,17 @@ export default function HomeNewsFeed() {
             type="button"
             onClick={loadMore}
             disabled={loadingMore}
-            className="px-6 py-2.5 text-[11px] font-black uppercase tracking-widest bg-[var(--text-primary)] text-[var(--bg-primary)] border-0 cursor-pointer transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+            className="cursor-pointer border-0 bg-[var(--text-primary)] px-6 py-2.5 text-[11px] font-black uppercase tracking-widest text-[var(--bg-primary)] transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
           >
             {loadingMore ? "Yükleniyor..." : "Daha fazla haber"}
           </button>
         ) : (
           <p className="text-[11px] uppercase tracking-widest text-[var(--text-muted)]">
-            Tüm haberler yüklendi — {articles.length} haber
+            Tüm haberler yüklendi — {displayArticles.length} haber
           </p>
         )}
       </div>
 
-      {/* Reader Bottom Sheet */}
       <ReaderBottomSheet
         isOpen={readerOpen}
         onClose={handleReaderClose}

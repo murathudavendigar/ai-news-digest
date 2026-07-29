@@ -1,6 +1,8 @@
 // lib/rssParser.js
 // RSS/Atom XML parser — harici paket yok, native fetch
 
+import { scrubPromoNoise } from "./cleanArticleText";
+
 const FETCH_TIMEOUT_MS = 8000;
 
 // ── XML yardımcıları ─────────────────────────────────────────────────────
@@ -64,11 +66,12 @@ function decodeHtmlEntities(str) {
 
 function cleanHtml(str) {
   if (!str) return null;
-  return decodeHtmlEntities(str)
-    .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 5000); // description için genişletildi (AI analizi için yeterli bağlam)
+  return scrubPromoNoise(
+    decodeHtmlEntities(str)
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim(),
+  ).slice(0, 5000);
 }
 
 function extractImage(itemXml) {

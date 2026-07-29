@@ -11,6 +11,12 @@
     },
     "src/app/api/cron/refresh-international/route.js": {
       "maxDuration": 60
+    },
+    "src/app/api/cron/warm-feeds/route.js": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/rss-health/route.js": {
+      "maxDuration": 60
     }
   },
   "redirects": [
@@ -54,6 +60,10 @@
     {
       "path": "/api/cron/refresh-international",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/warm-feeds",
+      "schedule": "0 3 * * *"
     },
     {
       "path": "/api/cron/rss-health",
