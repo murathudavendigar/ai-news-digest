@@ -1,9 +1,11 @@
-Bu klasöre aşağıdaki PNG ikonları koymen gerekiyor:
+HaberAI app icon set (generated).
 
-- icon-192.png  (192×192 px)
-- icon-512.png  (512×512 px)
+Source: /icon-source.png (1024×1024)
 
-Önerilen: https://www.pwabuilder.com/imageGenerator adresine logonu yükle,
-otomatik tüm boyutları üretir.
+Derived:
+- icon-192.png
+- icon-512.png
+- apple-touch-icon.png
+- favicon-32.png (optional)
 
-İkon oluşturulduktan sonra bu dosyayı silebilirsin.
+Favicon route: src/app/icon.jsx (same visual language)

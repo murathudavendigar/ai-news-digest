@@ -14,8 +14,37 @@ function estimateMinutes(text) {
   return Math.max(1, Math.round(words / 200));
 }
 
+function normalizeText(s) {
+  return String(s || "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .replace(/[…\.]+$/g, "")
+    .trim();
+}
+
+/** RSS dek ile AI özeti aynıysa tekrarı gizle */
+function isDuplicateOfDek(summary, description) {
+  if (!summary || !description) return false;
+  const a = normalizeText(summary);
+  const b = normalizeText(description);
+  if (!a || !b) return false;
+  if (a === b) return true;
+  // Kısa RSS özeti AI metninin başına yapıştırılmışsa
+  const short = a.length <= b.length ? a : b;
+  const long = a.length > b.length ? a : b;
+  if (short.length >= 40 && long.includes(short)) return true;
+  // İlk ~120 karakter örtüşmesi
+  return a.slice(0, 120) === b.slice(0, 120);
+}
+
+const FAILED_SUMMARIES = new Set([
+  "özet oluşturulamadı.",
+  "özet oluşturulamadı",
+]);
+
 /**
  * Editorial reading block: AI deck + why + bullets + body paragraphs.
+ * Üstteki article-dek (RSS description) ile aynı metni tekrarlamaz.
  */
 export default function DetailPageSummary({ url, description }) {
   const [data, setData] = useState(null);
@@ -58,21 +87,17 @@ export default function DetailPageSummary({ url, description }) {
   }, [url]);
 
   if (!url) {
-    if (!description) return null;
-    return (
-      <div className="article-prose">
-        <p>{description}</p>
-      </div>
-    );
+    // Kaynak yok — üstteki dek zaten description gösteriyorsa burada tekrarlama
+    return null;
   }
 
   if (loading) {
     return (
       <div className="space-y-6">
         <div className="article-deck">
-          <Skeleton className="h-3 w-24 mb-4" />
-          <Skeleton className="h-4 w-full mb-2" />
-          <Skeleton className="h-4 w-full mb-2" />
+          <Skeleton className="mb-4 h-3 w-24" />
+          <Skeleton className="mb-2 h-4 w-full" />
+          <Skeleton className="mb-2 h-4 w-full" />
           <Skeleton className="h-4 w-2/3" />
         </div>
         <div className="space-y-3">
@@ -84,9 +109,18 @@ export default function DetailPageSummary({ url, description }) {
     );
   }
 
-  const summary = data?.summary || description;
+  const rawSummary = data?.summary?.trim() || "";
+  const aiSummary =
+    rawSummary && !FAILED_SUMMARIES.has(rawSummary.toLowerCase())
+      ? rawSummary
+      : null;
+
+  // RSS dek ile aynıysa "Kısa okuma"da gösterme
+  const summary =
+    aiSummary && !isDuplicateOfDek(aiSummary, description) ? aiSummary : null;
+
   const whyMatters = data?.whyMatters || null;
-  const bullets = data?.bullets || [];
+  const bullets = Array.isArray(data?.bullets) ? data.bullets : [];
   const paragraphs =
     data?.paragraphs?.length > 0
       ? data.paragraphs
@@ -96,11 +130,18 @@ export default function DetailPageSummary({ url, description }) {
             .map((p) => p.trim())
             .filter((p) => p.length > 40)
         : [];
+
   const minutes =
     data?.readingMinutes ||
-    estimateMinutes(data?.bodyText || summary || description || "");
+    estimateMinutes(
+      [data?.bodyText, summary, whyMatters, ...bullets]
+        .filter(Boolean)
+        .join(" "),
+    );
 
-  if (!summary && bullets.length === 0 && paragraphs.length === 0) {
+  const hasDeck = Boolean(summary || whyMatters || bullets.length > 0);
+
+  if (!hasDeck && paragraphs.length === 0) {
     if (failed) {
       return (
         <p className="text-sm text-[var(--text-muted)]">
@@ -108,14 +149,15 @@ export default function DetailPageSummary({ url, description }) {
         </p>
       );
     }
+    // Sadece üstteki RSS dek var — tekrar yok
     return null;
   }
 
   return (
     <div className="space-y-8">
-      {(summary || whyMatters || bullets.length > 0) && (
-        <aside className="article-deck" aria-label="Haber özeti">
-          <div className="flex items-center justify-between gap-3 mb-3">
+      {hasDeck && (
+        <aside className="article-deck" aria-label="Kısa okuma">
+          <div className="mb-3 flex items-center justify-between gap-3">
             <p className="article-kicker">Kısa okuma</p>
             <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
               ~{minutes} dk
@@ -153,12 +195,6 @@ export default function DetailPageSummary({ url, description }) {
           {paragraphs.map((p, i) => (
             <p key={i}>{p}</p>
           ))}
-        </div>
-      )}
-
-      {!paragraphs.length && description && description !== summary && (
-        <div className="article-prose">
-          <p>{description}</p>
         </div>
       )}
 

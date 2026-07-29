@@ -6,15 +6,15 @@ import { siteConfig } from "@/app/lib/siteConfig";
 
 export const author = {
   name: "Murat Hudavendigar Öncü",
-  title: "Yazılım Geliştirici", // unvan / rol
-  bio: "Teknoloji, yapay zeka ve medyanın kesiştiği noktalara meraklı bir geliştirici. HaberAI, haber tüketimini daha bilinçli ve verimli hale getirmek için başlattığım kişisel bir proje.", // kısa biyografi
-  avatar: "https://avatars.githubusercontent.com/u/109613328?v=4", // /avatar.jpg gibi public/ altına koyabilirsin, boş bırakırsan baş harfler gösterilir
-  email: "murathoncu@gmail.com", // iletişim e-postası (boşsa gösterilmez)
+  title: "Kurucu · Yazılım Geliştirici",
+  bio: "Teknoloji, yapay zeka ve medyanın kesiştiği noktalara meraklı bir geliştirici. HaberAI; haber tüketimini daha bilinçli, hızlı ve şeffaf hale getirmek için yürüttüğüm bağımsız bir proje.",
+  avatar: "https://avatars.githubusercontent.com/u/109613328?v=4",
+  email: "murathoncu@gmail.com",
   links: {
-    github: "https://github.com/murathudavendigar", // https://github.com/kullanici-adi
-    linkedin: "https://www.linkedin.com/in/murathudavendigaroncu/", // https://linkedin.com/in/kullanici-adi
-    twitter: "https://twitter.com/murathoncu", // https://twitter.com/kullanici-adi
-    website: "https://murathudavendigar.vercel.app/", // kişisel site varsa
+    github: "https://github.com/murathudavendigar",
+    linkedin: "https://www.linkedin.com/in/murathudavendigaroncu/",
+    twitter: "https://twitter.com/murathoncu",
+    website: "https://murathudavendigar.vercel.app/",
   },
 };
 
@@ -22,89 +22,118 @@ export const projectInfo = {
   name: "HaberAI",
   tagline: "Yapay zeka destekli Türkçe haber analizi",
   description:
-    "HaberAI; çeşitli kaynaklardan gelen haberleri toplayıp Gemini yapay zeka modeliyle özetleyen, karşılaştıran ve analiz eden bağımsız bir haber platformudur.",
+    "HaberAI; güvenilir yayınlardan RSS ile toplanan manşetleri tek akışta birleştirir. Kısa özet, güvenilirlik skoru, arka plan analizi, günlük bülten ve köşe yazıları yapay zeka ile üretilir — asıl haber her zaman kaynak yayına aittir.",
   /** Canonical site URL — siteConfig ile senkron */
   get siteUrl() {
     return siteConfig.url;
   },
 
-  // ── Özellikler ──────────────────────────────────────────────────────────
+  principles: [
+    {
+      title: "Kaynak önce",
+      desc: "Her haberde orijinal yayına giden bağlantı vardır. Telif ve doğruluk sorumluluğu kaynağa aittir.",
+    },
+    {
+      title: "AI şeffaf",
+      desc: "Özet ve analiz yapay zeka ile üretilir; içerik bloklarında bu açıkça belirtilir. Uydurma iddia yerine bilinmeyen bırakılır.",
+    },
+    {
+      title: "Reklamsız okuma",
+      desc: "Bağımsız, reklamsız bir deneyim. Kişisel veri avı yok; push için yalnızca abonelik anahtarı tutulur.",
+    },
+    {
+      title: "Editöryal ritim",
+      desc: "Günlük özet, köşe yazarı takvimi ve bildirimler düzenli bir gazete ritminde çalışır.",
+    },
+  ],
+
+  methodology: [
+    {
+      title: "Toplama",
+      desc: "90+ kaynaktan RSS; bozuk kaynaklar sağlık taramasıyla geçici olarak devre dışı bırakılır.",
+    },
+    {
+      title: "Özet & skor",
+      desc: "Okuma süresi için kısa özet; güvenilirlik / tarafsızlık alt skorları AI ile üretilir.",
+    },
+    {
+      title: "Derinlik",
+      desc: "İstek üzerine arka plan analizi; senaryolar spekülasyon olarak işaretlenir.",
+    },
+    {
+      title: "Günlük gazete",
+      desc: "Her sabah özet üretilir; akşam bildirimi ile /digest sayfasına yönlendirilir.",
+    },
+    {
+      title: "Köşe",
+      desc: "Yedi kişilik yazar takvimi; konu seçimi uzmanlığa göre yapılır, persona sistem prompt ile uygulanır.",
+    },
+  ],
+
   features: [
     {
-      emoji: "📡",
-      label: "RSS Agregasyonu",
-      desc: "90+ Türk haber kaynağından gerçek zamanlı içerik",
+      label: "RSS agregasyonu",
+      desc: "Türkiye ve dünya masalarından tek akış",
     },
     {
-      emoji: "🤖",
-      label: "AI Analiz",
-      desc: "Gemini ile otomatik özet, tema ve öngörü",
+      label: "AI özet & analiz",
+      desc: "Kısa okuma, skor ve arka plan",
     },
     {
-      emoji: "📰",
-      label: "Günlük Özet",
-      desc: "Her gün editöryal formatta derlenmiş bülten",
+      label: "Günlük özet",
+      desc: "Editöryal bülten · her gün",
     },
     {
-      emoji: "🔔",
-      label: "Son Dakika Bildirimi",
-      desc: "Anahtar kelime tabanlı push notification",
+      label: "Köşe yazarları",
+      desc: "Güne özel ses ve bakış açısı",
     },
     {
-      emoji: "💹",
-      label: "Piyasa Verileri",
-      desc: "BIST, dolar, euro, altın, Bitcoin anlık takip",
+      label: "Push bildirimleri",
+      desc: "Günün özeti ve son dakika",
     },
     {
-      emoji: "🌤️",
-      label: "Hava Durumu",
-      desc: "İstanbul başta şehir bazlı günlük tahmin",
+      label: "PWA",
+      desc: "Ana ekrana ekle, çevrimdışı iskelet",
     },
     {
-      emoji: "🔖",
-      label: "Yer İmleri",
-      desc: "Haberleri tarayıcıda kaydet, offline oku",
+      label: "Kaydet & geçmiş",
+      desc: "Okuma listesi tarayıcıda",
     },
     {
-      emoji: "🌙",
-      label: "Karanlık Mod",
-      desc: "Sistem temasına uyumlu otomatik geçiş",
+      label: "Piyasa & hava",
+      desc: "BIST, döviz, altın ve şehir tahmini",
     },
   ],
 
-  // ── İstatistikler ───────────────────────────────────────────────────────
   stats: [
-    { label: "Haber Kaynağı", value: "90+" },
-    { label: "Kategori", value: "10" },
-    { label: "Yayın Günü", value: null }, // null → otomatik hesaplanır (launchYear'dan)
-    { label: "Günlük Özet", value: "Her gün" },
+    { label: "Haber kaynağı", value: "90+" },
+    { label: "Kategori", value: "11" },
+    { label: "Yayın günü", value: null },
+    { label: "Köşe yazarı", value: "7" },
   ],
 
-  // ── Gizlilik ────────────────────────────────────────────────────────────
   privacy: {
     adsEnabled: false,
-    analyticsEnabled: false, // true ise aşağıya hangi tool'u yazdır
-    analyticsTool: "", // "Plausible", "Vercel Analytics" vb.
+    analyticsEnabled: false,
+    analyticsTool: "",
     dataCollected:
-      "Yalnızca push bildirimi için tarayıcı abonelik anahtarı saklanır. Kişisel veri toplanmaz.",
+      "Push bildirimi için tarayıcı abonelik anahtarı (endpoint) saklanır. Hesap zorunlu değildir; okuma geçmişi ve kayıtlar cihazınızda tutulur. Kişisel profil satılmaz.",
     cookiesUsed: false,
   },
 
-  // ── İletişim ────────────────────────────────────────────────────────────
   contact: {
     email: "murathoncu@gmail.com",
-    formUrl: "", // Google Form, Tally vb. linki — boşsa gösterilmez
-    note: "Kaynak önerileri, hata bildirimleri ve her türlü geri bildirim için yazabilirsiniz.",
+    formUrl: "",
+    note: "Kaynak önerisi, hata bildirimi ve geri bildirim için yazın. Yanıtlamaya çalışırım.",
   },
 
-  // ── Tech stack ──────────────────────────────────────────────────────────
   techStack: [
-    { label: "Next.js 16", desc: "App Router ile sunucu tabanlı render" },
-    { label: "Tailwind CSS", desc: "Utility-first stil sistemi" },
-    { label: "Gemini AI", desc: "Haber özeti ve analiz için LLM" },
-    { label: "Upstash Redis", desc: "Edge-compatible önbellekleme" },
-    { label: "Vercel", desc: "Deployment & Edge Functions" },
-    { label: "Web Push", desc: "VAPID tabanlı push bildirimleri" },
+    { label: "Next.js", desc: "App Router · sunucu render" },
+    { label: "Tailwind CSS", desc: "Tasarım token’ları ile UI" },
+    { label: "Gemini + multi-LLM", desc: "Özet, analiz, köşe" },
+    { label: "Upstash Redis", desc: "Feed ve AI önbelleği" },
+    { label: "Supabase", desc: "Köşe ve digest depolama" },
+    { label: "Vercel", desc: "Deploy · günlük cron" },
   ],
 
   openSource: false,

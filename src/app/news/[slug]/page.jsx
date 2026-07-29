@@ -232,9 +232,10 @@ export default async function NewsDetailPage({ params }) {
               </figure>
             )}
 
+            {/* AI kısa okuma — RSS dek ile aynı metni tekrarlamaz */}
             <DetailPageSummary
               url={sourceLink}
-              description={article.description || article.summary}
+              description={article.description || article.summary || ""}
             />
 
             <DeepAnalysis

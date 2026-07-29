@@ -107,8 +107,8 @@ async function generateSummary(bodyText) {
 
 Yanıt YALNIZCA JSON (başka hiçbir şey yazma):
 {
-  "summary": "2-3 cümlelik akıcı özet. Ne oldu, neden önemli.",
-  "whyMatters": "Tek cümle: okuyucu için neden önemli.",
+  "summary": "2-3 cümlelik sentez özet: ne oldu + sonuç. RSS/lead cümlesini aynen kopyalama; yeni bir bakışla yaz.",
+  "whyMatters": "Tek cümle: okuyucu için neden önemli — summary ile aynı olmasın.",
   "bullets": [
     "Önemli rakam veya isim içeren ilk nokta",
     "İkinci önemli gelişme",
