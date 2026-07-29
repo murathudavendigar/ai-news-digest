@@ -17,6 +17,9 @@ function shouldShowPrompt() {
   ) {
     return false;
   }
+  // Onboarding açıkken gösterme
+  if (document.documentElement.dataset.onboardingActive === "1") return false;
+  if (localStorage.getItem("haberai:onboarding-v1") !== "1") return false;
   if (Notification.permission !== "default") return false;
   if (localStorage.getItem(DISMISSED_KEY) === "1") return false;
   const snoozeUntil = Number(localStorage.getItem(SNOOZE_KEY) || 0);

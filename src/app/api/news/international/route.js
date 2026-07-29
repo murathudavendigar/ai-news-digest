@@ -20,8 +20,7 @@ export async function GET(request) {
     if (forceRefresh) {
       const auth = request.headers.get("authorization");
       const secret = process.env.CRON_SECRET;
-      const secretPublic = process.env.NEXT_PUBLIC_CRON_SECRET;
-      if (auth !== `Bearer ${secret}` && auth !== `Bearer ${secretPublic}`) {
+      if (auth !== `Bearer ${secret}`) {
         return Response.json({ error: "Unauthorized" }, { status: 401 });
       }
     }

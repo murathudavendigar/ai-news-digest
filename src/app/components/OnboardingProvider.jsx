@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import OnboardingFlow, { ONBOARDING_KEY } from "./OnboardingFlow";
 
 /**
- * Layout'a sarılır. İlk ziyarette onboarding ekranını gösterir,
- * tamamlandıktan sonra localStorage'a işaretler ve bir daha göstermez.
+ * Layout'a sarılır. İlk ziyarette onboarding ekranını gösterir.
+ * data-onboarding-active ile Push/PWA prompt'ları susturulur.
  */
 export default function OnboardingProvider({ children }) {
   const [show, setShow] = useState(false);
@@ -20,10 +20,29 @@ export default function OnboardingProvider({ children }) {
     return () => clearTimeout(t);
   }, []);
 
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    if (show) {
+      document.documentElement.dataset.onboardingActive = "1";
+    } else {
+      delete document.documentElement.dataset.onboardingActive;
+    }
+    return () => {
+      delete document.documentElement.dataset.onboardingActive;
+    };
+  }, [show]);
+
   return (
     <>
       {children}
-      {checked && show && <OnboardingFlow onComplete={() => setShow(false)} />}
+      {checked && show && (
+        <OnboardingFlow
+          onComplete={() => {
+            setShow(false);
+            delete document.documentElement.dataset.onboardingActive;
+          }}
+        />
+      )}
     </>
   );
 }

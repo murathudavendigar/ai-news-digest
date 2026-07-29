@@ -9,12 +9,12 @@ export const author = {
   title: "Kurucu · Yazılım Geliştirici",
   bio: "Teknoloji, yapay zeka ve medyanın kesiştiği noktalara meraklı bir geliştirici. HaberAI; haber tüketimini daha bilinçli, hızlı ve şeffaf hale getirmek için yürüttüğüm bağımsız bir proje.",
   avatar: "https://avatars.githubusercontent.com/u/109613328?v=4",
-  email: "murathoncu@gmail.com",
+  email: "contact@muratoncu.com",
   links: {
     github: "https://github.com/murathudavendigar",
     linkedin: "https://www.linkedin.com/in/murathudavendigaroncu/",
     twitter: "https://twitter.com/murathoncu",
-    website: "https://murathudavendigar.vercel.app/",
+    website: "https://muratoncu.com/",
   },
 };
 

@@ -2,6 +2,7 @@
 
 import { getPersonalizedCategoryOrder } from "@/app/lib/categoryStats";
 import {
+  sortByFollowedTopics,
   sortByPreferredCategories,
   useUserPreferences,
 } from "@/app/lib/useUserPreferences";
@@ -141,11 +142,18 @@ export default function HomeNewsFeed() {
   }, []);
 
   const displayArticles = useMemo(() => {
+    let list = articles;
     if (activeTab === "all") {
-      return sortByPreferredCategories(articles, prefs.preferredCategories);
+      list = sortByPreferredCategories(list, prefs.preferredCategories);
+      list = sortByFollowedTopics(list, prefs.followedTopics);
     }
-    return articles;
-  }, [articles, activeTab, prefs.preferredCategories]);
+    return list;
+  }, [
+    articles,
+    activeTab,
+    prefs.preferredCategories,
+    prefs.followedTopics,
+  ]);
 
   const loadMore = useCallback(async () => {
     if (!nextPage || loadingMore) return;

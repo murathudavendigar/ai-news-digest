@@ -23,6 +23,8 @@ function isInStandaloneMode() {
 
 function shouldShow() {
   if (typeof window === "undefined") return false;
+  if (document.documentElement.dataset.onboardingActive === "1") return false;
+  if (localStorage.getItem("haberai:onboarding-v1") !== "1") return false;
   if (localStorage.getItem(DISMISS_KEY) === "1") return false;
   const snoozeUntil = Number(localStorage.getItem(SNOOZE_KEY) || 0);
   if (snoozeUntil && Date.now() < snoozeUntil) return false;

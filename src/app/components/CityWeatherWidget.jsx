@@ -1,7 +1,7 @@
 "use client";
 
 import { CITIES } from "@/app/lib/cityConfig";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const STORAGE_KEY = "haberai:city";
 
@@ -23,6 +23,65 @@ function s(v, fallback = "—") {
   if (v == null) return fallback;
   if (typeof v === "object") return fallback;
   return String(v);
+}
+
+function CitySearchList({ city, onSelect, align = "left" }) {
+  const [query, setQuery] = useState("");
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLocaleLowerCase("tr");
+    if (!q) return CITIES;
+    return CITIES.filter(
+      (c) =>
+        c.label.toLocaleLowerCase("tr").includes(q) ||
+        c.key.toLowerCase().includes(q),
+    );
+  }, [query]);
+
+  return (
+    <div
+      className={`absolute top-full mt-1 z-50 w-44 rounded border border-stone-200 bg-white shadow-lg dark:border-stone-700 dark:bg-stone-900 ${
+        align === "right" ? "right-0" : "left-0"
+      }`}
+    >
+      <div className="border-b border-stone-200 p-1.5 dark:border-stone-700">
+        <input
+          ref={inputRef}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="İl ara…"
+          className="w-full rounded bg-stone-50 px-2 py-1 text-[10px] text-stone-800 outline-none placeholder:text-stone-400 focus:ring-1 focus:ring-stone-400 dark:bg-stone-800 dark:text-stone-100"
+        />
+      </div>
+      <div className="max-h-44 overflow-y-auto py-0.5">
+        {filtered.length === 0 ? (
+          <p className="px-2.5 py-2 text-center text-[9px] text-stone-400">
+            Sonuç yok
+          </p>
+        ) : (
+          filtered.map((c) => (
+            <button
+              key={c.key}
+              type="button"
+              onClick={() => onSelect(c.key)}
+              className={`w-full px-2.5 py-1 text-left text-[9px] uppercase tracking-widest transition-colors ${
+                city === c.key
+                  ? "bg-stone-100 font-black text-stone-900 dark:bg-stone-800 dark:text-white"
+                  : "text-stone-500 hover:bg-stone-50 hover:text-stone-900 dark:hover:bg-stone-800 dark:hover:text-white"
+              }`}
+            >
+              {c.label}
+            </button>
+          ))
+        )}
+      </div>
+    </div>
+  );
 }
 
 // ── Compact (masthead şeridi) ──────────────────────────────────────────────
@@ -82,21 +141,7 @@ export function WeatherStrip({ defaultWeather }) {
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-1 z-50 py-0.5 bg-white border shadow-lg dark:bg-stone-900 border-stone-200 dark:border-stone-700 min-w-28 max-h-48 overflow-y-auto">
-          {CITIES.map((c) => (
-            <button
-              key={c.key}
-              onClick={() => handleSelect(c.key)}
-              className={`w-full text-left px-2.5 py-1 text-[9px] uppercase tracking-widest transition-colors
-                ${
-                  city === c.key
-                    ? "text-stone-900 dark:text-white font-black bg-stone-100 dark:bg-stone-800"
-                    : "text-stone-500 hover:text-stone-900 dark:hover:text-white hover:bg-stone-50 dark:hover:bg-stone-800"
-                }`}>
-              {c.label}
-            </button>
-          ))}
-        </div>
+        <CitySearchList city={city} onSelect={handleSelect} align="left" />
       )}
     </span>
   );
@@ -173,23 +218,8 @@ export function WeatherWidget({ defaultWeather }) {
             {dropdownLabel} ▾
           </button>
 
-          {/* Şehir dropdown */}
           {open && (
-            <div className="absolute right-0 top-full mt-1 z-50 py-0.5 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 shadow-lg min-w-24 max-h-44 overflow-y-auto">
-              {CITIES.map((c) => (
-                <button
-                  key={c.key}
-                  onClick={() => handleSelect(c.key)}
-                  className={`w-full text-left px-2.5 py-1 text-[9px] uppercase tracking-widest transition-colors
-                    ${
-                      city === c.key
-                        ? "text-stone-900 dark:text-white font-black bg-stone-100 dark:bg-stone-800"
-                        : "text-stone-500 hover:text-stone-900 dark:hover:text-white hover:bg-stone-50 dark:hover:bg-stone-800"
-                    }`}>
-                  {c.label}
-                </button>
-              ))}
-            </div>
+            <CitySearchList city={city} onSelect={handleSelect} align="right" />
           )}
         </div>
       </div>

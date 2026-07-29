@@ -92,6 +92,29 @@ export const CITIES = [
   { key: "Duzce", label: "Düzce", lat: 40.8438, lon: 31.1565 },
 ];
 
+
+/** Onboarding için kısa metro listesi — widget'ta tam CITIES kullanılır */
+const ONBOARDING_CITY_KEYS = [
+  "Istanbul",
+  "Ankara",
+  "Izmir",
+  "Antalya",
+  "Bursa",
+  "Adana",
+  "Gaziantep",
+  "Konya",
+  "Trabzon",
+  "Diyarbakir",
+  "Mersin",
+  "Kayseri",
+];
+
+export const ONBOARDING_CITIES = ONBOARDING_CITY_KEYS.map((key) => {
+  const city = CITIES.find((c) => c.key === key);
+  if (!city) throw new Error(`ONBOARDING_CITIES: eksik key ${key}`);
+  return city;
+});
+
 /** key'den şehir objesini bul, bulunamazsa İstanbul döner */
 export function getCityByKey(key) {
   return CITIES.find((c) => c.key === key) ?? CITIES[0];

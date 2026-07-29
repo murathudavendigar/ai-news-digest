@@ -1,9 +1,11 @@
 "use client";
 
-import { CITIES } from "@/app/lib/cityConfig";
+import { CITIES, ONBOARDING_CITIES } from "@/app/lib/cityConfig";
+import { siteConfig } from "@/app/lib/siteConfig";
 import { CATEGORIES } from "@/app/lib/siteConfig";
 import { DEFAULT_PREFERENCES, savePrefs } from "@/app/lib/useUserPreferences";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import PushNotificationToggle from "./PushNotificationToggle";
 
 export const ONBOARDING_KEY = "haberai:onboarding-v1";
 const CITY_KEY = "haberai:city";
@@ -41,41 +43,52 @@ function PrimaryBtn({ onClick, children, disabled }) {
   );
 }
 
-function SkipBtn({ onClick }) {
+function SkipBtn({ onClick, children = "Atla →" }) {
   return (
     <button
       onClick={onClick}
       className="w-full py-2.5 text-[11px] font-bold uppercase tracking-widest text-stone-600 hover:text-stone-400 transition-colors mt-1">
-      Atla →
+      {children}
     </button>
   );
 }
 
 /* ─── Step 0: Karşılama ───────────────────────────────────────────────── */
-function WelcomeStep({ onStart }) {
+function WelcomeStep({ onStart, onSkipAll }) {
   return (
-    <div className="text-center py-10 flex flex-col items-center">
-      <div
-        className="text-6xl sm:text-7xl font-black text-white mb-6 select-none"
+    <div className="flex flex-col items-center py-10 text-center">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/icon-192.png"
+        alt=""
+        width={72}
+        height={72}
+        className="mb-6 h-[72px] w-[72px] rounded-2xl border border-stone-800"
         style={{
-          fontFamily: "var(--font-display, Georgia, serif)",
           animation: "onbScaleIn 0.6s cubic-bezier(0.22,1,0.36,1) both",
-        }}>
-        Haber<span className="text-amber-400">AI</span>
+        }}
+      />
+      <div
+        className="mb-4 select-none text-5xl font-black text-white sm:text-6xl"
+        style={{ fontFamily: "var(--font-display, Georgia, serif)" }}
+      >
+        {siteConfig.logoPrimary}
+        <span className="text-amber-400">{siteConfig.logoAccent}</span>
       </div>
       <h1
-        className="text-2xl font-black text-white mb-3"
-        style={{ fontFamily: "var(--font-display, Georgia, serif)" }}>
-        Hoşgeldin!
+        className="mb-3 text-2xl font-black text-white"
+        style={{ fontFamily: "var(--font-display, Georgia, serif)" }}
+      >
+        Senin için bir baskı
       </h1>
-      <p className="text-stone-400 text-sm leading-relaxed mb-10 max-w-xs">
-        Yapay zeka destekli haberleri kişiselleştirmek için birkaç küçük tercih
-        yapalım. 2 dakikadan az sürer.
+      <p className="mb-10 max-w-xs text-sm leading-relaxed text-stone-400">
+        Kategorilerini seç, akşam özetini aç — 1 dakikadan kısa.
       </p>
       <div className="w-full max-w-xs space-y-2">
         <PrimaryBtn onClick={onStart}>Başlayalım →</PrimaryBtn>
+        <SkipBtn onClick={onSkipAll}>Şimdilik atla</SkipBtn>
       </div>
-      <p className="text-[10px] text-stone-700 mt-5">
+      <p className="mt-5 text-[10px] text-stone-700">
         Her zaman Ayarlar&apos;dan değiştirebilirsin
       </p>
     </div>
@@ -146,10 +159,9 @@ function TopicsStep({
         Takip etmek istediğin konular?
       </h2>
       <p className="text-stone-500 text-xs mb-4">
-        Bu konular haberlerde geçince sana önce gösterilir
+        İsteğe bağlı — bu kelimeler geçen haberler öne çıkar
       </p>
 
-      {/* Öneri chipler */}
       <div className="flex flex-wrap gap-2 mb-4 max-h-40 overflow-y-auto">
         {SUGGESTED_TOPICS.map((t) => {
           const active = selected.includes(t);
@@ -169,7 +181,6 @@ function TopicsStep({
         })}
       </div>
 
-      {/* Özel konu ekleme */}
       <div className="flex gap-2 mb-4">
         <input
           ref={inputRef}
@@ -187,7 +198,6 @@ function TopicsStep({
         </button>
       </div>
 
-      {/* Eklenen özel konular */}
       {selected.filter((t) => !SUGGESTED_TOPICS.includes(t)).length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-4">
           {selected
@@ -203,16 +213,39 @@ function TopicsStep({
         </div>
       )}
 
-      <PrimaryBtn onClick={onNext} disabled={selected.length === 0}>
-        Devam Et{selected.length > 0 ? ` (${selected.length} konu)` : ""}
+      <PrimaryBtn onClick={onNext}>
+        {selected.length > 0
+          ? `Devam Et (${selected.length} konu)`
+          : "Devam Et"}
       </PrimaryBtn>
-      <SkipBtn onClick={onSkip} />
+      <SkipBtn onClick={onSkip}>Şimdilik boş bırak</SkipBtn>
     </div>
   );
 }
 
 /* ─── Step 3: Şehir ───────────────────────────────────────────────────── */
 function CityStep({ selected, setSelected, onNext, onSkip }) {
+  const [showAll, setShowAll] = useState(false);
+  const [query, setQuery] = useState("");
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLocaleLowerCase("tr");
+    if (!q) return CITIES;
+    return CITIES.filter(
+      (c) =>
+        c.label.toLocaleLowerCase("tr").includes(q) ||
+        c.key.toLowerCase().includes(q),
+    );
+  }, [query]);
+
+  const metroKeys = useMemo(
+    () => new Set(ONBOARDING_CITIES.map((c) => c.key)),
+    [],
+  );
+  const selectedInMetro = metroKeys.has(selected);
+  const selectedLabel =
+    CITIES.find((c) => c.key === selected)?.label ?? selected;
+
   return (
     <div className="py-4">
       <h2
@@ -221,13 +254,17 @@ function CityStep({ selected, setSelected, onNext, onSkip }) {
         Hangi şehirdesin?
       </h2>
       <p className="text-stone-500 text-xs mb-5">
-        Hava durumu widget&apos;ı bu konuma göre ayarlanır
+        Hava durumu bu konuma göre ayarlanır — sonra değiştirebilirsin
       </p>
-      <div className="grid grid-cols-2 gap-2 mb-6">
-        {CITIES.map((c) => (
+
+      <div className="grid grid-cols-2 gap-2 mb-3">
+        {ONBOARDING_CITIES.map((c) => (
           <button
             key={c.key}
-            onClick={() => setSelected(c.key)}
+            onClick={() => {
+              setSelected(c.key);
+              setShowAll(false);
+            }}
             className={`px-4 py-2.5 rounded-xl border text-sm font-semibold transition-all active:scale-[0.97] ${
               selected === c.key
                 ? "bg-amber-500/15 border-amber-500/50 text-amber-300"
@@ -237,6 +274,55 @@ function CityStep({ selected, setSelected, onNext, onSkip }) {
           </button>
         ))}
       </div>
+
+      {!selectedInMetro && (
+        <p className="mb-3 text-[11px] text-amber-400/90">
+          Seçili: {selectedLabel}
+        </p>
+      )}
+
+      <button
+        type="button"
+        onClick={() => setShowAll((v) => !v)}
+        className="mb-3 w-full rounded-xl border border-dashed border-stone-700 px-3 py-2 text-[11px] font-bold uppercase tracking-widest text-stone-500 transition-colors hover:border-stone-500 hover:text-stone-300"
+      >
+        {showAll ? "Listeyi gizle ↑" : "Diğer iller / ara ↓"}
+      </button>
+
+      {showAll && (
+        <div className="mb-4 rounded-xl border border-stone-800 bg-stone-900/80 p-2">
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="İl ara…"
+            autoFocus
+            className="mb-2 w-full rounded-lg border border-stone-700 bg-stone-950 px-3 py-2 text-sm text-white placeholder-stone-600 focus:border-amber-500 focus:outline-none"
+          />
+          <div className="max-h-40 overflow-y-auto">
+            {filtered.length === 0 ? (
+              <p className="px-2 py-3 text-center text-xs text-stone-600">
+                Sonuç yok
+              </p>
+            ) : (
+              filtered.map((c) => (
+                <button
+                  key={c.key}
+                  type="button"
+                  onClick={() => setSelected(c.key)}
+                  className={`w-full rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                    selected === c.key
+                      ? "bg-amber-500/15 font-semibold text-amber-300"
+                      : "text-stone-400 hover:bg-stone-800 hover:text-white"
+                  }`}
+                >
+                  {c.label}
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
       <PrimaryBtn onClick={onNext}>Devam Et</PrimaryBtn>
       <SkipBtn onClick={onSkip} />
     </div>
@@ -244,47 +330,24 @@ function CityStep({ selected, setSelected, onNext, onSkip }) {
 }
 
 /* ─── Step 4: Bildirimler ─────────────────────────────────────────────── */
-function NotifStep({ status, onRequest, onSkip }) {
+function NotifStep({ onSubscribed, onSkip }) {
   return (
-    <div className="py-4 text-center flex flex-col items-center">
-      <div
-        className="text-5xl mb-5"
-        style={{
-          animation: "onbScaleIn 0.5s cubic-bezier(0.22,1,0.36,1) both",
-        }}>
-        🔔
-      </div>
+    <div className="flex flex-col items-center py-4 text-center">
       <h2
-        className="text-xl font-black text-white mb-2"
-        style={{ fontFamily: "var(--font-display, Georgia, serif)" }}>
+        className="mb-2 text-xl font-black text-white"
+        style={{ fontFamily: "var(--font-display, Georgia, serif)" }}
+      >
         Günlük özet bildirimi
       </h2>
-      <p className="text-stone-400 text-sm leading-relaxed mb-8 max-w-xs">
-        Her akşam en önemli 3 haberi ve gün özetini bildirim olarak al
+      <p className="mb-8 max-w-xs text-sm leading-relaxed text-stone-400">
+        Her akşam manşetler ve en kritik başlıklar tek bildirimde gelsin.
+        İstediğin an Ayarlar&apos;dan kapatırsın.
       </p>
 
-      {status === "granted" ? (
-        <div className="py-3 w-full text-center">
-          <p className="text-emerald-400 font-bold">✓ Bildirimler aktif!</p>
-          <p className="text-xs text-stone-500 mt-1">Devam etmek için bekle…</p>
-        </div>
-      ) : status === "denied" ? (
-        <div className="w-full space-y-3">
-          <p className="text-xs text-stone-500 mb-4">
-            Bildirim izni verilmedi. Tarayıcı ayarlarından sonradan açabilirsin.
-          </p>
-          <PrimaryBtn onClick={onSkip}>Devam Et</PrimaryBtn>
-        </div>
-      ) : (
-        <div className="w-full space-y-2">
-          <PrimaryBtn onClick={onRequest} disabled={status === "requesting"}>
-            {status === "requesting"
-              ? "İzin isteniyor…"
-              : "Bildirimlere İzin Ver"}
-          </PrimaryBtn>
-          <SkipBtn onClick={onSkip} />
-        </div>
-      )}
+      <div className="flex w-full flex-col items-center gap-3">
+        <PushNotificationToggle onSubscribed={onSubscribed} />
+        <SkipBtn onClick={onSkip} />
+      </div>
     </div>
   );
 }
@@ -292,21 +355,16 @@ function NotifStep({ status, onRequest, onSkip }) {
 /* ─── Step 5: Tamamlandı ──────────────────────────────────────────────── */
 function CompleteStep({ onFinish, finishing }) {
   return (
-    <div className="text-center py-10 flex flex-col items-center">
-      <div
-        className="text-6xl mb-6"
-        style={{
-          animation: "onbScaleIn 0.5s cubic-bezier(0.22,1,0.36,1) both",
-        }}>
-        🎉
-      </div>
+    <div className="flex flex-col items-center py-10 text-center">
       <h2
-        className="text-2xl font-black text-white mb-3"
-        style={{ fontFamily: "var(--font-display, Georgia, serif)" }}>
-        Harika! Hazırsın.
+        className="mb-3 text-2xl font-black text-white"
+        style={{ fontFamily: "var(--font-display, Georgia, serif)" }}
+      >
+        Hazırsın.
       </h2>
-      <p className="text-stone-400 text-sm leading-relaxed mb-10 max-w-xs">
-        Tercihlerine göre kişiselleştirilmiş haber akışın sana özel hazırlandı.
+      <p className="mb-10 max-w-xs text-sm leading-relaxed text-stone-400">
+        Tercihlerine göre akış hazır. İstediğin zaman Ayarlar&apos;dan
+        güncelleyebilirsin.
       </p>
       <div className="w-full max-w-xs">
         <PrimaryBtn onClick={onFinish} disabled={finishing}>
@@ -325,7 +383,6 @@ export default function OnboardingFlow({ onComplete }) {
   const [selectedTopics, setSelectedTopics] = useState([]);
   const [customTopic, setCustomTopic] = useState("");
   const [selectedCity, setSelectedCity] = useState("Istanbul");
-  const [notifStatus, setNotifStatus] = useState("idle");
   const inputRef = useRef(null);
 
   function next() {
@@ -333,6 +390,14 @@ export default function OnboardingFlow({ onComplete }) {
   }
   function back() {
     setStep((s) => Math.max(0, s - 1));
+  }
+
+  /** Karşılama / erken çıkış — varsayılan tercihlerle bitir */
+  function skipAll() {
+    if (typeof window !== "undefined") {
+      localStorage.setItem(ONBOARDING_KEY, "1");
+    }
+    onComplete();
   }
 
   function toggleCategory(slug) {
@@ -353,21 +418,6 @@ export default function OnboardingFlow({ onComplete }) {
     inputRef.current?.focus();
   }
 
-  async function requestNotification() {
-    if (typeof window === "undefined" || !("Notification" in window)) {
-      next();
-      return;
-    }
-    setNotifStatus("requesting");
-    try {
-      const perm = await Notification.requestPermission();
-      setNotifStatus(perm === "granted" ? "granted" : "denied");
-      if (perm === "granted") setTimeout(next, 900);
-    } catch {
-      setNotifStatus("denied");
-    }
-  }
-
   function finish() {
     const prefs = {
       ...DEFAULT_PREFERENCES,
@@ -380,25 +430,19 @@ export default function OnboardingFlow({ onComplete }) {
       localStorage.setItem(ONBOARDING_KEY, "1");
     }
     setFinishing(true);
-    setTimeout(onComplete, 900);
+    setTimeout(onComplete, 500);
   }
 
-  // Progress bar (adım 1-4 arası)
   const showProgress = step >= 1 && step <= 4;
-  const progressPct = ((step - 1) / 3) * 100; // 0,33,66,100
+  const progressPct = ((step - 1) / 3) * 100;
 
   return (
     <div
       className={`fixed inset-0 z-9999 bg-stone-950 flex flex-col overflow-hidden transition-opacity duration-700 ${
         finishing ? "opacity-0 pointer-events-none" : "opacity-100"
       }`}>
-      {/* Ambient dekor */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/3 -left-20 w-80 h-80 rounded-full bg-amber-500/5 blur-3xl" />
-        <div className="absolute bottom-1/4 -right-16 w-60 h-60 rounded-full bg-amber-400/5 blur-2xl" />
-      </div>
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-linear-to-b from-stone-900/80 to-transparent" />
 
-      {/* Progress header */}
       {showProgress && (
         <div className="relative z-10 px-6 pt-10 pb-0 shrink-0">
           <div className="flex items-center justify-between mb-3">
@@ -423,7 +467,6 @@ export default function OnboardingFlow({ onComplete }) {
         </div>
       )}
 
-      {/* Step content — key değişince animasyon tetiklenir */}
       <div className="flex-1 overflow-y-auto">
         <div
           key={step}
@@ -431,7 +474,9 @@ export default function OnboardingFlow({ onComplete }) {
           style={{
             animation: "onbStepIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) both",
           }}>
-          {step === 0 && <WelcomeStep onStart={next} />}
+          {step === 0 && (
+            <WelcomeStep onStart={next} onSkipAll={skipAll} />
+          )}
           {step === 1 && (
             <CategoryStep
               selected={selectedCategories}
@@ -462,8 +507,7 @@ export default function OnboardingFlow({ onComplete }) {
           )}
           {step === 4 && (
             <NotifStep
-              status={notifStatus}
-              onRequest={requestNotification}
+              onSubscribed={() => setTimeout(next, 700)}
               onSkip={next}
             />
           )}

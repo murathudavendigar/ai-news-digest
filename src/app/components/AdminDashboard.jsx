@@ -695,6 +695,9 @@ export default function AdminDashboard() {
       {/* ─── Köşe Yazıları ─────────────────────────────────────────── */}
       <KoseYazilariSection />
 
+      {/* ─── Cron tetikleyiciler ─────────────────────────────────────── */}
+      <CronJobsSection />
+
       {/* ─── Dünya Haberleri ─────────────────────────────────────────── */}
       <DunyaHaberleriSection />
 
@@ -1194,6 +1197,139 @@ export default function AdminDashboard() {
         çalışmaları görebilirsiniz.
       </div>
     </div>
+  );
+}
+
+/* ── Cron Jobs — güvenli /api/admin/trigger ── */
+const CRON_JOBS = [
+  {
+    job: "warm-feeds",
+    label: "Feed ısıt",
+    desc: "all + kritik kategoriler Redis’e",
+    schedule: "03:00 UTC",
+  },
+  {
+    job: "rss-health",
+    label: "RSS sağlık",
+    desc: "18 kaynak rotasyon · disable set",
+    schedule: "05:00 UTC",
+  },
+  {
+    job: "refresh-international",
+    label: "Dünya haberi",
+    desc: "Uluslararası masa yenile",
+    schedule: "06:00 UTC",
+  },
+  {
+    job: "generate-column",
+    label: "Köşe yazısı",
+    desc: "Günün yazarını üret",
+    schedule: "07:00 UTC",
+  },
+  {
+    job: "breaking-news",
+    label: "Son dakika",
+    desc: "Breaking tarama + push",
+    schedule: "09:00 UTC",
+  },
+  {
+    job: "push-notify",
+    label: "Günlük bildirim",
+    desc: "Özet push → /digest",
+    schedule: "17:00 UTC",
+  },
+  {
+    job: "daily-digest",
+    label: "Daily digest",
+    desc: "Supabase günlük gazete",
+    schedule: "20:00 UTC",
+  },
+  {
+    job: "daily-summary",
+    label: "Daily summary",
+    desc: "Redis günün özeti",
+    schedule: "04:00 UTC",
+  },
+];
+
+function CronJobsSection() {
+  const [working, setWorking] = useState(null);
+  const [last, setLast] = useState(null);
+
+  const runJob = async (job, label) => {
+    setWorking(job);
+    setLast(null);
+    try {
+      const r = await fetch("/api/admin/trigger", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ job }),
+      });
+      const payload = await r.json();
+      const data = payload.data || payload;
+      setLast({
+        ok: r.ok && payload.ok !== false,
+        job,
+        label,
+        detail: JSON.stringify(data).slice(0, 220),
+        error: payload.error || data.error,
+      });
+    } catch (e) {
+      setLast({ ok: false, job, label, error: e.message });
+    } finally {
+      setWorking(null);
+    }
+  };
+
+  return (
+    <Section title="⏱ Cron Tetikle">
+      <p className="mb-3 text-[11px] leading-relaxed text-stone-500">
+        Hobby planında her job günde 1 kez zamanlanır. Buradan elle
+        çalıştırırsın — secret tarayıcıya gitmez (
+        <code className="text-stone-400">/api/admin/trigger</code>).
+      </p>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        {CRON_JOBS.map((c) => (
+          <div
+            key={c.job}
+            className="flex items-center justify-between gap-3 rounded-xl border border-stone-800 bg-stone-950/60 px-3.5 py-3"
+          >
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-stone-200">{c.label}</p>
+              <p className="truncate text-[10px] text-stone-500">{c.desc}</p>
+              <p className="mt-0.5 text-[9px] uppercase tracking-wider text-stone-600">
+                {c.schedule} · {c.job}
+              </p>
+            </div>
+            <ActionBtn
+              onClick={() => runJob(c.job, c.label)}
+              loading={working === c.job}
+              disabled={Boolean(working)}
+            >
+              ▶
+            </ActionBtn>
+          </div>
+        ))}
+      </div>
+      {last && (
+        <div
+          className={`mt-3 rounded-xl border px-4 py-2.5 text-xs ${
+            last.ok
+              ? "border-emerald-800 bg-emerald-950/40 text-emerald-300"
+              : "border-red-800 bg-red-950/40 text-red-300"
+          }`}
+        >
+          {last.ok ? "✓" : "✕"} {last.label}
+          {last.error ? `: ${last.error}` : ""}
+          {last.detail ? (
+            <p className="mt-1 break-all font-mono text-[10px] opacity-70">
+              {last.detail}
+            </p>
+          ) : null}
+        </div>
+      )}
+    </Section>
   );
 }
 
