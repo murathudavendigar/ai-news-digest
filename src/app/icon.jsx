@@ -1,11 +1,10 @@
 import { ImageResponse } from "next/og";
 
-export const runtime = "edge";
 export const size = { width: 32, height: 32 };
 export const contentType = "image/png";
 
 /**
- * Favicon — PWA ikonlarıyla aynı dil:
+ * Favicon PNG — PWA ikonlarıyla aynı dil:
  * stone zemin + serif H + amber çizgi
  */
 export default function Icon() {
