@@ -43,7 +43,7 @@ async function runDailyReset() {
       "stats:miss:compare",
       "stats:hits:stream-summary",
       "stats:miss:stream-summary",
-      ...["groq", "sambanova", "cerebras", "openrouter"].map(
+      ...["groq", "groq2", "sambanova", "cerebras", "openrouter"].map(
         (k) => `stats:ai:${k}:calls:today`,
       ),
       `stats:subscribers:today:${today}`,

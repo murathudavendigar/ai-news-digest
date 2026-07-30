@@ -4,10 +4,11 @@ import { siteConfig } from "@/app/lib/siteConfig";
 // Multi-provider AI client — otomatik fallback zinciri (yalnızca ücretsiz modeller)
 //
 // Zincir:
-//   1. Groq        — Llama free tier
-//   2. Cerebras    — public free/preview models
-//   3. SambaNova   — free tier (402 → uzun cooldown)
-//   4. OpenRouter  — openrouter/free + :free modeller
+//   1. Groq        — GROQ_API_KEY
+//   2. Groq-2      — GROQ_API_KEY_2 (ayrı RPM/RPD)
+//   3. Cerebras    — public free/preview models
+//   4. SambaNova   — free tier (402 → uzun cooldown)
+//   5. OpenRouter  — openrouter/free + :free modeller
 //
 // 429 → kısa bekle, sonrakine geç
 // 401/402/404 (model yok) → Redis cooldown, sonrakine geç
@@ -69,16 +70,50 @@ async function setProviderCooldown(providerKey, seconds, reason) {
 }
 
 const PROVIDERS = {
+  // Groq free tier (2026-07 kota): 8b = 14.4K RPD; 70b/oss/qwen = 1K RPD
+  // prompt-guard / safeguard üretim için kullanılmıyor
   groq: {
     name: "Groq",
     baseURL: "https://api.groq.com/openai/v1",
     apiKeyEnv: "GROQ_API_KEY",
     models: {
-      FAST: ["llama-3.1-8b-instant"],
-      BALANCED: ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"],
-      SMART: [
-        "meta-llama/llama-4-scout-17b-16e-instruct",
+      // Yüksek RPD — body refine / skor
+      FAST: ["llama-3.1-8b-instant", "openai/gpt-oss-20b"],
+      // Orta kalite — özet / analiz
+      BALANCED: [
+        "qwen/qwen3.6-27b",
+        "openai/gpt-oss-20b",
         "llama-3.3-70b-versatile",
+        "llama-3.1-8b-instant",
+      ],
+      // En güçlü Groq free
+      SMART: [
+        "openai/gpt-oss-120b",
+        "llama-3.3-70b-versatile",
+        "qwen/qwen3.6-27b",
+        "openai/gpt-oss-20b",
+      ],
+    },
+  },
+
+  // İkinci Groq hesabı — RPM/RPD kotası ayrı
+  groq2: {
+    name: "Groq-2",
+    baseURL: "https://api.groq.com/openai/v1",
+    apiKeyEnv: "GROQ_API_KEY_2",
+    models: {
+      FAST: ["llama-3.1-8b-instant", "openai/gpt-oss-20b"],
+      BALANCED: [
+        "qwen/qwen3.6-27b",
+        "openai/gpt-oss-20b",
+        "llama-3.3-70b-versatile",
+        "llama-3.1-8b-instant",
+      ],
+      SMART: [
+        "openai/gpt-oss-120b",
+        "llama-3.3-70b-versatile",
+        "qwen/qwen3.6-27b",
+        "openai/gpt-oss-20b",
       ],
     },
   },
@@ -137,7 +172,8 @@ const PROVIDERS = {
   },
 };
 
-const FALLBACK_ORDER = ["groq", "cerebras", "sambanova", "openrouter"];
+// Groq ×2 önce (ayrı kota), sonra diğer free provider'lar
+const FALLBACK_ORDER = ["groq", "groq2", "cerebras", "sambanova", "openrouter"];
 
 export const GROQ_MODELS = {
   FAST: "FAST",
@@ -436,73 +472,75 @@ export async function* streamCompletion(userPrompt, options = {}) {
     systemPrompt,
   } = options;
 
-  const provider = PROVIDERS.groq;
-  const apiKey = process.env[provider.apiKeyEnv];
+  // Stream: önce Groq, sonra Groq-2; olmazsa non-stream fallback zinciri
+  const streamKeys = ["groq", "groq2"];
 
-  if (!apiKey || (await isProviderCooledDown("groq"))) {
-    const result = await generateCompletion(userPrompt, options);
-    yield result.text;
-    return;
-  }
+  for (const key of streamKeys) {
+    const provider = PROVIDERS[key];
+    const apiKey = process.env[provider.apiKeyEnv];
+    if (!apiKey || (await isProviderCooledDown(key))) continue;
 
-  const messages = [];
-  if (systemPrompt) messages.push({ role: "system", content: systemPrompt });
-  messages.push({ role: "user", content: userPrompt });
+    const messages = [];
+    if (systemPrompt) messages.push({ role: "system", content: systemPrompt });
+    messages.push({ role: "user", content: userPrompt });
 
-  const model = resolveModelList(provider, modelTier)[0];
+    const model = resolveModelList(provider, modelTier)[0];
 
-  let res;
-  try {
-    res = await fetch(`${provider.baseURL}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model,
-        messages,
-        temperature,
-        max_tokens: maxTokens,
-        stream: true,
-      }),
-      cache: "no-store",
-    });
-  } catch {
-    const result = await generateCompletion(userPrompt, options);
-    yield result.text;
-    return;
-  }
-
-  if (!res.ok || !res.body) {
-    trackProviderError("groq", res.status);
-    if (res.status === 401 || res.status === 402) {
-      await setProviderCooldown("groq", COOLDOWN_HARD_SEC, `stream ${res.status}`);
+    let res;
+    try {
+      res = await fetch(`${provider.baseURL}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model,
+          messages,
+          temperature,
+          max_tokens: maxTokens,
+          stream: true,
+        }),
+        cache: "no-store",
+      });
+    } catch {
+      continue;
     }
-    const result = await generateCompletion(userPrompt, options);
-    yield result.text;
-    return;
-  }
 
-  trackProviderUsage("groq");
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      const lines = decoder.decode(value, { stream: true }).split("\n");
-      for (const line of lines) {
-        if (!line.startsWith("data: ") || line.includes("[DONE]")) continue;
-        try {
-          const data = JSON.parse(line.slice(6));
-          const content = data.choices?.[0]?.delta?.content;
-          if (content) yield content;
-        } catch {}
+    if (!res.ok || !res.body) {
+      trackProviderError(key, res.status);
+      if (res.status === 401 || res.status === 402) {
+        await setProviderCooldown(key, COOLDOWN_HARD_SEC, `stream ${res.status}`);
+      } else if (res.status === 429) {
+        await setProviderCooldown(key, COOLDOWN_RATE_SEC, `stream 429`);
       }
+      continue;
     }
-  } finally {
-    reader.releaseLock();
+
+    trackProviderUsage(key);
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const lines = decoder.decode(value, { stream: true }).split("\n");
+        for (const line of lines) {
+          if (!line.startsWith("data: ") || line.includes("[DONE]")) continue;
+          try {
+            const data = JSON.parse(line.slice(6));
+            const content = data.choices?.[0]?.delta?.content;
+            if (content) yield content;
+          } catch {}
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
+    return;
   }
+
+  const result = await generateCompletion(userPrompt, options);
+  yield result.text;
 }
