@@ -18,7 +18,7 @@ const redis = new Redis({
 
 const CACHE_TTL_OK = 6 * 60 * 60; // başarı: 6 saat
 const CACHE_TTL_FAIL = 10 * 60; // başarısızlık: 10 dk (geçici 403'ler için)
-const CACHE_VER = "v4"; // bump: jina/amp fallback + fail TTL
+const CACHE_VER = "v5"; // bump: body refine (heuristic + FAST AI)
 const MAX_BODY_CHARS = 8000;
 const MIN_BODY_CHARS = 200;
 const FETCH_TIMEOUT_MS = 12000;
@@ -141,8 +141,8 @@ function assertSafePublicUrl(raw) {
   return u;
 }
 
-function capBody(bodyText) {
-  let text = scrubPromoNoise(bodyText || "");
+function capBody(bodyText, { title } = {}) {
+  let text = scrubPromoNoise(bodyText || "", { title });
   if (text.length > MAX_BODY_CHARS) {
     text =
       text.slice(0, MAX_BODY_CHARS).trimEnd() + "\n\n… devamını kaynakta oku";
@@ -201,7 +201,7 @@ function extractFromHtml(html) {
     author,
     publishedAt,
     mainImage,
-    bodyText: capBody(bodyText),
+    bodyText: capBody(bodyText, { title }),
   };
 }
 
@@ -300,7 +300,7 @@ async function scrapeJina(url) {
   const titleMatch = text.match(/^Title:\s*(.+)$/im);
   if (titleMatch) title = titleMatch[1].trim();
 
-  body = capBody(body.replace(/^#{1,6}\s+/gm, "").trim());
+  body = capBody(body.replace(/^#{1,6}\s+/gm, "").trim(), { title });
   if (!isGoodBody(body)) throw new Error("Jina metin çok kısa");
 
   return {
@@ -442,10 +442,6 @@ ${bodyText.slice(0, 3000)}`);
   return { summary: "Özet oluşturulamadı.", whyMatters: null, bullets: [] };
 }
 
-function toParagraphs(bodyText) {
-  return toCleanParagraphs(bodyText);
-}
-
 export async function GET(request) {
   const { checkRateLimit, clientIp } = await import("@/app/lib/rateLimit");
   const rl = await checkRateLimit(`reader:${clientIp(request)}`, {
@@ -514,10 +510,29 @@ export async function GET(request) {
       }
       // Hint ile kurtar
       if (!isGoodBody(bodyText) && hintText.trim().length >= MIN_BODY_CHARS) {
-        bodyText = capBody(hintText);
+        bodyText = capBody(hintText, { title });
         method = "rss-hint";
       }
       scrapingFailed = !isGoodBody(bodyText);
+    }
+
+    // Kirli gövde → heuristic + (gerekirse) ücretsiz FAST AI ayıklama
+    if (!scrapingFailed && bodyText) {
+      try {
+        const { refineArticleBody } = await import(
+          "@/app/lib/refineArticleBody"
+        );
+        const refined = await refineArticleBody(bodyText, { title });
+        bodyText = capBody(refined.bodyText, { title });
+        if (refined.cleaned) {
+          method = `${method || "scrape"}+${refined.method}`;
+        } else if (refined.method) {
+          method = `${method || "scrape"}+${refined.method}`;
+        }
+        scrapingFailed = !isGoodBody(bodyText);
+      } catch (err) {
+        console.warn("[reader] refine:", err.message);
+      }
     }
 
     const textForSummary = scrapingFailed
@@ -525,7 +540,9 @@ export async function GET(request) {
       : bodyText;
     const { summary, whyMatters, bullets } =
       await generateSummary(textForSummary);
-    const paragraphs = scrapingFailed ? [] : toParagraphs(bodyText);
+    const paragraphs = scrapingFailed
+      ? []
+      : toCleanParagraphs(bodyText, { title });
 
     const result = {
       title: title || null,
