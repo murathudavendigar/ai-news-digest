@@ -287,8 +287,8 @@ export async function buildFullFeed({
   }
 
   if (!acquired) {
-    // Başka worker çalışıyor — cache dolmasını bekle
-    for (let i = 0; i < 12; i++) {
+    // Başka worker çalışıyor — cache dolmasını bekle (~10s)
+    for (let i = 0; i < 20; i++) {
       await sleep(500);
       try {
         const cached = await redis.get(key);
@@ -370,11 +370,9 @@ async function buildFullFeedUnlocked({ category, fullKey }) {
   };
 
   try {
+    // Boş sonucu cache'leme — ilk ziyarette poison / sticky empty önlenir
     if (articles.length > 0) {
       await redis.set(fullKey, full, { ex: FEED_CACHE_TTL });
-    } else {
-      // Boş sonucu uzun cache'leme — 60 sn sonra tekrar dene
-      await redis.set(fullKey, full, { ex: 60 });
     }
   } catch {}
   return full;

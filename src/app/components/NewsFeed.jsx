@@ -118,8 +118,6 @@ export default function NewsFeed({
     setReaderOpen(false);
   }, []);
 
-  const { pullY, refreshing, threshold } = usePullToRefresh();
-
   // Zaman filtresine göre görünen makaleler
   const filteredArticles = useMemo(() => {
     if (timeFilter === "all") return articles;
@@ -248,6 +246,28 @@ export default function NewsFeed({
       setLoading(false);
     }
   }, [nextPage, loading, category]);
+
+  const handlePullRefresh = useCallback(async () => {
+    try {
+      const qs = new URLSearchParams({ page: "1", pageSize: "30" });
+      if (category) qs.set("category", category);
+      const res = await fetch(`/api/news?${qs}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const results = data.results || [];
+      if (results.length) {
+        setArticles(sortByHistory(results));
+        setNextPage(data.nextPage || null);
+        setExhausted(!data.nextPage);
+      }
+    } catch (err) {
+      console.error("[NewsFeed] pull refresh:", err);
+    }
+  }, [category]);
+
+  const { pullY, refreshing, threshold } = usePullToRefresh({
+    onRefresh: handlePullRefresh,
+  });
 
   // Sekme kaydırma (dokunma)
   const handleTouchStart = useCallback((e) => {

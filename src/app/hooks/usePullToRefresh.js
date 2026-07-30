@@ -6,20 +6,36 @@ import { useCallback, useEffect, useRef, useState } from "react";
 const THRESHOLD = 64; // kaç px çekilince tetiklensin
 const MAX_PULL = 96; // göstergenin max yüksekliği
 
-export function usePullToRefresh({ containerRef } = {}) {
+/**
+ * @param {{ containerRef?: React.RefObject, onRefresh?: () => void | Promise<void> }} [opts]
+ * onRefresh verilirse router.refresh yerine o çağrılır (client feed için).
+ */
+export function usePullToRefresh({ containerRef, onRefresh } = {}) {
   const router = useRouter();
-  const [pullY, setPullY] = useState(0); // 0-MAX_PULL arası
+  const [pullY, setPullY] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const startYRef = useRef(null);
   const pullingRef = useRef(false);
+  const pullYRef = useRef(0);
+  const onRefreshRef = useRef(onRefresh);
+  onRefreshRef.current = onRefresh;
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
-    router.refresh();
-    // Kısa gecikme — kullanıcı "yenilendi" hissini alsın
-    await new Promise((r) => setTimeout(r, 800));
-    setRefreshing(false);
-    setPullY(0);
+    try {
+      if (onRefreshRef.current) {
+        await onRefreshRef.current();
+      } else {
+        router.refresh();
+        await new Promise((r) => setTimeout(r, 800));
+      }
+    } catch (err) {
+      console.error("[usePullToRefresh]", err);
+    } finally {
+      setRefreshing(false);
+      pullYRef.current = 0;
+      setPullY(0);
+    }
   }, [router]);
 
   useEffect(() => {
@@ -40,24 +56,25 @@ export function usePullToRefresh({ containerRef } = {}) {
       const delta = e.touches[0].clientY - startYRef.current;
       if (delta <= 0) {
         pullingRef.current = false;
+        pullYRef.current = 0;
         setPullY(0);
         return;
       }
 
       pullingRef.current = true;
-      // Rubber-band etkisi: çekiş ilerledikçe direnç artar
       const clamped = Math.min(delta * 0.45, MAX_PULL);
+      pullYRef.current = clamped;
       setPullY(clamped);
 
-      // Tarayıcının kendi scroll'unu engelle
       if (delta > 8) e.preventDefault();
     };
 
     const onTouchEnd = () => {
       if (!pullingRef.current) return;
-      if (pullY >= THRESHOLD && !refreshing) {
+      if (pullYRef.current >= THRESHOLD && !refreshing) {
         refresh();
       } else {
+        pullYRef.current = 0;
         setPullY(0);
       }
       startYRef.current = null;
@@ -73,7 +90,7 @@ export function usePullToRefresh({ containerRef } = {}) {
       el.removeEventListener("touchmove", onTouchMove);
       el.removeEventListener("touchend", onTouchEnd);
     };
-  }, [refreshing, pullY, refresh, containerRef]);
+  }, [refreshing, refresh, containerRef]);
 
   return { pullY, refreshing, threshold: THRESHOLD };
 }

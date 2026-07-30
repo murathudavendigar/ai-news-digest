@@ -330,12 +330,17 @@ export default function ReaderBottomSheet({ isOpen, onClose, article }) {
                   />
                 )}
 
-                {/* Scraping failed fallback */}
-                {data?.scrapingFailed && !data?.summary && (
+                {/* Scraping failed / thin content fallback */}
+                {data &&
+                  !loading &&
+                  !data?.summary &&
+                  (data?.scrapingFailed || data?.summarySkipped) && (
                   <div className="text-center py-12">
                     <div className="text-4xl mb-4">📄</div>
                     <p className="text-stone-600 dark:text-stone-400 mb-2">
-                      İçerik alınamadı
+                      {data?.summarySkipped
+                        ? "Yeterli metin yok — AI özeti üretilmedi"
+                        : "İçerik alınamadı"}
                     </p>
                     <p className="text-sm text-stone-500">
                       Haberi okumak için kaynağa gidin

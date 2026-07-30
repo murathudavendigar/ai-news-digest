@@ -18,7 +18,7 @@ const redis = new Redis({
 
 const CACHE_TTL_OK = 6 * 60 * 60; // başarı: 6 saat
 const CACHE_TTL_FAIL = 10 * 60; // başarısızlık: 10 dk (geçici 403'ler için)
-const CACHE_VER = "v5"; // bump: body refine (heuristic + FAST AI)
+const CACHE_VER = "v6"; // bump: skip AI summary on thin content
 const MAX_BODY_CHARS = 8000;
 const MIN_BODY_CHARS = 200;
 const FETCH_TIMEOUT_MS = 12000;
@@ -536,10 +536,27 @@ export async function GET(request) {
     }
 
     const textForSummary = scrapingFailed
-      ? [title, hintText, url].filter(Boolean).join("\n\n") || url
+      ? [title, hintText].filter(Boolean).join("\n\n")
       : bodyText;
-    const { summary, whyMatters, bullets } =
-      await generateSummary(textForSummary);
+    // Zayıf içerikte AI özeti üretme — title+URL ile saçma özet önlenir
+    const canSummarize =
+      isGoodBody(textForSummary) ||
+      (hintText && hintText.replace(/\s+/g, " ").trim().length >= MIN_BODY_CHARS);
+
+    let summary = null;
+    let whyMatters = null;
+    let bullets = [];
+    let summarySkipped = false;
+
+    if (canSummarize) {
+      const generated = await generateSummary(textForSummary);
+      summary = generated.summary;
+      whyMatters = generated.whyMatters;
+      bullets = generated.bullets;
+    } else {
+      summarySkipped = true;
+    }
+
     const paragraphs = scrapingFailed
       ? []
       : toCleanParagraphs(bodyText, { title });
@@ -556,17 +573,22 @@ export async function GET(request) {
       bodyText: scrapingFailed ? null : bodyText,
       readingMinutes: Math.max(
         1,
-        Math.round((bodyText || textForSummary || "").split(/\s+/).length / 200),
+        Math.round(
+          (bodyText || textForSummary || "").split(/\s+/).filter(Boolean)
+            .length / 200,
+        ),
       ),
       sourceUrl: url,
       sourceName: extractSource(url),
       scrapingFailed,
       scrapeMethod: method,
+      summarySkipped,
     };
 
     await redis
       .set(cacheKey, result, {
-        ex: scrapingFailed ? CACHE_TTL_FAIL : CACHE_TTL_OK,
+        ex:
+          scrapingFailed || summarySkipped ? CACHE_TTL_FAIL : CACHE_TTL_OK,
       })
       .catch(() => {});
 

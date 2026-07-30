@@ -115,7 +115,10 @@ export default async function CategoryPage({ params }) {
           </header>
 
           {newsData.results?.length === 0 ? (
-            <CategoryEmptyActions categoryTitle={cat.title} />
+            <CategoryEmptyActions
+              categoryTitle={cat.title}
+              categorySlug={slug}
+            />
           ) : (
             <NewsFeed
               key={slug}

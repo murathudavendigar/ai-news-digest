@@ -153,6 +153,14 @@ export default function DetailPageSummary({ url, description }) {
         </p>
       );
     }
+    if (data?.summarySkipped || data?.scrapingFailed) {
+      return (
+        <p className="text-sm text-[var(--text-muted)]">
+          Bu haber için yeterli metin yok; AI özeti üretilmedi. Kaynak
+          bağlantısından okuyabilirsin.
+        </p>
+      );
+    }
     // Sadece üstteki RSS dek var — tekrar yok
     return null;
   }

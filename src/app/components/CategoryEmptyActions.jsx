@@ -1,24 +1,109 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import NewsCardSkeleton from "./NewsCardSkeleton";
+import NewsFeed from "./NewsFeed";
 
-/** Boş kategori — yenile / ana sayfa aksiyonları */
-export default function CategoryEmptyActions({ categoryTitle }) {
+/**
+ * SSR boş döndüğünde client'tan /api/news ile bir kez daha dene.
+ * Cold Redis / ISR empty bake durumunda ilk ziyareti kurtarır.
+ */
+export default function CategoryEmptyActions({ categoryTitle, categorySlug }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [retrying, setRetrying] = useState(false);
+  const [bootLoading, setBootLoading] = useState(true);
+  const [recovered, setRecovered] = useState(null);
+  const tried = useRef(false);
+
+  const tryFetch = useCallback(async () => {
+    if (!categorySlug) return null;
+    const qs = new URLSearchParams({
+      category: categorySlug,
+      page: "1",
+      pageSize: "30",
+    });
+    const res = await fetch(`/api/news?${qs}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  }, [categorySlug]);
+
+  useEffect(() => {
+    if (!categorySlug || tried.current) return;
+    tried.current = true;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await tryFetch();
+        if (cancelled) return;
+        if (data?.results?.length) {
+          setRecovered({
+            articles: data.results,
+            nextPage: data.nextPage || null,
+          });
+        }
+      } catch (err) {
+        console.error("[CategoryEmptyActions] auto-retry:", err);
+      } finally {
+        if (!cancelled) setBootLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [categorySlug, tryFetch]);
 
   async function handleRetry() {
     setRetrying(true);
     try {
-      // Cache miss / kısa boş TTL sonrası taze çek
+      const data = await tryFetch();
+      if (data?.results?.length) {
+        setRecovered({
+          articles: data.results,
+          nextPage: data.nextPage || null,
+        });
+        return;
+      }
+      startTransition(() => {
+        router.refresh();
+      });
+    } catch (err) {
+      console.error("[CategoryEmptyActions] retry:", err);
       startTransition(() => {
         router.refresh();
       });
     } finally {
-      setTimeout(() => setRetrying(false), 1200);
+      setTimeout(() => setRetrying(false), 800);
     }
+  }
+
+  if (bootLoading) {
+    return (
+      <div className="flex flex-col gap-4 py-2">
+        <p className="mb-1 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">
+          Haberler yükleniyor…
+        </p>
+        {[0, 1, 2, 3].map((i) => (
+          <NewsCardSkeleton key={i} index={i} />
+        ))}
+      </div>
+    );
+  }
+
+  if (recovered?.articles?.length) {
+    return (
+      <NewsFeed
+        key={`${categorySlug}-recovered`}
+        initialArticles={recovered.articles}
+        initialNextPage={recovered.nextPage}
+        category={categorySlug}
+        showTabs={false}
+      />
+    );
   }
 
   return (
@@ -38,12 +123,12 @@ export default function CategoryEmptyActions({ categoryTitle }) {
         >
           {retrying || pending ? "Yenileniyor…" : "Yeniden dene"}
         </button>
-        <a href="/" className="article-text-link">
+        <Link href="/" className="article-text-link">
           Ana sayfa
-        </a>
-        <a href="/digest" className="article-text-link accent">
+        </Link>
+        <Link href="/digest" className="article-text-link accent">
           Günün özeti
-        </a>
+        </Link>
       </div>
     </div>
   );

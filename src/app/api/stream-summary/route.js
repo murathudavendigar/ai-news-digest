@@ -38,6 +38,24 @@ export async function POST(req) {
       );
     }
 
+    // Zayıf içerik — sadece başlıkla özet üretme
+    const bodyHint = [
+      article.description,
+      article.content,
+      article.body,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (bodyHint.length < 120) {
+      return NextResponse.json({
+        summary: null,
+        summarySkipped: true,
+        reason: "insufficient_content",
+      });
+    }
+
     const articleId = article.articleId;
 
     // ── Cache kontrolü ──────────────────────────────────────────────────

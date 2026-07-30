@@ -6,6 +6,7 @@ import {
   sortByPreferredCategories,
   useUserPreferences,
 } from "@/app/lib/useUserPreferences";
+import { usePullToRefresh } from "@/app/hooks/usePullToRefresh";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import NewsCard from "./NewsCard";
 import NewsCardSkeleton from "./NewsCardSkeleton";
@@ -187,7 +188,18 @@ export default function HomeNewsFeed() {
     }
   }, [nextPage, loadingMore, articles, activeTab]);
 
-  if (loading && articles.length === 0) {
+  const handlePullRefresh = useCallback(async () => {
+    tabCache.current.clear();
+    await fetchForTab(activeTab);
+  }, [activeTab, fetchForTab]);
+
+  const { pullY, refreshing, threshold } = usePullToRefresh({
+    onRefresh: handlePullRefresh,
+  });
+  const pullProgress = Math.min(pullY / threshold, 1);
+  const pullTriggered = pullY >= threshold;
+
+  if (loading && articles.length === 0 && !refreshing) {
     return (
       <div className="flex flex-col gap-4">
         {[0, 1, 2, 3, 4].map((i) => (
@@ -226,6 +238,69 @@ export default function HomeNewsFeed() {
 
   return (
     <div>
+      {(pullY > 0 || refreshing) && (
+        <div
+          className="mb-2 flex items-center justify-center overflow-hidden transition-all duration-150 md:hidden"
+          style={{ height: refreshing ? 48 : pullY }}
+        >
+          <div
+            className={`flex items-center gap-2 text-sm font-medium transition-colors ${
+              refreshing || pullTriggered
+                ? "text-amber-500"
+                : "text-stone-400 dark:text-stone-500"
+            }`}
+          >
+            {refreshing ? (
+              <svg
+                className="h-5 w-5 animate-spin"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v4l3-3-3-3v4a10 10 0 100 10z"
+                />
+              </svg>
+            ) : (
+              <svg
+                className="h-5 w-5 transition-transform duration-200"
+                style={{
+                  transform: pullTriggered
+                    ? "rotate(180deg)"
+                    : `rotate(${pullProgress * 180}deg)`,
+                }}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            )}
+            <span>
+              {refreshing
+                ? "Yenileniyor…"
+                : pullTriggered
+                  ? "Bırak, yenile!"
+                  : "Yenilemek için çek"}
+            </span>
+          </div>
+        </div>
+      )}
+
       <div className="scrollbar-hide mb-5 flex gap-0 overflow-x-auto border-b border-[var(--border-subtle)]">
         {tabs.map((tab) => (
           <button
