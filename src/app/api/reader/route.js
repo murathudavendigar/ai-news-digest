@@ -16,9 +16,25 @@ const redis = new Redis({
   token: process.env.STORAGE_KV_REST_API_TOKEN,
 });
 
-const CACHE_TTL = 6 * 60 * 60; // 6 hours
-const CACHE_VER = "v3"; // bump: promo scrub
+const CACHE_TTL_OK = 6 * 60 * 60; // başarı: 6 saat
+const CACHE_TTL_FAIL = 10 * 60; // başarısızlık: 10 dk (geçici 403'ler için)
+const CACHE_VER = "v4"; // bump: jina/amp fallback + fail TTL
 const MAX_BODY_CHARS = 8000;
+const MIN_BODY_CHARS = 200;
+const FETCH_TIMEOUT_MS = 12000;
+
+const BROWSER_HEADERS = {
+  "User-Agent":
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+  Accept:
+    "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+  "Accept-Language": "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
+  "Cache-Control": "no-cache",
+  "Sec-Fetch-Dest": "document",
+  "Sec-Fetch-Mode": "navigate",
+  "Sec-Fetch-Site": "none",
+  "Upgrade-Insecure-Requests": "1",
+};
 
 const ARTICLE_SELECTORS = [
   // Turkish news sites
@@ -33,6 +49,13 @@ const ARTICLE_SELECTORS = [
   ".article-content",
   ".haber-icerik",
   ".detay-metin",
+  ".detail-content",
+  ".news-detail__body",
+  ".content-body",
+  "#content-body",
+  ".story__content",
+  ".article__body",
+  ".post-body",
   // International
   "article",
   '[itemprop="articleBody"]',
@@ -87,23 +110,51 @@ function extractSource(url) {
   }
 }
 
-async function scrapeArticle(url) {
-  const res = await fetch(url, {
-    headers: {
-      "User-Agent":
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-      Accept:
-        "text/html,application/xhtml+xml,application/xhtml;q=0.9,*/*;q=0.8",
-      "Accept-Language": "tr-TR,tr;q=0.9,en;q=0.8",
-      "Accept-Encoding": "gzip, deflate, br",
-      "Cache-Control": "no-cache",
-    },
-    signal: AbortSignal.timeout(8000),
-  });
+function isPrivateHost(hostname) {
+  const h = hostname.toLowerCase();
+  if (
+    h === "localhost" ||
+    h.endsWith(".local") ||
+    h.endsWith(".internal") ||
+    h === "0.0.0.0"
+  ) {
+    return true;
+  }
+  if (/^\d+\.\d+\.\d+\.\d+$/.test(h)) {
+    const [a, b] = h.split(".").map(Number);
+    if (a === 10 || a === 127 || a === 0) return true;
+    if (a === 169 && b === 254) return true;
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 192 && b === 168) return true;
+  }
+  return false;
+}
 
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+function assertSafePublicUrl(raw) {
+  const u = new URL(raw);
+  if (!["http:", "https:"].includes(u.protocol)) {
+    throw new Error("Sadece http/https URL desteklenir");
+  }
+  if (isPrivateHost(u.hostname)) {
+    throw new Error("Özel ağ adreslerine erişim engellendi");
+  }
+  return u;
+}
 
-  const html = await res.text();
+function capBody(bodyText) {
+  let text = scrubPromoNoise(bodyText || "");
+  if (text.length > MAX_BODY_CHARS) {
+    text =
+      text.slice(0, MAX_BODY_CHARS).trimEnd() + "\n\n… devamını kaynakta oku";
+  }
+  return text;
+}
+
+function isGoodBody(bodyText) {
+  return Boolean(bodyText && bodyText.replace(/\s+/g, " ").trim().length >= MIN_BODY_CHARS);
+}
+
+function extractFromHtml(html) {
   const $ = cheerio.load(html);
 
   const title =
@@ -145,15 +196,174 @@ async function scrapeArticle(url) {
       .join("\n\n");
   }
 
-  bodyText = scrubPromoNoise(bodyText);
+  return {
+    title,
+    author,
+    publishedAt,
+    mainImage,
+    bodyText: capBody(bodyText),
+  };
+}
 
-  if (bodyText.length > MAX_BODY_CHARS) {
-    bodyText =
-      bodyText.slice(0, MAX_BODY_CHARS).trimEnd() +
-      "\n\n… devamını kaynakta oku";
+async function fetchHtml(url, { timeout = FETCH_TIMEOUT_MS } = {}) {
+  const res = await fetch(url, {
+    headers: BROWSER_HEADERS,
+    redirect: "follow",
+    signal: AbortSignal.timeout(timeout),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.text();
+}
+
+async function scrapeDirect(url) {
+  let lastErr;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const html = await fetchHtml(url, {
+        timeout: attempt === 0 ? FETCH_TIMEOUT_MS : 15000,
+      });
+      return { ...extractFromHtml(html), method: "direct" };
+    } catch (err) {
+      lastErr = err;
+      // 403/401'de retry anlamsız; timeout/5xx için bir kez daha dene
+      const msg = String(err?.message || "");
+      if (/HTTP 40[13]/.test(msg) || /HTTP 429/.test(msg)) break;
+    }
+  }
+  throw lastErr || new Error("Doğrudan scrape başarısız");
+}
+
+function ampCandidates(url) {
+  try {
+    const u = new URL(url);
+    const out = [];
+    // /amp ve /amp/ sonekleri
+    if (!u.pathname.includes("/amp")) {
+      out.push(`${u.origin}${u.pathname.replace(/\/?$/, "")}/amp`);
+      out.push(`${u.origin}${u.pathname.replace(/\/?$/, "")}/amp/`);
+    }
+    // ?outputType=amp (AA vb.)
+    const q = new URL(url);
+    q.searchParams.set("outputType", "amp");
+    out.push(q.toString());
+    return [...new Set(out)];
+  } catch {
+    return [];
+  }
+}
+
+async function scrapeAmp(url) {
+  for (const ampUrl of ampCandidates(url)) {
+    try {
+      const html = await fetchHtml(ampUrl, { timeout: 10000 });
+      const parsed = extractFromHtml(html);
+      if (isGoodBody(parsed.bodyText)) {
+        return { ...parsed, method: "amp" };
+      }
+    } catch {
+      // sonraki aday
+    }
+  }
+  throw new Error("AMP scrape başarısız");
+}
+
+/**
+ * Jina Reader — bot korumalı siteler için metin çıkarımı.
+ * Ücretsiz, API key gerekmez. https://r.jina.ai/{url}
+ */
+async function scrapeJina(url) {
+  const jinaUrl = `https://r.jina.ai/${url}`;
+  const res = await fetch(jinaUrl, {
+    headers: {
+      Accept: "text/plain",
+      "User-Agent": "HaberAI/1.0 (+https://haberai.muratoncu.com)",
+      "X-Return-Format": "text",
+    },
+    signal: AbortSignal.timeout(20000),
+  });
+  if (!res.ok) throw new Error(`Jina HTTP ${res.status}`);
+
+  const text = (await res.text()).trim();
+  // Jina bazen Title:/URL: başlıkları ekler — gövdeyi ayır
+  let body = text;
+  const markers = ["Markdown Content:", "Markdown Content：", "\n\n"];
+  for (const m of markers) {
+    const idx = body.indexOf(m);
+    if (idx !== -1 && idx < 800) {
+      body = body.slice(idx + m.length).trim();
+      break;
+    }
   }
 
-  return { title, author, publishedAt, mainImage, bodyText };
+  // Title satırını yakala
+  let title = null;
+  const titleMatch = text.match(/^Title:\s*(.+)$/im);
+  if (titleMatch) title = titleMatch[1].trim();
+
+  body = capBody(body.replace(/^#{1,6}\s+/gm, "").trim());
+  if (!isGoodBody(body)) throw new Error("Jina metin çok kısa");
+
+  return {
+    title,
+    author: null,
+    publishedAt: null,
+    mainImage: null,
+    bodyText: body,
+    method: "jina",
+  };
+}
+
+/**
+ * Zincir: direct → AMP → Jina.
+ * hintText: RSS description/content (istemci gönderirse)
+ */
+async function scrapeArticle(url, { hintText } = {}) {
+  const errors = [];
+  let best = null;
+
+  const tryMethod = async (name, fn) => {
+    try {
+      const result = await fn();
+      if (isGoodBody(result.bodyText)) return result;
+      if (
+        result.bodyText &&
+        (!best || result.bodyText.length > (best.bodyText?.length || 0))
+      ) {
+        best = result;
+      }
+      errors.push(`${name}: kısa gövde (${result.bodyText?.length || 0})`);
+    } catch (err) {
+      errors.push(`${name}: ${err.message}`);
+    }
+    return null;
+  };
+
+  let result =
+    (await tryMethod("direct", () => scrapeDirect(url))) ||
+    (await tryMethod("amp", () => scrapeAmp(url))) ||
+    (await tryMethod("jina", () => scrapeJina(url)));
+
+  if (!result && best && isGoodBody(best.bodyText)) result = best;
+
+  // RSS/hint yedek — scrape tamamen başarısızsa
+  if (!result && hintText && hintText.trim().length >= MIN_BODY_CHARS) {
+    result = {
+      title: null,
+      author: null,
+      publishedAt: null,
+      mainImage: null,
+      bodyText: capBody(hintText),
+      method: "rss-hint",
+    };
+  }
+
+  if (!result) {
+    const err = new Error(errors.join(" | ") || "Scrape başarısız");
+    err.partial = best;
+    throw err;
+  }
+
+  return result;
 }
 
 async function generateSummary(bodyText) {
@@ -216,7 +426,9 @@ ${bodyText.slice(0, 3000)}`);
           return {
             summary: parsed.summary,
             whyMatters: parsed.whyMatters || null,
-            bullets: Array.isArray(parsed.bullets) ? parsed.bullets.slice(0, 4) : [],
+            bullets: Array.isArray(parsed.bullets)
+              ? parsed.bullets.slice(0, 4)
+              : [],
           };
         }
       } catch {
@@ -249,6 +461,7 @@ export async function GET(request) {
 
   const { searchParams } = new URL(request.url);
   const url = searchParams.get("url");
+  const hintText = (searchParams.get("hint") || "").slice(0, 6000);
 
   if (!url) {
     return NextResponse.json(
@@ -258,30 +471,58 @@ export async function GET(request) {
   }
 
   try {
-    new URL(url);
-  } catch {
+    assertSafePublicUrl(url);
+  } catch (err) {
     return NextResponse.json(
-      { error: "Geçersiz URL", scrapingFailed: true },
+      { error: err.message || "Geçersiz URL", scrapingFailed: true },
       { status: 400 },
     );
   }
 
+  const cacheKey = `reader:${CACHE_VER}:${Buffer.from(url).toString("base64").slice(0, 100)}`;
+
   try {
-    // Check Redis cache (v3 = promo scrub)
-    const cacheKey = `reader:${CACHE_VER}:${Buffer.from(url).toString("base64").slice(0, 100)}`;
     const cached = await redis.get(cacheKey).catch(() => null);
     if (cached) {
       return NextResponse.json({ ...cached, fromCache: true });
     }
 
-    // Scrape
-    const { title, author, publishedAt, mainImage, bodyText } =
-      await scrapeArticle(url);
+    let title = null;
+    let author = null;
+    let publishedAt = null;
+    let mainImage = null;
+    let bodyText = "";
+    let method = null;
+    let scrapingFailed = false;
 
-    const scrapingFailed = !bodyText || bodyText.length < 200;
+    try {
+      const scraped = await scrapeArticle(url, { hintText });
+      title = scraped.title;
+      author = scraped.author;
+      publishedAt = scraped.publishedAt;
+      mainImage = scraped.mainImage;
+      bodyText = scraped.bodyText || "";
+      method = scraped.method;
+      scrapingFailed = !isGoodBody(bodyText);
+    } catch (err) {
+      console.warn("[reader] scrape zinciri:", err.message);
+      // Kısmi sonuç varsa kullan
+      if (err.partial?.bodyText) {
+        bodyText = err.partial.bodyText;
+        title = err.partial.title;
+        method = err.partial.method || "partial";
+      }
+      // Hint ile kurtar
+      if (!isGoodBody(bodyText) && hintText.trim().length >= MIN_BODY_CHARS) {
+        bodyText = capBody(hintText);
+        method = "rss-hint";
+      }
+      scrapingFailed = !isGoodBody(bodyText);
+    }
 
-    // Generate AI summary (even if scraping partially worked)
-    const textForSummary = scrapingFailed ? title || url : bodyText;
+    const textForSummary = scrapingFailed
+      ? [title, hintText, url].filter(Boolean).join("\n\n") || url
+      : bodyText;
     const { summary, whyMatters, bullets } =
       await generateSummary(textForSummary);
     const paragraphs = scrapingFailed ? [] : toParagraphs(bodyText);
@@ -303,10 +544,14 @@ export async function GET(request) {
       sourceUrl: url,
       sourceName: extractSource(url),
       scrapingFailed,
+      scrapeMethod: method,
     };
 
-    // Cache
-    await redis.set(cacheKey, result, { ex: CACHE_TTL }).catch(() => {});
+    await redis
+      .set(cacheKey, result, {
+        ex: scrapingFailed ? CACHE_TTL_FAIL : CACHE_TTL_OK,
+      })
+      .catch(() => {});
 
     return NextResponse.json(result);
   } catch (err) {
@@ -324,7 +569,7 @@ export async function GET(request) {
         scrapingFailed: true,
         error: err.message,
       },
-      { status: 200 }, // Return 200 so client handles gracefully
+      { status: 200 },
     );
   }
 }

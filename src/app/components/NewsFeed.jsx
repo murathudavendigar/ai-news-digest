@@ -88,6 +88,7 @@ export default function NewsFeed({
   initialArticles,
   initialNextPage,
   showTabs = true,
+  category = null,
 }) {
   const [articles, setArticles] = useState(initialArticles);
   const [nextPage, setNextPage] = useState(initialNextPage);
@@ -225,7 +226,9 @@ export default function NewsFeed({
     setLoading(true);
 
     try {
-      const res = await fetch(`/api/news?page=${nextPage}`);
+      const qs = new URLSearchParams({ page: String(nextPage) });
+      if (category) qs.set("category", category);
+      const res = await fetch(`/api/news?${qs}`);
       const data = await res.json();
 
       setArticles((prev) => {
@@ -244,7 +247,7 @@ export default function NewsFeed({
     } finally {
       setLoading(false);
     }
-  }, [nextPage, loading]);
+  }, [nextPage, loading, category]);
 
   // Sekme kaydırma (dokunma)
   const handleTouchStart = useCallback((e) => {

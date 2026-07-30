@@ -25,7 +25,7 @@ const ARTICLE_CACHE_TTL = 7 * 24 * 3600; // 7 gün — makale detayı
 const LOCK_TTL_SEC = 120;
 const STALE_MS = 10 * 60 * 1000;
 
-/** Cron warmer — kritik feed'ler (Hobby günde 1) */
+/** Cron warmer — kategori sayfaları + ana akış (Hobby günde 1) */
 export const WARM_FEED_CATEGORIES = [
   null, // all / homepage
   "politics",
@@ -34,6 +34,11 @@ export const WARM_FEED_CATEGORIES = [
   "sports",
   "technology",
   "health",
+  "science",
+  "entertainment",
+  "culture",
+  "defense",
+  "lifestyle",
 ];
 
 function feedKey(category) {
@@ -160,6 +165,28 @@ export async function findRelatedInFeed(query, currentId, limit = 4) {
     .map(({ _relScore: _, ...a }) => normalizeArticle(a));
 }
 
+/** all feed'den kategori süz — cold/empty kategori için yedek */
+async function filterAllFeedByCategory(category) {
+  if (!category) return null;
+  try {
+    const all = await redis.get(feedKey(null));
+    if (!all?.results?.length) return null;
+    const filtered = all.results.filter((a) =>
+      (Array.isArray(a.category) ? a.category : [a.category]).some(
+        (c) => String(c || "").toLowerCase() === category.toLowerCase(),
+      ),
+    );
+    if (!filtered.length) return null;
+    return {
+      results: filtered,
+      source: "all-filter",
+      fetchedAt: all.fetchedAt || new Date().toISOString(),
+    };
+  } catch {
+    return null;
+  }
+}
+
 // ── Ana feed ─────────────────────────────────────────────────────────────
 export async function getNewsFeed({ category, page = 1, pageSize = 30 } = {}) {
   const resolvedCategory =
@@ -169,20 +196,33 @@ export async function getNewsFeed({ category, page = 1, pageSize = 30 } = {}) {
 
   try {
     const cached = await redis.get(fullKey);
-    if (cached?.results) {
+    // Boş dizi truthy — boş cache'i miss say (poison önleme)
+    if (cached?.results?.length) {
       const age = Date.now() - new Date(cached.fetchedAt).getTime();
       if (age > STALE_MS) {
-        // stale — arka planda tek uçuş (lock içinde)
         rebuildFeedInBackground(resolvedCategory, fullKey);
       }
       return paginateFeed(cached, page, pageSize, true);
     }
   } catch {}
 
-  const full = await buildFullFeed({
+  let full = await buildFullFeed({
     category: resolvedCategory,
     fullKey,
   });
+
+  // Kategori boşsa all feed'den süz
+  if (resolvedCategory && !full?.results?.length) {
+    const fallback = await filterAllFeedByCategory(resolvedCategory);
+    if (fallback?.results?.length) {
+      full = fallback;
+      // Kısa TTL ile yaz — bir sonraki warm dolana kadar sayfa boş kalmasın
+      try {
+        await redis.set(fullKey, full, { ex: 5 * 60 });
+      } catch {}
+    }
+  }
+
   return paginateFeed(full, page, pageSize, false);
 }
 
@@ -248,8 +288,8 @@ export async function buildFullFeed({
 
   if (!acquired) {
     // Başka worker çalışıyor — cache dolmasını bekle
-    for (let i = 0; i < 10; i++) {
-      await sleep(400);
+    for (let i = 0; i < 12; i++) {
+      await sleep(500);
       try {
         const cached = await redis.get(key);
         if (cached?.results?.length) return cached;
@@ -258,7 +298,11 @@ export async function buildFullFeed({
     if (background) {
       return { results: [], source: "rss", fetchedAt: new Date().toISOString() };
     }
-    // Cold path: hâlâ boşsa yine de dene (kilidi beklemeden — nadir)
+    // Cold path: all-filter yedek, sonra kilitsiz dene
+    if (category) {
+      const fallback = await filterAllFeedByCategory(category);
+      if (fallback?.results?.length) return fallback;
+    }
   }
 
   try {
@@ -326,7 +370,12 @@ async function buildFullFeedUnlocked({ category, fullKey }) {
   };
 
   try {
-    await redis.set(fullKey, full, { ex: FEED_CACHE_TTL });
+    if (articles.length > 0) {
+      await redis.set(fullKey, full, { ex: FEED_CACHE_TTL });
+    } else {
+      // Boş sonucu uzun cache'leme — 60 sn sonra tekrar dene
+      await redis.set(fullKey, full, { ex: 60 });
+    }
   } catch {}
   return full;
 }

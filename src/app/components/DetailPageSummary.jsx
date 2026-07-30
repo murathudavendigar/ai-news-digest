@@ -61,7 +61,11 @@ export default function DetailPageSummary({ url, description }) {
       setLoading(true);
       setFailed(false);
       try {
-        const r = await fetch(`/api/reader?url=${encodeURIComponent(url)}`);
+        const params = new URLSearchParams({ url });
+        if (description?.trim()) {
+          params.set("hint", description.trim().slice(0, 4000));
+        }
+        const r = await fetch(`/api/reader?${params.toString()}`);
         const result = await r.json();
         if (!isMounted) return;
         if (result?.error && !result?.summary && !result?.bodyText) {
@@ -84,7 +88,7 @@ export default function DetailPageSummary({ url, description }) {
     return () => {
       isMounted = false;
     };
-  }, [url]);
+  }, [url, description]);
 
   if (!url) {
     // Kaynak yok — üstteki dek zaten description gösteriyorsa burada tekrarlama

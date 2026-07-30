@@ -106,7 +106,11 @@ export default function ReaderBottomSheet({ isOpen, onClose, article }) {
     setLoading(true);
     setData(null);
 
-    fetch(`/api/reader?url=${encodeURIComponent(url)}`)
+    const params = new URLSearchParams({ url });
+    const hint = article.description || article.content || article.summary || "";
+    if (hint.trim()) params.set("hint", hint.trim().slice(0, 4000));
+
+    fetch(`/api/reader?${params.toString()}`)
       .then((r) => r.json())
       .then((result) => {
         cacheRef.current.set(url, result);
@@ -116,7 +120,7 @@ export default function ReaderBottomSheet({ isOpen, onClose, article }) {
         setData({ scrapingFailed: true, sourceUrl: url });
       })
       .finally(() => setLoading(false));
-  }, [isOpen, article?.link]);
+  }, [isOpen, article?.link, article?.description, article?.content, article?.summary]);
 
   // ── Body scroll lock ──
   useEffect(() => {

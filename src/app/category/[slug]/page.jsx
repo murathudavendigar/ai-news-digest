@@ -1,3 +1,4 @@
+import CategoryEmptyActions from "@/app/components/CategoryEmptyActions";
 import CategorySwipe from "@/app/components/CategorySwipe";
 import NewsFeed from "@/app/components/NewsFeed";
 import { getNewsFeed } from "@/app/lib/newsSource";
@@ -6,7 +7,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 export const revalidate = 300;
-export const dynamic = "force-dynamic";
 
 const CATEGORIES = {
   technology: {
@@ -115,26 +115,13 @@ export default async function CategoryPage({ params }) {
           </header>
 
           {newsData.results?.length === 0 ? (
-            <div className="page-empty">
-              <p className="page-masthead-kicker mb-3">Arşiv</p>
-              <h3>Henüz haber yok</h3>
-              <p>
-                {cat.title} kategorisinde şu an manşet bulunamadı. Ana sayfadan
-                güncel akışa dönebilirsin.
-              </p>
-              <div className="flex flex-wrap items-center justify-center gap-4">
-                <Link href="/" className="article-text-link">
-                  Ana sayfa
-                </Link>
-                <Link href="/digest" className="article-text-link accent">
-                  Günün özeti
-                </Link>
-              </div>
-            </div>
+            <CategoryEmptyActions categoryTitle={cat.title} />
           ) : (
             <NewsFeed
+              key={slug}
               initialArticles={newsData.results}
               initialNextPage={newsData.nextPage || null}
+              category={slug}
               showTabs={false}
             />
           )}
